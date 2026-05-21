@@ -1,0 +1,38 @@
+name: Deploy to HF Spaces
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'configs/**', 'requirements.txt', 'Dockerfile']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install huggingface_hub
+        run: pip install huggingface_hub
+
+      - name: Deploy to HuggingFace Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          from huggingface_hub import HfApi
+          import os
+          
+          api = HfApi()
+          repo_id = "shrayyyy/vetderm-ai"
+          
+          # Upload all relevant files
+          for f in ["src/api/app.py", "src/rag/retriever.py", "src/vlm/client.py", 
+                    "src/models/schemas.py", "src/main.py", "requirements.txt"]:
+              if os.path.exists(f):
+                  api.upload_file(
+                      path_or_fileobj=f,
+                      path_in_repo=f,
+                      repo_id=repo_id,
+                      repo_type="space",
+                      token=os.environ["HF_TOKEN"]
+                  )
+        shell: python

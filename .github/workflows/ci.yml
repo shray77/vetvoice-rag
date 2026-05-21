@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install linters
+        run: pip install ruff flake8
+      - name: Lint Python
+        run: |
+          ruff check src/ --ignore E501
+          flake8 src/ --max-line-length 120 --exclude __pycache__
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install -r requirements.txt pytest pytest-cov
+      - name: Run tests
+        run: pytest tests/ -v --cov=src --cov-fail-under=40
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GLM_API_KEY: test
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t vetvoice-rag .
+      - name: Test container starts
+        run: docker run -d --name test vetvoice-rag && sleep 5 && docker logs test && docker stop test

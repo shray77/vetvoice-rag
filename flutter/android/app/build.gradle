@@ -1,0 +1,39 @@
+def localProperties = new PropertiesFile()
+localProperties.load(file('../local.properties').newDataInputStream())
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) throw new GradleException("Flutter SDK not found.")
+
+apply plugin: 'com.android.application'
+apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
+
+android {
+    namespace "com.vetvoice.app"
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.vetvoice.app"
+        minSdk 21
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.multidex:multidex:2.0.1'
+}

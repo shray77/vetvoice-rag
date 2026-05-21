@@ -1,0 +1,18 @@
+# VetVoice RAG Configuration
+api:
+  host: "0.0.0.0"
+  port: 7860
+  cors_origins: ["*"]
+
+rag:
+  repo_id: "shrayyyy/vet-derm-rag"
+  local_dir: "/tmp/vet_rag"
+  top_k: 5
+  max_context_chars: 5000
+
+models:
+  vlm: "glm-4v"
+  llm: "glm-4"
+
+logging:
+  level: "INFO"

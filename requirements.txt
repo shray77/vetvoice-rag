@@ -1,0 +1,13 @@
+gradio==5.29.0
+pyaudioop
+fastapi
+uvicorn[standard]
+python-multipart
+requests
+Pillow
+scikit-learn
+faiss-cpu
+huggingface_hub
+numpy
+pyyaml
+pydantic
