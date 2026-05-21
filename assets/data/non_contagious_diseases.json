@@ -1,0 +1,313 @@
+{
+  "version": "1.0",
+  "source": "Официальные ветеринарные источники: Минсельхоз РФ, Нита-Фарм, вет. учебные заведения",
+  "description": "Незаразные болезни животных — протоколы лечения из официальных источников",
+  "diseases": [
+    {
+      "id": 201,
+      "name": "Кетоз",
+      "code": "KET",
+      "category": "non_contagious",
+      "animals": [
+        "КРС"
+      ]
+    },
+    {
+      "id": 202,
+      "name": "Гипокальциемия (Молочная лихорадка)",
+      "code": "MFEVER",
+      "category": "non_contagious",
+      "animals": [
+        "КРС"
+      ]
+    },
+    {
+      "id": 203,
+      "name": "Остеомаляция",
+      "code": "OSTML",
+      "category": "non_contagious",
+      "animals": [
+        "КРС",
+        "МРС",
+        "Свиньи",
+        "Лошади"
+      ]
+    },
+    {
+      "id": 204,
+      "name": "Рахит",
+      "code": "RICK",
+      "category": "non_contagious",
+      "animals": [
+        "КРС",
+        "МРС",
+        "Свиньи",
+        "Лошади",
+        "Собаки"
+      ]
+    },
+    {
+      "id": 205,
+      "name": "Бронхопневмония телят",
+      "code": "BRPN",
+      "category": "non_contagious",
+      "animals": [
+        "КРС"
+      ]
+    },
+    {
+      "id": 206,
+      "name": "Диспепсия телят",
+      "code": "DYSP",
+      "category": "non_contagious",
+      "animals": [
+        "КРС"
+      ]
+    },
+    {
+      "id": 207,
+      "name": "Тимпания рубца",
+      "code": "TYMP",
+      "category": "non_contagious",
+      "animals": [
+        "КРС"
+      ]
+    },
+    {
+      "id": 208,
+      "name": "Атония рубца",
+      "code": "ATON",
+      "category": "non_contagious",
+      "animals": [
+        "КРС"
+      ]
+    },
+    {
+      "id": 209,
+      "name": "Мастит",
+      "code": "MAST",
+      "category": "non_contagious",
+      "animals": [
+        "КРС"
+      ]
+    },
+    {
+      "id": 210,
+      "name": "Эндометрит",
+      "code": "ENDM",
+      "category": "non_contagious",
+      "animals": [
+        "КРС"
+      ]
+    },
+    {
+      "id": 211,
+      "name": "Ламинит",
+      "code": "LAMN",
+      "category": "non_contagious",
+      "animals": [
+        "КРС",
+        "Лошади"
+      ]
+    },
+    {
+      "id": 212,
+      "name": "Болезнь Мортелларо (Межпальцевой дерматит)",
+      "code": "MORT",
+      "category": "non_contagious",
+      "animals": [
+        "КРС"
+      ]
+    },
+    {
+      "id": 213,
+      "name": "Язва Рустерхольца",
+      "code": "RUST",
+      "category": "non_contagious",
+      "animals": [
+        "КРС"
+      ]
+    },
+    {
+      "id": 214,
+      "name": "Межпальцевая флегмона",
+      "code": "IPHL",
+      "category": "non_contagious",
+      "animals": [
+        "КРС"
+      ]
+    },
+    {
+      "id": 215,
+      "name": "Эпилепсия",
+      "code": "EPI",
+      "category": "non_contagious",
+      "animals": [
+        "Собаки",
+        "Кошки"
+      ]
+    },
+    {
+      "id": 216,
+      "name": "Цистит",
+      "code": "CYST",
+      "category": "non_contagious",
+      "animals": [
+        "Собаки",
+        "Кошки"
+      ]
+    },
+    {
+      "id": 217,
+      "name": "Гастрит",
+      "code": "GAST",
+      "category": "non_contagious",
+      "animals": [
+        "Собаки",
+        "Кошки"
+      ]
+    },
+    {
+      "id": 218,
+      "name": "Энтерит",
+      "code": "ENTR",
+      "category": "non_contagious",
+      "animals": [
+        "Собаки",
+        "Кошки"
+      ]
+    },
+    {
+      "id": 219,
+      "name": "Дерматит",
+      "code": "DERM",
+      "category": "non_contagious",
+      "animals": [
+        "Собаки",
+        "Кошки"
+      ]
+    },
+    {
+      "id": 220,
+      "name": "Аллергия",
+      "code": "ALRG",
+      "category": "non_contagious",
+      "animals": [
+        "Собаки",
+        "Кошки"
+      ]
+    },
+    {
+      "id": 221,
+      "name": "Отит",
+      "code": "OTIT",
+      "category": "non_contagious",
+      "animals": [
+        "Собаки"
+      ]
+    },
+    {
+      "id": 222,
+      "name": "Конъюнктивит",
+      "code": "CONJ",
+      "category": "non_contagious",
+      "animals": [
+        "Собаки",
+        "Кошки",
+        "КРС",
+        "Лошади"
+      ]
+    },
+    {
+      "id": 223,
+      "name": "Жировая дистрофия печени (Липидоз)",
+      "code": "LIPD",
+      "category": "non_contagious",
+      "animals": [
+        "Кошки",
+        "Собаки",
+        "КРС"
+      ]
+    },
+    {
+      "id": 224,
+      "name": "Анемия (железодефицитная)",
+      "code": "ANEM",
+      "category": "non_contagious",
+      "animals": [
+        "Свиньи",
+        "КРС",
+        "Собаки",
+        "Кошки"
+      ]
+    },
+    {
+      "id": 225,
+      "name": "Авитаминоз",
+      "code": "AVIT",
+      "category": "non_contagious",
+      "animals": [
+        "КРС",
+        "МРС",
+        "Свиньи",
+        "Собаки",
+        "Кошки",
+        "Птица"
+      ]
+    },
+    {
+      "id": 226,
+      "name": "Отравления (токсикозы)",
+      "code": "TOX",
+      "category": "non_contagious",
+      "animals": [
+        "КРС",
+        "МРС",
+        "Свиньи",
+        "Собаки",
+        "Кошки",
+        "Лошади"
+      ]
+    },
+    {
+      "id": 227,
+      "name": "Раны и травмы",
+      "code": "WOUND",
+      "category": "non_contagious",
+      "animals": [
+        "Все"
+      ]
+    },
+    {
+      "id": 228,
+      "name": "Пиелонефрит",
+      "code": "PYEL",
+      "category": "non_contagious",
+      "animals": [
+        "Собаки",
+        "Кошки",
+        "КРС"
+      ]
+    },
+    {
+      "id": 229,
+      "name": "Гингивит / Стоматит",
+      "code": "GING",
+      "category": "non_contagious",
+      "animals": [
+        "Собаки",
+        "Кошки"
+      ]
+    },
+    {
+      "id": 230,
+      "name": "Синдром Кушинга (Гиперадренокортицизм)",
+      "code": "CUSH",
+      "category": "non_contagious",
+      "animals": [
+        "Собаки",
+        "Кошки"
+      ]
+    }
+  ]
+}
