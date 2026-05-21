@@ -4,6 +4,19 @@ on:
   schedule:
     - cron: '0 2 * * 0'  # Weekly Sunday 02:00 UTC
   workflow_dispatch:
+    inputs:
+      source:
+        description: 'Harvest source: annas, pubmed, semantic, all'
+        required: false
+        default: 'all'
+      max_results:
+        description: 'Max results per query'
+        required: false
+        default: '10'
+      queries:
+        description: 'Custom queries (comma-separated, or "batch" for built-in)'
+        required: false
+        default: 'batch'
 
 jobs:
   update:
@@ -18,28 +31,53 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
-      - name: Build RAG index
-        run: python scripts/build_rag.py
+      - name: Download existing RAG data from HF Hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python -c "
+          from huggingface_hub import hf_hub_download
+          import os
+          for f in ['vet_derm_faiss.index', 'vet_derm_vectorizer.pkl', 'vet_derm_retrieval_store.json']:
+              try:
+                  hf_hub_download('shrayyyy/vet-derm-rag', f, token=os.environ['HF_TOKEN'], local_dir='knowledge_base')
+                  print(f'Downloaded: {f}')
+              except Exception as e:
+                  print(f'Could not download {f}: {e}')
+          "
+
+      - name: Harvest papers from academic sources
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
+        run: |
+          SOURCE="${{ github.event.inputs.source || 'all' }}"
+          MAX="${{ github.event.inputs.max_results || '10' }}"
+          QUERIES="${{ github.event.inputs.queries || 'batch' }}"
+
+          if [ "$QUERIES" = "batch" ]; then
+            python scripts/paper_harvester.py --source "$SOURCE" --batch --max "$MAX" --upload
+          else
+            IFS=',' read -ra QUERY_ARRAY <<< "$QUERIES"
+            for q in "${QUERY_ARRAY[@]}"; do
+              python scripts/paper_harvester.py --source "$SOURCE" --query "$q" --max "$MAX"
+            done
+            python scripts/paper_harvester.py --rebuild --upload
+          fi
 
       - name: Validate index
         run: python -c "import faiss; idx=faiss.read_index('knowledge_base/vet_derm_faiss.index'); print(f'Index: {idx.ntotal} vectors')"
 
-      - name: Upload to HF Hub
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      - name: Generate harvest report
+        if: always()
         run: |
-          from huggingface_hub import HfApi
-          import os
-          api = HfApi()
-          for f in os.listdir("knowledge_base"):
-              if f.endswith(('.index', '.pkl', '.json')):
-                  api.upload_file(
-                      path_or_fileobj=f"knowledge_base/{f}",
-                      path_in_repo=f,
-                      repo_id="shrayyyy/vet-derm-rag",
-                      repo_type="model",
-                      token=os.environ["HF_TOKEN"]
-                  )
-        shell: python
+          if [ -f collected_papers/papers_metadata.json ]; then
+            python -c "
+            import json
+            with open('collected_papers/papers_metadata.json') as f:
+                    m = json.load(f)
+            print(f'Total papers: {len(m.get(\"papers\", []))}')
+            print(f'Total chunks: {m.get(\"total_chunks\", 0)}')
+            print(f'Last harvest: {m.get(\"last_harvest\", \"N/A\")}')
+            "
+          fi

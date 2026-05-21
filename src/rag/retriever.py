@@ -163,11 +163,37 @@ class VetDermRAG:
             conditions = r.get("conditions", [])
             content = r.get("content", "")
             score = r.get("score", 0)
-            part = (
-                f"[Source {i+1}: {source} | "
-                f"Conditions: {', '.join(conditions) if conditions else 'general'} | "
-                f"Relevance: {score:.2f}]\n{content}\n"
-            )
+            chunk_type = r.get("chunk_type", "general")
+
+            # Build metadata line — include paper citation if available
+            meta = f"[Source {i+1}: {source} | "
+            if conditions:
+                meta += f"Conditions: {', '.join(conditions)} | "
+            else:
+                meta += "Conditions: general | "
+            meta += f"Relevance: {score:.2f}"
+
+            # Add academic paper citation details
+            if chunk_type == "academic_paper":
+                paper_title = r.get("paper_title", "")
+                paper_journal = r.get("paper_journal", "")
+                paper_year = r.get("paper_year", "")
+                paper_doi = r.get("paper_doi", "")
+                citation_parts = []
+                if paper_title:
+                    citation_parts.append(f"Title: {paper_title}")
+                if paper_journal:
+                    citation_parts.append(f"Journal: {paper_journal}")
+                if paper_year:
+                    citation_parts.append(f"Year: {paper_year}")
+                if paper_doi:
+                    citation_parts.append(f"DOI: {paper_doi}")
+                if citation_parts:
+                    meta += f" | {'; '.join(citation_parts)}"
+
+            meta += "]"
+
+            part = f"{meta}\n{content}\n"
             if total_chars + len(part) > max_chars:
                 remaining = max_chars - total_chars
                 if remaining > 100:

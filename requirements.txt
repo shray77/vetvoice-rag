@@ -11,3 +11,7 @@ huggingface_hub
 numpy
 pyyaml
 pydantic
+# Paper harvester dependencies
+PyMuPDF
+pdfplumber
+lxml
