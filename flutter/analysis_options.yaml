@@ -10,3 +10,5 @@ analyzer:
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
+  errors:
+    undefined_lint: ignore
