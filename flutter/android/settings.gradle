@@ -1,34 +1,9 @@
 pluginManagement {
-    def flutterSdkPath = {
-        def properties = new Properties()
-        def propsFile = file("local.properties")
-        if (propsFile.exists()) {
-            propsFile.withInputStream { properties.load(it) }
-            def path = properties.getProperty("flutter.sdk")
-            if (path != null) return path
-        }
-        // Fallback: use environment variable or well-known paths
-        def envPath = System.env.FLUTTER_ROOT
-        if (envPath != null) return envPath
-        // Common CI locations
-        def ciPath = System.env.FLUTTER_HOME
-        if (ciPath != null) return ciPath
-        throw new GradleException("""
-            Flutter SDK not found. Set FLUTTER_ROOT environment variable,
-            or add flutter.sdk=<path> to local.properties""")
-    }()
-    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-
     repositories {
         google()
         mavenCentral()
         gradlePluginPortal()
     }
-}
-
-plugins {
-    id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
-    id "com.android.application" version "8.1.4" apply false
 }
 
 include ":app"
