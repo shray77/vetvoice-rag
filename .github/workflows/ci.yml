@@ -14,6 +14,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+      - name: Cache pip linters
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: lint-${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            lint-${{ runner.os }}-pip-
       - name: Install linters
         run: pip install ruff flake8
       - name: Lint Python
@@ -29,6 +37,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+      - name: Cache pip deps
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: test-${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            test-${{ runner.os }}-pip-
       - name: Install deps
         run: pip install -r requirements.txt pytest pytest-cov
       - name: Run tests
@@ -42,7 +58,27 @@ jobs:
     needs: test
     steps:
       - uses: actions/checkout@v4
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: docker-${{ runner.os }}-buildx-${{ hashFiles('Dockerfile', 'requirements.txt') }}
+          restore-keys: |
+            docker-${{ runner.os }}-buildx-
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Build Docker image
-        run: docker build -t vetvoice-rag .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: vetvoice-rag:latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+      - name: Move cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
       - name: Test container starts
-        run: docker run -d --name test vetvoice-rag && sleep 5 && docker logs test && docker stop test
+        run: docker run -d --name test vetvoice-rag:latest && sleep 5 && docker logs test && docker stop test

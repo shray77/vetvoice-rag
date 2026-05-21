@@ -12,11 +12,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 17
+          cache: gradle
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
+          cache: true
+
+      - name: Cache Flutter pub
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            flutter/.dart_tool
+            flutter/.flutter-plugins
+            flutter/.flutter-plugins-dependencies
+          key: flutter-pub-${{ runner.os }}-${{ hashFiles('flutter/pubspec.lock') }}
+          restore-keys: |
+            flutter-pub-${{ runner.os }}-
+
+      - name: Cache Gradle wrapper & build
+        uses: actions/cache@v4
+        with:
+          path: |
+            flutter/android/.gradle
+            flutter/android/build
+            flutter/build
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('flutter/android/**/*.gradle', 'flutter/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
 
       - name: Install dependencies
         working-directory: flutter
@@ -30,12 +63,13 @@ jobs:
         working-directory: flutter
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build APK
+      - name: Build release APK
         working-directory: flutter
-        run: flutter build apk --release
+        run: flutter build apk --release --shrink
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: vetvoice-apk
+          name: vetvoice-release-apk
           path: flutter/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
