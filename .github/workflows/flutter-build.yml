@@ -18,12 +18,9 @@ jobs:
           flutter-version: '3.24.0'
           channel: 'stable'
 
-      - name: Regenerate Android project
-        working-directory: flutter
-        run: |
-          # Remove old android directory and let Flutter regenerate it
-          rm -rf android
-          flutter create --platforms=android .
+      - name: Create local.properties
+        working-directory: flutter/android
+        run: echo "flutter.sdk=$FLUTTER_ROOT" > local.properties
 
       - name: Install dependencies
         working-directory: flutter
