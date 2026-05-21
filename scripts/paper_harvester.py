@@ -404,11 +404,11 @@ class PubMedScraper:
         return results
 
     def _fetch_details(self, pmids: List[str]) -> List[Dict]:
-        """Fetch paper details from PubMed"""
+        """Fetch paper details from PubMed (XML format)"""
         params = {
             "db": "pubmed",
             "id": ",".join(pmids),
-            "retmode": "json",
+            "retmode": "xml",
             "rettype": "abstract",
         }
         if self.api_key:
@@ -417,37 +417,59 @@ class PubMedScraper:
         try:
             resp = self.session.get(self.EFETCH_URL, params=params, timeout=30)
             resp.raise_for_status()
-            data = resp.json()
+            xml_text = resp.text
 
             details = []
-            papers = data.get("result", {})
-            for pmid in pmids:
-                paper = papers.get(pmid, {})
-                authors_list = paper.get("authors", [])
-                authors = ", ".join(a.get("name", "") for a in authors_list[:3])
-                if len(authors_list) > 3:
+            # Parse each PubmedArticle
+            articles = re.split(r'<PubmedArticle>', xml_text)
+            for article_xml in articles[1:]:  # skip content before first article
+                # Title
+                title_match = re.search(r'<ArticleTitle>(.*?)</ArticleTitle>', article_xml, re.DOTALL)
+                title = title_match.group(1).strip() if title_match else "Unknown"
+                # Clean HTML tags from title
+                title = re.sub(r'<[^>]+>', '', title)
+
+                # Authors
+                author_matches = re.findall(
+                    r'<Author.*?>.*?<LastName>(.*?)</LastName>.*?<ForeName>(.*?)</ForeName>.*?</Author>',
+                    article_xml, re.DOTALL
+                )
+                authors = ", ".join(f"{ln} {fn[:1]}" for ln, fn in author_matches[:3])
+                if len(author_matches) > 3:
                     authors += " et al."
 
-                abstract_parts = paper.get("abstract", [])
-                if isinstance(abstract_parts, list):
-                    abstract = " ".join(
-                        p.get("text", "") for p in abstract_parts if isinstance(p, dict)
-                    )
-                elif isinstance(abstract_parts, str):
-                    abstract = abstract_parts
-                else:
-                    abstract = ""
+                # Journal
+                journal_match = re.search(r'<ISOAbbreviation>(.*?)</ISOAbbreviation>', article_xml)
+                journal = journal_match.group(1) if journal_match else ""
+
+                # Year
+                year_match = re.search(r'<PubDate>.*?<Year>(.*?)</Year>.*?</PubDate>', article_xml, re.DOTALL)
+                if not year_match:
+                    year_match = re.search(r'<PubDate>.*?<MedlineDate>(.*?)</MedlineDate>.*?</PubDate>', article_xml, re.DOTALL)
+                year = year_match.group(1).strip()[:4] if year_match else ""
+
+                # Abstract
+                abstract_parts = re.findall(r'<AbstractText[^>]*>(.*?)</AbstractText>', article_xml, re.DOTALL)
+                abstract = " ".join(re.sub(r'<[^>]+>', '', part) for part in abstract_parts)
+
+                # DOI
+                doi_match = re.search(r'<ArticleId IdType="doi">(.*?)</ArticleId>', article_xml)
+                doi = doi_match.group(1) if doi_match else ""
 
                 details.append({
-                    "title": paper.get("title", "Unknown"),
+                    "title": title,
                     "authors": authors,
-                    "journal": paper.get("fulljournalname", paper.get("source", "")),
-                    "year": paper.get("pubdate", "").split(" ")[0] if paper.get("pubdate") else "",
+                    "journal": journal,
+                    "year": year,
                     "abstract": abstract,
-                    "doi": "",
+                    "doi": doi,
                 })
 
-            return details
+            # Pad if we got fewer details than pmids
+            while len(details) < len(pmids):
+                details.append({})
+
+            return details[:len(pmids)]
 
         except Exception as e:
             log.error(f"[PubMed] Fetch details failed: {e}")
@@ -563,6 +585,30 @@ class SemanticScholarScraper:
         self.download_dir = download_dir or str(PAPERS_DIR / "semantic")
         os.makedirs(self.download_dir, exist_ok=True)
         self.session = requests.Session()
+        self.session.headers.update({"User-Agent": "VetVoice/1.0"})
+
+    def _request_with_retry(self, url: str, params: dict, max_retries: int = 3) -> Optional[requests.Response]:
+        """Make HTTP request with retry on rate limit"""
+        for attempt in range(max_retries):
+            try:
+                resp = self.session.get(url, params=params, timeout=30)
+                if resp.status_code == 429:
+                    wait = 2 ** (attempt + 2)  # 4, 8, 16 seconds
+                    log.warning(f"[Semantic] Rate limited, waiting {wait}s (attempt {attempt+1}/{max_retries})")
+                    time.sleep(wait)
+                    continue
+                resp.raise_for_status()
+                return resp
+            except requests.exceptions.HTTPError as e:
+                if resp.status_code == 429 and attempt < max_retries - 1:
+                    continue
+                raise
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    time.sleep(3)
+                    continue
+                raise
+        return None
 
     def search(self, query: str, max_results: int = 30) -> List[Dict]:
         """Search Semantic Scholar for papers"""
@@ -576,8 +622,10 @@ class SemanticScholarScraper:
         }
 
         try:
-            resp = self.session.get(self.SEARCH_URL, params=params, timeout=30)
-            resp.raise_for_status()
+            resp = self._request_with_retry(self.SEARCH_URL, params)
+            if resp is None:
+                log.error(f"[Semantic] All retries exhausted for query: '{query}'")
+                return results
             data = resp.json()
 
             for paper in data.get("data", []):
