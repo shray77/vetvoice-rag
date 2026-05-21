@@ -32,8 +32,13 @@ Thumbs.db
 /tmp/vet_rag/
 vet_rag/
 
-# Models
-models/
+# ML model files (not Python source)
+*.pt
+*.pth
+*.onnx
+*.bin
+*.safetensors
+*.h5
 
 # Flutter
 flutter/.dart_tool/
