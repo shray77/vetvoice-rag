@@ -23,7 +23,7 @@ allprojects {
 // but we use apply from: flutter.gradle which doesn't expose it.
 project.ext.flutter = [
     compileSdkVersion: 35,
-    minSdkVersion: 21,
+    minSdkVersion: 24,
     targetSdkVersion: 35,
 ]
 
