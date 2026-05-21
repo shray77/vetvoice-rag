@@ -1,1 +1,1 @@
-from .client import GLMVisionClient
+from .client import GLMVisionClient  # noqa: F401

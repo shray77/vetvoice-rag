@@ -5,8 +5,6 @@ import json
 import pickle
 import re
 from typing import List, Dict
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import normalize
 import faiss
 

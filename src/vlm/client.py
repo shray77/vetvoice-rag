@@ -88,6 +88,6 @@ class GLMVisionClient:
         except requests.exceptions.ConnectionError:
             return "[VLM Error: Cannot connect to API server]"
         except KeyError:
-            return f"[VLM Error: Unexpected API response format]"
+            return "[VLM Error: Unexpected API response format]"
         except Exception as e:
             return f"[VLM Error: {str(e)}]"
