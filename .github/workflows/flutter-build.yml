@@ -67,9 +67,14 @@ jobs:
         working-directory: flutter
         run: flutter build apk --release --shrink
 
+      - name: Rename APK
+        run: |
+          mv flutter/build/app/outputs/flutter-apk/app-release.apk \
+             flutter/build/app/outputs/flutter-apk/veteco-release.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: vetvoice-release-apk
-          path: flutter/build/app/outputs/flutter-apk/app-release.apk
+          name: veteco-release-apk
+          path: flutter/build/app/outputs/flutter-apk/veteco-release.apk
           retention-days: 30

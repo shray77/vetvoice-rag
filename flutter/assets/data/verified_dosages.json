@@ -1,0 +1,309 @@
+{
+  "_meta": {
+    "description": "Эталонные данные дозировок из официальных инструкций производителей",
+    "last_updated": "2025-03-25",
+    "sources": [
+      "Официальные инструкции производителей (Nita-Farm, Bioveta, Bayer и др.)",
+      "Регистр ветеринарных препаратов РФ",
+      "Vidal Veterinary"
+    ]
+  },
+  
+  "Цефтонит® Форте": {
+    "_source": "Nita-Farm официальная инструкция",
+    "_url": "https://nita-farm.ru/products",
+    "inn": "цефтиофур",
+    "concentration": 200,
+    "concentration_unit": "мг/мл",
+    "form": "раствор для инъекций пролонгированного действия",
+    "animals": ["КРС", "Свиньи"],
+    "animal_specific": {
+      "КРС": {
+        "dose_per_kg": 6.6,
+        "dose_ml_per_kg": 0.033,
+        "_calculation": "1 мл на 30 кг = 200мг/30кг = 6.6 мг/кг",
+        "method": "Подкожно (у основания уха или в параректальную клетчатку)",
+        "frequency": "Однократно",
+        "course_days": "1",
+        "withdrawal_days": 20,
+        "withdrawal_milk_days": 0,
+        "notes": "Пролонгированное действие - терапевтическая концентрация 7 дней. Молоко без ограничений."
+      },
+      "Свиньи": {
+        "dose_per_kg": 5.0,
+        "dose_ml_per_kg": 0.025,
+        "_calculation": "1 мл на 40 кг = 200мг/40кг = 5 мг/кг",
+        "method": "Внутримышечно",
+        "frequency": "Однократно",
+        "course_days": "1",
+        "withdrawal_days": 71,
+        "notes": "Пролонгированное действие - терапевтическая концентрация 7 дней."
+      }
+    },
+    "contraindications": {
+      "warnings": [
+        "Не применять кошкам и собакам - не указано в инструкции производителя!",
+        "Только для КРС и свиней согласно официальной инструкции"
+      ]
+    },
+    "_warnings": [
+      "Кошки и Собаки в инструкции НЕ указаны! Off-label использование!"
+    ]
+  },
+  
+  "Цефтиосан® Форте": {
+    "_source": "Аналог Цефтонит Форте (цефтиофур 200 мг/мл)",
+    "_same_as": "Цефтонит® Форте",
+    "inn": "цефтиофур",
+    "concentration": 200,
+    "animals": ["КРС", "Свиньи"],
+    "_copy_from": "Цефтонит® Форте"
+  },
+  
+  "Цефтиофур 5%": {
+    "_source": "Официальные инструкции (обычная форма, не пролонгированная)",
+    "inn": "цефтиофур",
+    "concentration": 50,
+    "concentration_unit": "мг/мл",
+    "animals": ["КРС", "Свиньи", "Собаки", "Кошки"],
+    "animal_specific": {
+      "КРС": {
+        "dose_per_kg": 1.0,
+        "dose_min": 0.5,
+        "dose_max": 2.0,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "3-5",
+        "withdrawal_days": 4
+      },
+      "Свиньи": {
+        "dose_per_kg": 3.0,
+        "dose_min": 2.0,
+        "dose_max": 4.0,
+        "method": "Внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "3-5",
+        "withdrawal_days": 4
+      },
+      "Собаки": {
+        "dose_per_kg": 2.0,
+        "dose_min": 1.0,
+        "dose_max": 3.0,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "5-7",
+        "withdrawal_days": 0
+      },
+      "Кошки": {
+        "dose_per_kg": 2.0,
+        "dose_min": 1.0,
+        "dose_max": 3.0,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "5-7",
+        "withdrawal_days": 0
+      }
+    }
+  },
+  
+  "Энрофлоксацин 10%": {
+    "_source": "Официальные инструкции производителей",
+    "inn": "энрофлоксацин",
+    "concentration": 100,
+    "concentration_unit": "мг/мл",
+    "animals": ["КРС", "МРС", "Свиньи", "Собаки", "Кошки"],
+    "animal_specific": {
+      "КРС": {
+        "dose_per_kg": 2.5,
+        "dose_min": 2.5,
+        "dose_max": 5.0,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "3-5",
+        "withdrawal_days": 14,
+        "withdrawal_milk_days": 3
+      },
+      "МРС": {
+        "dose_per_kg": 2.5,
+        "dose_min": 2.5,
+        "dose_max": 5.0,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "3-5",
+        "withdrawal_days": 14
+      },
+      "Свиньи": {
+        "dose_per_kg": 2.5,
+        "dose_min": 2.5,
+        "dose_max": 5.0,
+        "method": "Внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "3-5",
+        "withdrawal_days": 14
+      },
+      "Собаки": {
+        "dose_per_kg": 5.0,
+        "dose_min": 2.5,
+        "dose_max": 10.0,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "5-7",
+        "withdrawal_days": 0,
+        "_warnings": [
+          "Щенкам до 12 месяцев - с осторожностью!",
+          "Осторожно породам колли, бобтейл, шелти (MDR1 мутация)"
+        ]
+      },
+      "Кошки": {
+        "dose_per_kg": 5.0,
+        "dose_min": 2.5,
+        "dose_max": 5.0,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "5-7",
+        "withdrawal_days": 0,
+        "_warnings": [
+          "Не более 5 мг/кг! Риск поражения сетчатки!",
+          "Не применять котятам до 8 недель"
+        ]
+      }
+    },
+    "contraindications": {
+      "pregnancy": true,
+      "young": true,
+      "warnings": [
+        "Не применять при поражении нервной системы",
+        "Не применять яйценоской птице"
+      ]
+    }
+  },
+  
+  "Амоксициллин 15%": {
+    "_source": "Официальные инструкции (Биовета, АВЗ и др.)",
+    "inn": "амоксициллин",
+    "concentration": 150,
+    "concentration_unit": "мг/мл",
+    "animals": ["КРС", "МРС", "Свиньи", "Собаки", "Кошки"],
+    "animal_specific": {
+      "КРС": {
+        "dose_per_kg": 7.0,
+        "dose_min": 5.0,
+        "dose_max": 10.0,
+        "dose_ml_per_kg": 0.05,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в 48 часов",
+        "course_days": "2-3 инъекции",
+        "withdrawal_days": 14,
+        "withdrawal_milk_days": 2
+      },
+      "МРС": {
+        "dose_per_kg": 7.0,
+        "dose_min": 5.0,
+        "dose_max": 10.0,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в 48 часов",
+        "withdrawal_days": 14
+      },
+      "Свиньи": {
+        "dose_per_kg": 7.0,
+        "dose_min": 5.0,
+        "dose_max": 10.0,
+        "method": "Внутримышечно",
+        "frequency": "1 раз в 48 часов",
+        "withdrawal_days": 14
+      },
+      "Собаки": {
+        "dose_per_kg": 10.0,
+        "dose_min": 7.0,
+        "dose_max": 15.0,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в 24-48 часов",
+        "withdrawal_days": 0
+      },
+      "Кошки": {
+        "dose_per_kg": 10.0,
+        "dose_min": 7.0,
+        "dose_max": 15.0,
+        "method": "Подкожно",
+        "frequency": "1 раз в 24-48 часов",
+        "withdrawal_days": 0
+      }
+    }
+  },
+  
+  "Тилозин 20%": {
+    "_source": "Официальные инструкции",
+    "inn": "тилозин",
+    "concentration": 200,
+    "concentration_unit": "мг/мл",
+    "animals": ["КРС", "МРС", "Свиньи", "Собаки", "Кошки"],
+    "animal_specific": {
+      "КРС": {
+        "dose_per_kg": 4.0,
+        "dose_min": 2.0,
+        "dose_max": 5.0,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "3-5",
+        "withdrawal_days": 8
+      },
+      "Свиньи": {
+        "dose_per_kg": 5.0,
+        "dose_min": 2.0,
+        "dose_max": 10.0,
+        "method": "Внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "3-5",
+        "withdrawal_days": 8
+      },
+      "Собаки": {
+        "dose_per_kg": 8.0,
+        "dose_min": 5.0,
+        "dose_max": 10.0,
+        "method": "Подкожно или внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "5-7",
+        "withdrawal_days": 0
+      },
+      "Кошки": {
+        "dose_per_kg": 8.0,
+        "dose_min": 5.0,
+        "dose_max": 10.0,
+        "method": "Подкожно",
+        "frequency": "1 раз в сутки",
+        "course_days": "5-7",
+        "withdrawal_days": 0
+      }
+    }
+  },
+  
+  "Доксициклин 10%": {
+    "_source": "Официальные инструкции",
+    "inn": "доксициклин",
+    "concentration": 100,
+    "concentration_unit": "мг/мл",
+    "animals": ["Свиньи", "Птица"],
+    "animal_specific": {
+      "Свиньи": {
+        "dose_per_kg": 5.0,
+        "dose_min": 3.0,
+        "dose_max": 10.0,
+        "method": "Внутримышечно",
+        "frequency": "1 раз в сутки",
+        "course_days": "3-5",
+        "withdrawal_days": 14
+      },
+      "Птица": {
+        "_note": "С водой для поения",
+        "dose_per_kg": 10.0,
+        "dose_min": 5.0,
+        "dose_max": 20.0,
+        "method": "Перорально с водой",
+        "frequency": "1 раз в сутки",
+        "course_days": "3-5",
+        "withdrawal_days": 5
+      }
+    },
+    "_warnings": ["Не применять собакам и кошкам - риск поражения печени!"]
+  }
+}
