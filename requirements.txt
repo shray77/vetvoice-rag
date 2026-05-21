@@ -1,5 +1,5 @@
 gradio==5.29.0
-pyaudioop
+audioop-lts>=0.2.0
 fastapi
 uvicorn[standard]
 python-multipart
