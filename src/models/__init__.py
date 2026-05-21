@@ -1,1 +1,1 @@
-from .schemas import AnalysisRequest, AnalysisResponse, HealthResponse
+from .schemas import AnalysisRequest, AnalysisResponse, HealthResponse  # noqa: F401

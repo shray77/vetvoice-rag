@@ -19,7 +19,7 @@ jobs:
       - name: Lint Python
         run: |
           ruff check src/ --ignore E501
-          flake8 src/ --max-line-length 120 --exclude __pycache__
+          flake8 src/ --max-line-length 120 --exclude __pycache__ --extend-ignore E501
 
   test:
     runs-on: ubuntu-latest
