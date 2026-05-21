@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../core/constants/app_constants.dart';
+import '../models/drug_models.dart';
 import '../services/glm_ai_service.dart';
 
 /// Провайдер AI-ассистента с RAG
