@@ -56,6 +56,10 @@ flutter/ios/.symlinks/
 htmlcov/
 .pytest_cache/
 
+# RAG data (stored on HF Hub, too large for GitHub)
+knowledge_base/
+collected_papers/
+
 # Secrets
 *.pem
 *.key

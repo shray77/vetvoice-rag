@@ -2,11 +2,13 @@
 
 import os
 import io
+from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
+import requests as req_lib
 
 from ..rag.retriever import VetDermRAG
 from ..vlm.client import GLMVisionClient
@@ -40,16 +42,16 @@ Body regions affected: face, ears, ventrum, axillae, inguinal, paws, dorsum, tai
 
 ### Step 3: Pattern Recognition — Differential Diagnosis
 **Pruritic (itchy) patterns:**
-- Facial/ear pruritus → atopic dermatitis, food allergy, Malassezia, otitis externa
-- Ventral/axillary pruritus → atopic dermatitis, contact allergy, Malassezia dermatitis
-- Generalized pruritus → scabies, atopic dermatitis, food adverse reaction, flea allergy
-- Paw pruritus → atopic dermatitis, food allergy, contact, Malassezia
+- Facial/ear pruritus -> atopic dermatitis, food allergy, Malassezia, otitis externa
+- Ventral/axillary pruritus -> atopic dermatitis, contact allergy, Malassezia dermatitis
+- Generalized pruritus -> scabies, atopic dermatitis, food adverse reaction, flea allergy
+- Paw pruritus -> atopic dermatitis, food allergy, contact, Malassezia
 
 **Non-pruritic / minimally pruritic patterns:**
-- Alopecia without inflammation → endocrine (hypothyroidism, hyperadrenocorticism), follicular dysplasia
-- Scaling/crusting → seborrhea, zinc-responsive dermatosis, pemphigus
-- Nodules/tumors → histiocytoma, lipoma, mast cell tumor
-- Ulcerative/erosive → pemphigus complex, vasculitis
+- Alopecia without inflammation -> endocrine (hypothyroidism, hyperadrenocorticism), follicular dysplasia
+- Scaling/crusting -> seborrhea, zinc-responsive dermatosis, pemphigus
+- Nodules/tumors -> histiocytoma, lipoma, mast cell tumor
+- Ulcerative/erosive -> pemphigus complex, vasculitis
 
 ### Step 4: Diagnostic Recommendations
 Suggest step-by-step diagnostics in order of clinical utility
@@ -58,7 +60,7 @@ Suggest step-by-step diagnostics in order of clinical utility
 Provide FIRST-LINE and ALTERNATIVE treatments with specific drug names, dosages, duration
 
 ## CRITICAL RULES
-1. NEVER provide a single definitive diagnosis from a photo alone — always provide a ranked differential list
+1. NEVER provide a single definitive diagnosis from a photo alone - always provide a ranked differential list
 2. ALWAYS state confidence level: High (>80%), Moderate (50-80%), Low (<50%)
 3. ALWAYS add disclaimer about AI nature of analysis
 4. ALWAYS consider zoonotic potential (scabies, dermatophytosis)
@@ -69,33 +71,59 @@ Provide FIRST-LINE and ALTERNATIVE treatments with specific drug names, dosages,
 
 ## RESPONSE FORMAT
 
-### 🔍 Первичный анализ
-- **Пациент:** [порода, возраст, пол]
-- **Тип поражений:** [первичные + вторичные]
-- **Локализация:** [области тела]
-- **Зуд:** [есть/нет, степень]
+### Primary Analysis
+- **Patient:** [breed, age, sex]
+- **Lesion type:** [primary + secondary]
+- **Location:** [body regions]
+- **Pruritus:** [present/absent, severity]
 
-### 📋 Дифференциальный диагноз (по вероятности)
-1. **[Диагноз]** — вероятность [%] — обоснование: [...]
-2. **[Диагноз]** — вероятность [%] — обоснование: [...]
-3. **[Диагноз]** — вероятность [%] — обоснование: [...]
+### Differential Diagnosis (by probability)
+1. **[Diagnosis]** - probability [%] - rationale: [...]
+2. **[Diagnosis]** - probability [%] - rationale: [...]
+3. **[Diagnosis]** - probability [%] - rationale: [...]
 
-### 🧪 Рекомендуемые диагностические тесты
-1. [Тест] — цель: [...]
+### Recommended Diagnostic Tests
+1. [Test] - purpose: [...]
 
-### 💊 Рекомендуемое лечение
-**Системная терапия:** [препарат, дозировка, путь, длительность]
-**Топическая терапия:** [препарат, частота, длительность]
-**Мониторинг:** [что проверять]
+### Recommended Treatment
+**Systemic therapy:** [drug, dosage, route, duration]
+**Topical therapy:** [product, frequency, duration]
+**Monitoring:** [what to check]
 
-### ⚠️ Важные примечания
-- [Зоонозный потенциал, красные флаги]
+### Important Notes
+- [Zoonotic potential, red flags]
 
-### ❓ Дополнительные вопросы
-- [Что нужно уточнить у владельца]
+### Follow-up Questions
+- [What to clarify with the owner]
 
 ## LANGUAGE
 Respond in the SAME language the user writes in."""
+
+
+# ============================================================
+# APP STATE
+# ============================================================
+class AppState:
+    """Shared application state"""
+    rag: Optional[VetDermRAG] = None
+    vlm: Optional[GLMVisionClient] = None
+
+
+state = AppState()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan: startup and shutdown"""
+    # Startup
+    try:
+        state.rag = VetDermRAG()
+    except Exception as e:
+        print(f"RAG load warning: {e}")
+        state.rag = None
+    state.vlm = GLMVisionClient()
+    yield
+    # Shutdown (cleanup if needed)
 
 
 # ============================================================
@@ -103,12 +131,11 @@ Respond in the SAME language the user writes in."""
 # ============================================================
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application"""
-    import requests as req_lib
-
     app = FastAPI(
         title="VetVoice RAG API",
         description="AI Veterinary Dermatology Assistant with RAG",
         version="1.0.0",
+        lifespan=lifespan,
     )
 
     # CORS — allow Flutter app and any client
@@ -120,25 +147,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Initialize components
-    rag: Optional[VetDermRAG] = None
-    vlm: Optional[GLMVisionClient] = None
-
-    @app.on_event("startup")
-    async def startup():
-        nonlocal rag, vlm
-        try:
-            rag = VetDermRAG()
-        except Exception as e:
-            print(f"RAG load warning: {e}")
-            rag = None
-        vlm = GLMVisionClient()
-
     @app.get("/health", response_model=HealthResponse)
     async def health():
         return HealthResponse(
             status="ok",
-            rag_loaded=rag is not None,
+            rag_loaded=state.rag is not None,
             version="1.0.0",
         )
 
@@ -149,7 +162,7 @@ def create_app() -> FastAPI:
         breed: str = Form(default=""),
         age: str = Form(default=""),
     ):
-        """Analyze a veterinary dermatology case: image + text → diagnosis"""
+        """Analyze a veterinary dermatology case: image + text -> diagnosis"""
         if not description.strip() and image is None:
             raise HTTPException(400, "Provide either an image or a description")
 
@@ -159,7 +172,7 @@ def create_app() -> FastAPI:
             try:
                 contents = await image.read()
                 pil_image = Image.open(io.BytesIO(contents)).convert("RGB")
-                vlm_analysis = vlm.analyze_skin_image(pil_image)
+                vlm_analysis = state.vlm.analyze_skin_image(pil_image)
             except Exception as e:
                 vlm_analysis = f"[Image processing error: {e}]"
 
@@ -178,9 +191,9 @@ def create_app() -> FastAPI:
         # Step 3: RAG retrieval
         rag_context = ""
         conditions = []
-        if rag:
-            results = rag.retrieve(user_query, top_k=5)
-            rag_context = rag.format_context(results)
+        if state.rag:
+            results = state.rag.retrieve(user_query, top_k=5)
+            rag_context = state.rag.format_context(results)
             conditions = list(set(
                 c
                 for r in results
