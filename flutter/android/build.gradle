@@ -17,15 +17,15 @@ allprojects {
     }
 }
 
-// Provide flutter extension properties for subprojects that reference them
-// (e.g. speech_to_text uses flutter.compileSdkVersion)
-subprojects { sub ->
-    afterEvaluate {
-        if (sub.hasProperty('android')) {
-            sub.android.compileSdkVersion 35
-        }
-    }
-}
+// Provide flutter.compileSdkVersion for subprojects that reference it
+// (speech_to_text uses flutter.compileSdkVersion in its build.gradle)
+// This is normally provided by dev.flutter.flutter-gradle-plugin,
+// but we use apply from: flutter.gradle which doesn't expose it.
+project.ext.flutter = [
+    compileSdkVersion: 35,
+    minSdkVersion: 21,
+    targetSdkVersion: 35,
+]
 
 rootProject.buildDir = '../build'
 subprojects {
