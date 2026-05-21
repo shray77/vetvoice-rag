@@ -1,8 +1,14 @@
-def localProperties = new PropertiesFile()
-localProperties.load(file('../local.properties').newDataInputStream())
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.newDataInputStream())
+}
 
 def flutterRoot = localProperties.getProperty('flutter.sdk')
-if (flutterRoot == null) throw new GradleException("Flutter SDK not found.")
+if (flutterRoot == null) {
+    // In CI, Flutter SDK path is set by the environment
+    flutterRoot = System.env.FLUTTER_ROOT ?: "${rootProject.projectDir}/../../flutter"
+}
 
 apply plugin: 'com.android.application'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"

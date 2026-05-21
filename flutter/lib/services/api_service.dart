@@ -2,39 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
-class AnalysisResult {
-  final String vlmAnalysis;
-  final String diagnosis;
-  final List<String> conditions;
-  final String disclaimer;
-
-  AnalysisResult({
-    this.vlmAnalysis = '',
-    this.diagnosis = '',
-    this.conditions = const [],
-    this.disclaimer = '',
-  });
-
-  factory AnalysisResult.fromJson(Map<String, dynamic> json) {
-    return AnalysisResult(
-      vlmAnalysis: json['vlm_analysis'] ?? '',
-      diagnosis: json['diagnosis'] ?? '',
-      conditions: List<String>.from(json['conditions'] ?? []),
-      disclaimer: json['disclaimer'] ?? '',
-    );
-  }
-
-  String toShareText() {
-    return '''VetVoice AI Analysis
-
-$diagnosis
-
-Conditions: ${conditions.join(', ')}
-
-⚠️ $disclaimer''';
-  }
-}
+import '../models/analysis_result.dart';
 
 class ApiService extends ChangeNotifier {
   String baseUrl = 'https://shrayyyy-vetderm-ai.hf.space';
