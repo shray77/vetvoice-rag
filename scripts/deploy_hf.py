@@ -14,8 +14,9 @@ api = HfApi()
 
 # Map local files to their target paths in the HF Space repo
 FILES = {
-    "src/api/app.py": "app.py",
+    "app.py": "app.py",
     "requirements.txt": "requirements.txt",
+    "Dockerfile": "Dockerfile",
 }
 
 for local_path, remote_path in FILES.items():
