@@ -21,6 +21,7 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    if: github.event_name != 'push'  # Only run on schedule or manual dispatch
     steps:
       - uses: actions/checkout@v4
 
@@ -28,10 +29,20 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Check required secrets
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::warning::HF_TOKEN secret is not configured. RAG data download will be skipped."
+          fi
+          if [ -z "$NCBI_API_KEY" ]; then
+            echo "::warning::NCBI_API_KEY secret is not configured. PubMed harvesting will be rate-limited."
+          fi
+
       - name: Install deps
         run: pip install -r requirements.txt
 
       - name: Download existing RAG data from HF Hub
+        if: env.HF_TOKEN != ''
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
@@ -66,7 +77,13 @@ jobs:
           fi
 
       - name: Validate index
-        run: python -c "import faiss; idx=faiss.read_index('knowledge_base/vet_derm_faiss.index'); print(f'Index: {idx.ntotal} vectors')"
+        if: always()
+        run: |
+          if [ -f knowledge_base/vet_derm_faiss.index ]; then
+            python -c "import faiss; idx=faiss.read_index('knowledge_base/vet_derm_faiss.index'); print(f'Index: {idx.ntotal} vectors')"
+          else
+            echo "::warning::FAISS index not found, skipping validation"
+          fi
 
       - name: Generate harvest report
         if: always()
@@ -80,4 +97,6 @@ jobs:
             print(f'Total chunks: {m.get(\"total_chunks\", 0)}')
             print(f'Last harvest: {m.get(\"last_harvest\", \"N/A\")}')
             "
+          else
+            echo "No harvest report generated"
           fi
