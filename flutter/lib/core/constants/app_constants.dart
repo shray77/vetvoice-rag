@@ -10,7 +10,8 @@ class ApiConfig {
   static const String hfSpaceUrl = 'https://shrayyyy-vetderm-ai.hf.space';
 
   // Gradio API path for RAG search (text-only, works reliably)
-  static const String ragApiPath = '/call/rag_search';
+  // Gradio 6.x uses /gradio_api/ prefix!
+  static const String ragApiPath = '/gradio_api/call/rag_search';
 
   // VetLearn URL
   static const String vetlearnUrl = 'https://t107t4hs5wm0-d.space-z.ai';
