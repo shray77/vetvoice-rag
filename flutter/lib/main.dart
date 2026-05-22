@@ -7,11 +7,10 @@ import 'providers/vet_provider.dart';
 import 'providers/ai_provider.dart';
 import 'providers/vlm_provider.dart';
 import 'providers/notes_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/notes/notes_screen.dart';
 import 'screens/dose_calc/dose_calc_screen.dart';
 import 'screens/ai_assistant/ai_assistant_screen.dart';
-import 'screens/vetlearn/vetlearn_screen.dart';
-import 'screens/vlm/vlm_screen.dart';
 import 'screens/settings/settings_screen.dart';
 
 void main() {
@@ -40,23 +39,30 @@ class VetEcoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => VetProvider()..initialize()),
         ChangeNotifierProvider(create: (_) => AiProvider()),
         ChangeNotifierProvider(create: (_) => VlmProvider()),
         ChangeNotifierProvider(create: (_) => NotesProvider()..initialize()),
       ],
-      child: MaterialApp(
-        title: AppConstants.appName,
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const MainNavigation(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            title: AppConstants.appName,
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            home: const MainNavigation(),
+          );
+        },
       ),
     );
   }
 }
 
-/// Главная навигация — 6 табов
-/// Записи → Калькулятор → AI → VetLearn → Зрение → Настройки
+/// Главная навигация — 4 таба
+/// Записи → Калькулятор → AI (Чат + VLM) → Ещё
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
@@ -70,61 +76,58 @@ class _MainNavigationState extends State<MainNavigation> {
   static const List<Widget> _screens = [
     NotesScreen(),        // 0 — Записи (главный экран)
     DoseCalcScreen(),     // 1 — Калькулятор дозировок
-    AiAssistantScreen(),  // 2 — AI-ассистент (RAG)
-    VetlearnScreen(),     // 3 — VetLearn WebView
-    VlmScreen(),          // 4 — VLM зрение (авто-результат)
-    SettingsScreen(),     // 5 — Настройки
+    AiAssistantScreen(),  // 2 — AI (Чат + VLM с табами внутри)
+    SettingsScreen(),     // 3 — Настройки + VetLearn
   ];
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.primaryLight : AppColors.primary;
+
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            top: BorderSide(color: AppColors.separator, width: 0.5),
+            top: BorderSide(
+              color: isDark ? AppColors.darkSeparator : AppColors.separator,
+              width: 0.5,
+            ),
           ),
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
+        child: NavigationBar(
+          selectedIndex: _currentIndex,
+          onDestinationSelected: (index) {
             setState(() => _currentIndex = index);
             HapticFeedback.selectionClick();
           },
-          type: BottomNavigationBarType.fixed,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.description_outlined),
-              activeIcon: Icon(Icons.description),
+          backgroundColor: isDark ? AppColors.darkSurface : AppColors.surface,
+          indicatorColor: primaryColor.withAlpha(30),
+          height: 64,
+          destinations: [
+            NavigationDestination(
+              icon: Icon(Icons.description_outlined, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
+              selectedIcon: Icon(Icons.description, color: primaryColor),
               label: 'Записи',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calculate_outlined),
-              activeIcon: Icon(Icons.calculate),
+            NavigationDestination(
+              icon: Icon(Icons.calculate_outlined, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
+              selectedIcon: Icon(Icons.calculate, color: primaryColor),
               label: 'Дозы',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.smart_toy_outlined),
-              activeIcon: Icon(Icons.smart_toy),
+            NavigationDestination(
+              icon: Icon(Icons.smart_toy_outlined, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
+              selectedIcon: Icon(Icons.smart_toy, color: primaryColor),
               label: 'AI',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.school_outlined),
-              activeIcon: Icon(Icons.school),
-              label: 'Учёба',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.visibility_outlined),
-              activeIcon: Icon(Icons.visibility),
-              label: 'Зрение',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings),
+            NavigationDestination(
+              icon: Icon(Icons.menu_outlined, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
+              selectedIcon: Icon(Icons.menu, color: primaryColor),
               label: 'Ещё',
             ),
           ],

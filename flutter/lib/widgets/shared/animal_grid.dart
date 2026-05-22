@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_colors_resolver.dart';
 import '../../models/drug_models.dart';
 
 /// Сетка выбора животного (Apple HIG style)
@@ -38,7 +39,7 @@ class AnimalGrid extends StatelessWidget {
             decoration: BoxDecoration(
               color: isSelected
                   ? AppColors.primary.withAlpha(15)
-                  : AppColors.surface,
+                  : AppColorsResolver.surface(context),
               borderRadius: BorderRadius.circular(AppRadius.large),
               border: Border.all(
                 color: isSelected

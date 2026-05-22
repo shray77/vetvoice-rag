@@ -1,18 +1,16 @@
 /// GLM API configuration
 class ApiConfig {
-  // GLM API
+  // GLM API — прямой вызов из приложения (бесплатный тир)
   static const String glmBaseUrl = 'https://open.bigmodel.cn/api/paas/v4';
   static const String glmApiKey = '278570cc58fc4f36b9e1b73275c3f946.2Lfl9yCjMWBBs1tL';
   static const String glmModel = 'glm-4-flash';
+  static const String glmVlmModel = 'glm-4v-flash';
 
-  // VetEcosystem HF Space (VLM + RAG + Dictation + Dose Calc)
+  // VetEcosystem HF Space (RAG only — текстовый API, надёжный)
   static const String hfSpaceUrl = 'https://shrayyyy-vetderm-ai.hf.space';
 
-  // Gradio API endpoints
-  static const String vlmEndpoint = '$hfSpaceUrl/api/vlm_analyze';
-  static const String ragEndpoint = '$hfSpaceUrl/api/rag_search';
-  static const String dictationEndpoint = '$hfSpaceUrl/api/dictation_parse';
-  static const String doseCalcEndpoint = '$hfSpaceUrl/api/dose_calculate';
+  // Gradio API path for RAG search (text-only, works reliably)
+  static const String ragApiPath = '/call/rag_search';
 
   // VetLearn URL
   static const String vetlearnUrl = 'https://t107t4hs5wm0-d.space-z.ai';
@@ -25,7 +23,7 @@ class ApiConfig {
 /// App-wide constants
 class AppConstants {
   static const String appName = 'VetEco';
-  static const String appVersion = '1.0.0';
+  static const String appVersion = '1.1.0';
   static const int totalRegistryDrugs = 2449;
   static const int totalDiseases = 109;
   static const int totalCalcDrugs = 2401;
@@ -46,12 +44,10 @@ class AnimalIds {
   static const String bees = 'bees';
 }
 
-/// Navigation tab indices (6 tabs)
+/// Navigation tab indices (4 tabs)
 class NavIndex {
   static const int notes = 0;       // Записи (SOAP)
   static const int doseCalc = 1;    // Калькулятор
-  static const int aiAssistant = 2; // AI-ассистент
-  static const int vetlearn = 3;    // VetLearn WebView
-  static const int vlm = 4;         // VLM диагностика
-  static const int settings = 5;    // Настройки
+  static const int aiHub = 2;       // AI (Чат + VLM)
+  static const int more = 3;        // Ещё (Настройки, VetLearn)
 }

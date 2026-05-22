@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_colors_resolver.dart';
 import '../../models/drug_models.dart';
 
 /// Карточка результата расчёта дозы (Apple HIG style)
@@ -159,7 +160,7 @@ class DoseResultCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.note_outlined, size: 16, color: AppColors.textSecondary),
+                        const Icon(Icons.note_outlined, size: 16, color: AppColorsResolver.textSecondary(context)),
                         const SizedBox(width: 6),
                         Text(
                           'Примечание',
@@ -173,7 +174,7 @@ class DoseResultCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       result.note,
-                      style: AppTypography.footnote.copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.footnote.copyWith(color: AppColorsResolver.textSecondary(context)),
                     ),
                   ],
                 ),
@@ -213,7 +214,7 @@ class DoseResultCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Диапазон: ${result.doseMin}-${result.doseMax} ${result.doseUnit}',
-              style: AppTypography.caption1.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.caption1.copyWith(color: AppColorsResolver.textSecondary(context)),
             ),
           ],
         ],
@@ -297,7 +298,7 @@ class DoseResultCard extends StatelessWidget {
   Widget _buildInfoRow(IconData icon, String label, String value, {Color? valueColor}) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.textSecondary),
+        Icon(icon, size: 16, color: AppColorsResolver.textSecondary(context)),
         const SizedBox(width: 8),
         Text(
           label,

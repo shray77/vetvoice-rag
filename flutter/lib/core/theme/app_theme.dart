@@ -18,7 +18,7 @@ class AppColors {
   static const Color systemTeal = Color(0xFF5AC8FA);
   static const Color systemIndigo = Color(0xFF5856D6);
 
-  // Backgrounds
+  // Light backgrounds
   static const Color background = Color(0xFFF2F2F7);    // Apple grouped bg
   static const Color surface = Colors.white;             // Card surface
   static const Color secondarySurface = Color(0xFFF9F9FB);
@@ -46,13 +46,16 @@ class AppColors {
   // Dark mode variants
   static const Color darkBackground = Color(0xFF000000);
   static const Color darkSurface = Color(0xFF1C1C1E);
+  static const Color darkSecondarySurface = Color(0xFF2C2C2E);
   static const Color darkTextPrimary = Color(0xFFF2F2F7);
   static const Color darkTextSecondary = Color(0xFF98989D);
+  static const Color darkTextTertiary = Color(0xFF636366);
+  static const Color darkSeparator = Color(0xFF38383A);
+  static const Color darkFillPrimary = Color(0x4C787880);
 }
 
 /// Apple HIG Typography
 class AppTypography {
-  // Large Title
   static const TextStyle largeTitle = TextStyle(
     fontSize: 34,
     fontWeight: FontWeight.w700,
@@ -60,7 +63,6 @@ class AppTypography {
     height: 1.18,
   );
 
-  // Title 1
   static const TextStyle title1 = TextStyle(
     fontSize: 28,
     fontWeight: FontWeight.w700,
@@ -68,7 +70,6 @@ class AppTypography {
     height: 1.21,
   );
 
-  // Title 2
   static const TextStyle title2 = TextStyle(
     fontSize: 22,
     fontWeight: FontWeight.w700,
@@ -76,7 +77,6 @@ class AppTypography {
     height: 1.27,
   );
 
-  // Title 3
   static const TextStyle title3 = TextStyle(
     fontSize: 20,
     fontWeight: FontWeight.w600,
@@ -84,7 +84,6 @@ class AppTypography {
     height: 1.25,
   );
 
-  // Headline
   static const TextStyle headline = TextStyle(
     fontSize: 17,
     fontWeight: FontWeight.w600,
@@ -92,7 +91,6 @@ class AppTypography {
     height: 1.29,
   );
 
-  // Body
   static const TextStyle body = TextStyle(
     fontSize: 17,
     fontWeight: FontWeight.w400,
@@ -100,7 +98,6 @@ class AppTypography {
     height: 1.29,
   );
 
-  // Callout
   static const TextStyle callout = TextStyle(
     fontSize: 16,
     fontWeight: FontWeight.w400,
@@ -108,7 +105,6 @@ class AppTypography {
     height: 1.31,
   );
 
-  // Subheadline
   static const TextStyle subheadline = TextStyle(
     fontSize: 15,
     fontWeight: FontWeight.w400,
@@ -116,7 +112,6 @@ class AppTypography {
     height: 1.33,
   );
 
-  // Footnote
   static const TextStyle footnote = TextStyle(
     fontSize: 13,
     fontWeight: FontWeight.w400,
@@ -124,7 +119,6 @@ class AppTypography {
     height: 1.38,
   );
 
-  // Caption
   static const TextStyle caption1 = TextStyle(
     fontSize: 12,
     fontWeight: FontWeight.w400,
@@ -149,7 +143,6 @@ class AppSpacing {
   static const double xl = 32.0;
   static const double xxl = 48.0;
 
-  // Apple standard margins
   static const double screenPadding = 16.0;
   static const double cardPadding = 16.0;
   static const double sectionSpacing = 24.0;
@@ -228,6 +221,25 @@ class AppTheme {
       type: BottomNavigationBarType.fixed,
       elevation: 0,
     ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: AppColors.surface,
+      indicatorColor: AppColors.primary.withAlpha(30),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return AppTypography.caption2.copyWith(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w600,
+          );
+        }
+        return AppTypography.caption2.copyWith(color: AppColors.textTertiary);
+      }),
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return const IconThemeData(color: AppColors.primary);
+        }
+        return const IconThemeData(color: AppColors.textTertiary);
+      }),
+    ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) return AppColors.primary;
@@ -272,6 +284,12 @@ class AppTheme {
       elevation: 0,
       scrolledUnderElevation: 0.5,
       centerTitle: false,
+      titleTextStyle: TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        color: AppColors.darkTextPrimary,
+        letterSpacing: -0.41,
+      ),
     ),
     cardTheme: CardTheme(
       color: AppColors.darkSurface,
@@ -280,6 +298,71 @@ class AppTheme {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.all(Radius.circular(AppRadius.medium)),
       ),
+    ),
+    dividerTheme: const DividerThemeData(
+      color: AppColors.darkSeparator,
+      thickness: 0.5,
+      space: 0.5,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.darkSecondarySurface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.medium),
+        borderSide: BorderSide.none,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      hintStyle: AppTypography.body.copyWith(color: AppColors.darkTextTertiary),
+    ),
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: AppColors.darkSurface,
+      selectedItemColor: AppColors.primaryLight,
+      unselectedItemColor: AppColors.darkTextTertiary,
+      type: BottomNavigationBarType.fixed,
+      elevation: 0,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: AppColors.darkSurface,
+      indicatorColor: AppColors.primaryLight.withAlpha(30),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return AppTypography.caption2.copyWith(
+            color: AppColors.primaryLight,
+            fontWeight: FontWeight.w600,
+          );
+        }
+        return AppTypography.caption2.copyWith(color: AppColors.darkTextTertiary);
+      }),
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return const IconThemeData(color: AppColors.primaryLight);
+        }
+        return const IconThemeData(color: AppColors.darkTextTertiary);
+      }),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) return AppColors.primaryLight;
+        return Colors.grey.shade600;
+      }),
+      trackColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) return AppColors.primaryLight.withAlpha(80);
+        return AppColors.darkFillPrimary;
+      }),
+    ),
+    textTheme: const TextTheme(
+      headlineLarge: AppTypography.largeTitle,
+      headlineMedium: AppTypography.title1,
+      headlineSmall: AppTypography.title2,
+      titleLarge: AppTypography.title3,
+      titleMedium: AppTypography.headline,
+      titleSmall: AppTypography.subheadline,
+      bodyLarge: AppTypography.body,
+      bodyMedium: AppTypography.callout,
+      bodySmall: AppTypography.subheadline,
+      labelLarge: AppTypography.headline,
+      labelMedium: AppTypography.footnote,
+      labelSmall: AppTypography.caption1,
     ),
   );
 }

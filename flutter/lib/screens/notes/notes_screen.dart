@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_colors_resolver.dart';
 
 import '../../providers/notes_provider.dart';
 import '../../models/vet_record_model.dart';
@@ -35,7 +36,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColorsResolver.background(context),
       body: Column(
         children: [
           // Header
@@ -43,7 +44,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
 
           // Tab bar
           Container(
-            color: AppColors.surface,
+            color: AppColorsResolver.surface(context),
             child: TabBar(
               controller: _tabController,
               labelColor: AppColors.primary,
@@ -76,7 +77,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
 
   Widget _buildHeader() {
     return Container(
-      color: AppColors.surface,
+      color: AppColorsResolver.surface(context),
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.screenPadding,
         AppSpacing.lg,
@@ -88,12 +89,12 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
         children: [
           Text(
             'Записи',
-            style: AppTypography.largeTitle.copyWith(color: AppColors.textPrimary),
+            style: AppTypography.largeTitle.copyWith(color: AppColorsResolver.textPrimary(context)),
           ),
           const SizedBox(height: 4),
           Text(
             'Надиктуйте — AI заполнит карточку',
-            style: AppTypography.subheadline.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
           ),
         ],
       ),
@@ -131,7 +132,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
           // Текстовое поле для диктовки
           Text(
             'Или введите текст вручную',
-            style: AppTypography.subheadline.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -222,7 +223,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
         decoration: BoxDecoration(
           color: isListening
               ? AppColors.primary.withAlpha(15)
-              : AppColors.surface,
+              : AppColorsResolver.surface(context),
           borderRadius: BorderRadius.circular(AppRadius.xl),
           border: Border.all(
             color: isListening ? AppColors.primary : AppColors.separator,
@@ -269,7 +270,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             const SizedBox(height: 4),
             Text(
               isListening ? 'Говорите чётко, называйте препараты и дозы' : 'Голосом или текстом',
-              style: AppTypography.footnote.copyWith(color: AppColors.textTertiary),
+              style: AppTypography.footnote.copyWith(color: AppColorsResolver.textTertiary(context)),
               textAlign: TextAlign.center,
             ),
           ],
@@ -425,7 +426,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
           if (record.rawDictation != null) ...[
             const SizedBox(height: AppSpacing.sm),
             ExpansionTile(
-              backgroundColor: AppColors.surface,
+              backgroundColor: AppColorsResolver.surface(context),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppRadius.medium),
               ),
@@ -434,7 +435,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
               ),
               title: Text(
                 'Оригинал диктовки',
-                style: AppTypography.subheadline.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
               ),
               children: [
                 Padding(
@@ -503,7 +504,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColorsResolver.surface(context),
         borderRadius: BorderRadius.circular(AppRadius.medium),
       ),
       child: Column(
@@ -514,7 +515,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             children: [
               Text(
                 'Заполненность записи',
-                style: AppTypography.subheadline.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
               ),
               Text(
                 '$percent%',
@@ -560,7 +561,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColorsResolver.surface(context),
           borderRadius: BorderRadius.circular(AppRadius.medium),
         ),
         child: Column(
@@ -612,13 +613,13 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             width: 110,
             child: Text(
               label,
-              style: AppTypography.footnote.copyWith(color: AppColors.textTertiary),
+              style: AppTypography.footnote.copyWith(color: AppColorsResolver.textTertiary(context)),
             ),
           ),
           Expanded(
             child: Text(
               value.isEmpty ? '—' : value,
-              style: AppTypography.callout.copyWith(color: AppColors.textPrimary),
+              style: AppTypography.callout.copyWith(color: AppColorsResolver.textPrimary(context)),
             ),
           ),
         ],
@@ -642,12 +643,12 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
           children: [
             Text(
               drug.name,
-              style: AppTypography.headline.copyWith(color: AppColors.textPrimary),
+              style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
             ),
             const SizedBox(height: 2),
             Text(
               drug.shortDescription,
-              style: AppTypography.footnote.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.footnote.copyWith(color: AppColorsResolver.textSecondary(context)),
             ),
           ],
         ),
@@ -678,12 +679,12 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
               const SizedBox(height: AppSpacing.lg),
               Text(
                 'Записей пока нет',
-                style: AppTypography.title3.copyWith(color: AppColors.textPrimary),
+                style: AppTypography.title3.copyWith(color: AppColorsResolver.textPrimary(context)),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Надиктуйте первую запись на вкладке «Новая запись»',
-                style: AppTypography.subheadline.copyWith(color: AppColors.textSecondary),
+                style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -700,15 +701,15 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
           child: TextField(
             decoration: InputDecoration(
               hintText: 'Поиск по записям...',
-              prefixIcon: const Icon(Icons.search, color: AppColors.textTertiary),
+              prefixIcon: const Icon(Icons.search, color: AppColorsResolver.textTertiary(context)),
               suffixIcon: provider.searchQuery.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: AppColors.textTertiary),
+                      icon: const Icon(Icons.clear, color: AppColorsResolver.textTertiary(context)),
                       onPressed: () => provider.setSearchQuery(''),
                     )
                   : null,
               filled: true,
-              fillColor: AppColors.surface,
+              fillColor: AppColorsResolver.surface(context),
             ),
             onChanged: (value) => provider.setSearchQuery(value),
           ),
@@ -774,20 +775,20 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                           const SizedBox(width: 6),
                           Text(
                             record.animalType.isNotEmpty ? record.animalType : 'Не указано',
-                            style: AppTypography.headline.copyWith(color: AppColors.textPrimary),
+                            style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
                           ),
                           if (record.animalWeight != null) ...[
                             const SizedBox(width: 6),
                             Text(
                               '${record.animalWeight} кг',
-                              style: AppTypography.footnote.copyWith(color: AppColors.textSecondary),
+                              style: AppTypography.footnote.copyWith(color: AppColorsResolver.textSecondary(context)),
                             ),
                           ],
                         ],
                       ),
                       Text(
                         _fmtDate(record.createdAt),
-                        style: AppTypography.caption1.copyWith(color: AppColors.textTertiary),
+                        style: AppTypography.caption1.copyWith(color: AppColorsResolver.textTertiary(context)),
                       ),
                     ],
                   ),
@@ -810,7 +811,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                         Expanded(
                           child: Text(
                             record.diagnosis!,
-                            style: AppTypography.callout.copyWith(color: AppColors.textSecondary),
+                            style: AppTypography.callout.copyWith(color: AppColorsResolver.textSecondary(context)),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -829,7 +830,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                         Text(
                           '${record.prescribedDrugs.length} препарат(ов): '
                           '${record.prescribedDrugs.map((d) => d.name).take(3).join(", ")}',
-                          style: AppTypography.caption1.copyWith(color: AppColors.textTertiary),
+                          style: AppTypography.caption1.copyWith(color: AppColorsResolver.textTertiary(context)),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

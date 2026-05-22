@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_colors_resolver.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/vet_provider.dart';
 import '../../models/drug_models.dart';
@@ -44,7 +45,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
             const SizedBox(height: AppSpacing.lg),
             Text(
               provider.statusMessage,
-              style: AppTypography.subheadline.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
               textAlign: TextAlign.center,
             ),
           ],
@@ -53,7 +54,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColorsResolver.background(context),
       body: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
@@ -104,7 +105,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
         children: [
           Text(
             'Калькулятор',
-            style: AppTypography.largeTitle.copyWith(color: AppColors.textPrimary),
+            style: AppTypography.largeTitle.copyWith(color: AppColorsResolver.textPrimary(context)),
           ),
           const SizedBox(height: 4),
           Row(
@@ -121,7 +122,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
               Expanded(
                 child: Text(
                   provider.statusMessage,
-                  style: AppTypography.footnote.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.footnote.copyWith(color: AppColorsResolver.textSecondary(context)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -141,7 +142,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
         children: [
           Text(
             'Выберите животное',
-            style: AppTypography.headline.copyWith(color: AppColors.textPrimary),
+            style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
           ),
           const SizedBox(height: 4),
           Text(
@@ -178,12 +179,12 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
               children: [
                 Text(
                   'Вес животного',
-                  style: AppTypography.headline.copyWith(color: AppColors.textPrimary),
+                  style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
                 ),
                 Text(
                   '${provider.selectedAnimal!.minWeight.toStringAsFixed(0)}-'
                   '${provider.selectedAnimal!.maxWeight.toStringAsFixed(0)} кг',
-                  style: AppTypography.footnote.copyWith(color: AppColors.textTertiary),
+                  style: AppTypography.footnote.copyWith(color: AppColorsResolver.textTertiary(context)),
                 ),
               ],
             ),
@@ -214,7 +215,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
           // Drug search
           Text(
             'Препарат',
-            style: AppTypography.headline.copyWith(color: AppColors.textPrimary),
+            style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
           ),
           const SizedBox(height: AppSpacing.sm),
           TextField(
@@ -222,10 +223,10 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
             focusNode: _searchFocusNode,
             decoration: InputDecoration(
               hintText: 'Поиск по названию или МНН...',
-              prefixIcon: const Icon(Icons.search, color: AppColors.textTertiary),
+              prefixIcon: const Icon(Icons.search, color: AppColorsResolver.textTertiary(context)),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: AppColors.textTertiary),
+                      icon: const Icon(Icons.clear, color: AppColorsResolver.textTertiary(context)),
                       onPressed: () {
                         _searchController.clear();
                         provider.setSearchQuery('');
@@ -249,7 +250,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
           child: Center(
             child: Text(
               'Ничего не найдено',
-              style: AppTypography.subheadline.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
             ),
           ),
         ),
@@ -284,7 +285,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
           child: Center(
             child: Text(
               'Нет препаратов для ${provider.selectedAnimal?.name ?? "животного"}',
-              style: AppTypography.subheadline.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
             ),
           ),
         ),
