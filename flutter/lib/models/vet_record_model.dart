@@ -349,7 +349,7 @@ class PrescribedDrug {
   /// Краткая строка назначения
   String get shortDescription {
     final parts = <String>[name];
-    if (dosePerKg != null) parts.add('${dosePerKg} мг/кг');
+    if (dosePerKg != null) parts.add('$dosePerKg мг/кг');
     if (route != null) parts.add(route!);
     if (frequency != null) parts.add(frequency!);
     if (durationDays != null) parts.add('$durationDays дн.');

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_colors_resolver.dart';
@@ -16,7 +15,6 @@ class VetlearnScreen extends StatefulWidget {
 class _VetlearnScreenState extends State<VetlearnScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
-  String _title = 'VetLearn';
 
   @override
   void initState() {

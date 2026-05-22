@@ -288,7 +288,7 @@
     {
       "id": "cattle",
       "name": "КРС",
-      "icon": "cattle",
+      "icon": "🐄",
       "description": "Крупный рогатый скот",
       "min_weight": 30,
       "max_weight": 1500,
@@ -325,7 +325,7 @@
     {
       "id": "sheep",
       "name": "МРС",
-      "icon": "sheep",
+      "icon": "🐑",
       "description": "Мелкий рогатый скот (овцы, козы)",
       "min_weight": 5,
       "max_weight": 150,
@@ -362,7 +362,7 @@
     {
       "id": "horse",
       "name": "Лошади",
-      "icon": "horse",
+      "icon": "🐴",
       "description": "Лошади, пони",
       "min_weight": 50,
       "max_weight": 1000,
@@ -399,7 +399,7 @@
     {
       "id": "pig",
       "name": "Свиньи",
-      "icon": "pig",
+      "icon": "🐷",
       "description": "Свиньи всех возрастов",
       "min_weight": 1,
       "max_weight": 400,
@@ -436,7 +436,7 @@
     {
       "id": "poultry",
       "name": "Птица",
-      "icon": "poultry",
+      "icon": "🐔",
       "description": "Куры, утки, гуси, индейки",
       "min_weight": 0.1,
       "max_weight": 20,

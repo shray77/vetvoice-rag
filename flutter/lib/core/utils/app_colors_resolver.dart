@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../core/theme/app_theme.dart';
+import '../theme/app_theme.dart';
 
 /// Утилиты для получения правильных цветов в зависимости от темы
 /// Используется вместо прямого обращения к AppColors в виджетах

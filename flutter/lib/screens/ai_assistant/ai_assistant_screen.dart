@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/constants/app_constants.dart';
 import '../../providers/ai_provider.dart';
 import '../../providers/vlm_provider.dart';
 import '../../models/drug_models.dart';
@@ -128,7 +127,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
         // Messages
         Expanded(
           child: provider.messages.isEmpty
-              ? _buildChatEmptyState(primaryColor, secondaryTextColor)
+              ? _buildChatEmptyState(primaryColor, textColor, secondaryTextColor)
               : ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(AppSpacing.screenPadding),
@@ -171,12 +170,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
           ),
 
         // Input bar
-        _buildChatInputBar(provider, primaryColor, surfaceColor, bgColor),
+        _buildChatInputBar(provider, primaryColor, surfaceColor, bgColor, secondaryTextColor),
       ],
     );
   }
 
-  Widget _buildChatEmptyState(Color primaryColor, Color secondaryTextColor) {
+  Widget _buildChatEmptyState(Color primaryColor, Color textColor, Color secondaryTextColor) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -303,7 +302,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
   }
 
   Widget _buildChatInputBar(AiProvider provider, Color primaryColor,
-      Color surfaceColor, Color bgColor) {
+      Color surfaceColor, Color bgColor, Color secondaryTextColor) {
     return Container(
       color: surfaceColor,
       padding: const EdgeInsets.fromLTRB(

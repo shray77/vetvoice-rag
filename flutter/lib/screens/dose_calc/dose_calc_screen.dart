@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_colors_resolver.dart';
-import '../../core/constants/app_constants.dart';
 import '../../providers/vet_provider.dart';
 import '../../models/drug_models.dart';
 import '../../core/utils/voice_parser.dart';
@@ -386,7 +385,7 @@ class _DrugListTile extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (category != null && category!.isNotEmpty) ...[
+                      if (category != null && category.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -395,7 +394,7 @@ class _DrugListTile extends StatelessWidget {
                             borderRadius: BorderRadius.circular(AppRadius.full),
                           ),
                           child: Text(
-                            category!,
+                            category,
                             style: AppTypography.caption2.copyWith(
                               color: AppColors.primary,
                             ),

@@ -191,7 +191,7 @@ class AppTheme {
         letterSpacing: -0.41,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: const CardTheme(
       color: AppColors.surface,
       elevation: 0,
       margin: EdgeInsets.zero,
@@ -291,7 +291,7 @@ class AppTheme {
         letterSpacing: -0.41,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: const CardTheme(
       color: AppColors.darkSurface,
       elevation: 0,
       margin: EdgeInsets.zero,

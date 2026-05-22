@@ -771,7 +771,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.pets, size: 16, color: AppColors.primary),
+                          const Icon(Icons.pets, size: 16, color: AppColors.primary),
                           const SizedBox(width: 6),
                           Text(
                             record.animalType.isNotEmpty ? record.animalType : 'Не указано',
@@ -825,7 +825,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.medication, size: 14, color: AppColors.systemRed),
+                        const Icon(Icons.medication, size: 14, color: AppColors.systemRed),
                         const SizedBox(width: 4),
                         Text(
                           '${record.prescribedDrugs.length} препарат(ов): '

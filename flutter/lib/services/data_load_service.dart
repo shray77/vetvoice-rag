@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import '../models/drug_models.dart';
 
 /// Сервис загрузки данных из JSON-ассетов
