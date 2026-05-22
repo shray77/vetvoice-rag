@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed for creating releases
+
     steps:
       - uses: actions/checkout@v4
 
@@ -72,9 +75,47 @@ jobs:
           mv flutter/build/app/outputs/flutter-apk/app-release.apk \
              flutter/build/app/outputs/flutter-apk/veteco-release.apk
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: veteco-release-apk
           path: flutter/build/app/outputs/flutter-apk/veteco-release.apk
           retention-days: 30
+
+      - name: Get version
+        id: version
+        working-directory: flutter
+        run: |
+          VERSION=$(grep 'version:' pubspec.yaml | head -1 | awk '{print $2}' | cut -d'+' -f1)
+          BUILD=$(grep 'version:' pubspec.yaml | head -1 | awk '{print $2}' | cut -d'+' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "build=$BUILD" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}+${BUILD}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: VetEco ${{ steps.version.outputs.version }}
+          body: |
+            ## VetEco v${{ steps.version.outputs.version }}
+
+            ### Скачать APK
+            👇 Скачайте `veteco-release.apk` ниже и установите на Android устройство.
+
+            ### Модули
+            - 📝 Записи — голосовая диктовка → SOAP медкарта
+            - 💊 Дозы — калькулятор дозировок (2401 препарат)
+            - 🤖 AI — RAG чат + VLM диагностика
+            - ⚙️ Ещё — VetLearn + Настройки
+
+            ### Технологии
+            - GLM-4-Flash (бесплатно) + RAG (1409 чанков)
+            - GLM-4V Flash для VLM диагностики
+            - Flutter + Material 3
+          files: |
+            flutter/build/app/outputs/flutter-apk/veteco-release.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
