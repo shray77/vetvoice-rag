@@ -48,7 +48,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             child: TabBar(
               controller: _tabController,
               labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.textSecondary,
+              unselectedLabelColor: AppColorsResolver.textSecondary(context),
               indicatorColor: AppColors.primary,
               indicatorSize: TabBarIndicatorSize.label,
               labelStyle: AppTypography.headline,
@@ -264,7 +264,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             Text(
               isListening ? 'Слушаю...' : 'Нажмите для диктовки',
               style: AppTypography.headline.copyWith(
-                color: isListening ? AppColors.primary : AppColors.textPrimary,
+                color: isListening ? AppColors.primary : AppColorsResolver.textPrimary(context),
               ),
             ),
             const SizedBox(height: 4),
@@ -310,7 +310,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             'артрит. Назначен мелоксикам 0.1 мг/кг внутрь 7 дней, '
             'хондроитин 15 мг/кг. Повторный осмотр через неделю.»',
             style: AppTypography.callout.copyWith(
-              color: AppColors.textSecondary,
+              color: AppColorsResolver.textSecondary(context),
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -416,7 +416,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             _buildSectionCard(
               icon: Icons.note,
               title: 'Заметки',
-              color: AppColors.textTertiary,
+              color: AppColorsResolver.textTertiary(context),
               children: [
                 _buildInfoRow('Дополнительно', record.notes!),
               ],
@@ -443,7 +443,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                   child: Text(
                     record.rawDictation!,
                     style: AppTypography.callout.copyWith(
-                      color: AppColors.textTertiary,
+                      color: AppColorsResolver.textTertiary(context),
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -463,7 +463,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('Заново'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
+                    foregroundColor: AppColorsResolver.textSecondary(context),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.medium),
@@ -671,10 +671,10 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
+              Icon(
                 Icons.folder_open_outlined,
                 size: 64,
-                color: AppColors.textTertiary,
+                color: AppColorsResolver.textTertiary(context),
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
@@ -701,10 +701,10 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
           child: TextField(
             decoration: InputDecoration(
               hintText: 'Поиск по записям...',
-              prefixIcon: const Icon(Icons.search, color: AppColorsResolver.textTertiary(context)),
+              prefixIcon: Icon(Icons.search, color: AppColorsResolver.textTertiary(context)),
               suffixIcon: provider.searchQuery.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: AppColorsResolver.textTertiary(context)),
+                      icon: Icon(Icons.clear, color: AppColorsResolver.textTertiary(context)),
                       onPressed: () => provider.setSearchQuery(''),
                     )
                   : null,
@@ -873,7 +873,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
 
   Widget _buildStatusBadge(VetRecordStatus status) {
     final (label, color) = switch (status) {
-      VetRecordStatus.draft => ('Черновик', AppColors.textTertiary),
+      VetRecordStatus.draft => ('Черновик', AppColorsResolver.textTertiary(context)),
       VetRecordStatus.parsed => ('AI', AppColors.systemPurple),
       VetRecordStatus.edited => ('Правки', AppColors.systemBlue),
       VetRecordStatus.saved => ('Сохранено', AppColors.success),

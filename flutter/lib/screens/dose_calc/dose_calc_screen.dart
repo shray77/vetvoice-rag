@@ -35,6 +35,9 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<VetProvider>();
+    final textColor = AppColorsResolver.textPrimary(context);
+    final secondaryTextColor = AppColorsResolver.textSecondary(context);
+    final tertiaryTextColor = AppColorsResolver.textTertiary(context);
 
     if (provider.isLoading) {
       return Center(
@@ -45,7 +48,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
             const SizedBox(height: AppSpacing.lg),
             Text(
               provider.statusMessage,
-              style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
+              style: AppTypography.subheadline.copyWith(color: secondaryTextColor),
               textAlign: TextAlign.center,
             ),
           ],
@@ -60,17 +63,17 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
         slivers: [
           // Header
           SliverToBoxAdapter(
-            child: _buildHeader(provider),
+            child: _buildHeader(provider, textColor, secondaryTextColor),
           ),
 
           // Animal selector
           SliverToBoxAdapter(
-            child: _buildAnimalSection(provider),
+            child: _buildAnimalSection(provider, textColor, tertiaryTextColor),
           ),
 
           // Search + Weight input
           SliverToBoxAdapter(
-            child: _buildInputSection(provider),
+            child: _buildInputSection(provider, textColor, tertiaryTextColor),
           ),
 
           // Drug list or result
@@ -79,9 +82,9 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
               child: DoseResultCard(result: provider.result),
             )
           else if (provider.searchQuery.isNotEmpty)
-            _buildSearchResults(provider)
+            _buildSearchResults(provider, textColor, secondaryTextColor)
           else if (provider.selectedAnimal != null)
-            _buildDrugList(provider),
+            _buildDrugList(provider, textColor, secondaryTextColor),
 
           // Bottom padding
           const SliverToBoxAdapter(
@@ -92,7 +95,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
     );
   }
 
-  Widget _buildHeader(VetProvider provider) {
+  Widget _buildHeader(VetProvider provider, Color textColor, Color secondaryTextColor) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.screenPadding,
@@ -105,7 +108,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
         children: [
           Text(
             'Калькулятор',
-            style: AppTypography.largeTitle.copyWith(color: AppColorsResolver.textPrimary(context)),
+            style: AppTypography.largeTitle.copyWith(color: textColor),
           ),
           const SizedBox(height: 4),
           Row(
@@ -122,7 +125,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
               Expanded(
                 child: Text(
                   provider.statusMessage,
-                  style: AppTypography.footnote.copyWith(color: AppColorsResolver.textSecondary(context)),
+                  style: AppTypography.footnote.copyWith(color: secondaryTextColor),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -134,7 +137,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
     );
   }
 
-  Widget _buildAnimalSection(VetProvider provider) {
+  Widget _buildAnimalSection(VetProvider provider, Color textColor, Color tertiaryTextColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
       child: Column(
@@ -142,13 +145,13 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
         children: [
           Text(
             'Выберите животное',
-            style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
+            style: AppTypography.headline.copyWith(color: textColor),
           ),
           const SizedBox(height: 4),
           Text(
             'Можно сказать голосом: "корова", "собака"...',
             style: AppTypography.footnote.copyWith(
-              color: AppColors.textTertiary,
+              color: tertiaryTextColor,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -166,7 +169,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
     );
   }
 
-  Widget _buildInputSection(VetProvider provider) {
+  Widget _buildInputSection(VetProvider provider, Color textColor, Color tertiaryTextColor) {
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       child: Column(
@@ -179,12 +182,12 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
               children: [
                 Text(
                   'Вес животного',
-                  style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
+                  style: AppTypography.headline.copyWith(color: textColor),
                 ),
                 Text(
                   '${provider.selectedAnimal!.minWeight.toStringAsFixed(0)}-'
                   '${provider.selectedAnimal!.maxWeight.toStringAsFixed(0)} кг',
-                  style: AppTypography.footnote.copyWith(color: AppColorsResolver.textTertiary(context)),
+                  style: AppTypography.footnote.copyWith(color: tertiaryTextColor),
                 ),
               ],
             ),
@@ -215,7 +218,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
           // Drug search
           Text(
             'Препарат',
-            style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
+            style: AppTypography.headline.copyWith(color: textColor),
           ),
           const SizedBox(height: AppSpacing.sm),
           TextField(
@@ -223,10 +226,10 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
             focusNode: _searchFocusNode,
             decoration: InputDecoration(
               hintText: 'Поиск по названию или МНН...',
-              prefixIcon: const Icon(Icons.search, color: AppColorsResolver.textTertiary(context)),
+              prefixIcon: Icon(Icons.search, color: tertiaryTextColor),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: AppColorsResolver.textTertiary(context)),
+                      icon: Icon(Icons.clear, color: tertiaryTextColor),
                       onPressed: () {
                         _searchController.clear();
                         provider.setSearchQuery('');
@@ -241,7 +244,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
     );
   }
 
-  Widget _buildSearchResults(VetProvider provider) {
+  Widget _buildSearchResults(VetProvider provider, Color textColor, Color secondaryTextColor) {
     final results = provider.searchResults;
     if (results.isEmpty) {
       return SliverToBoxAdapter(
@@ -250,7 +253,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
           child: Center(
             child: Text(
               'Ничего не найдено',
-              style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
+              style: AppTypography.subheadline.copyWith(color: secondaryTextColor),
             ),
           ),
         ),
@@ -263,6 +266,8 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
           final drug = results[index];
           return _DrugListTile(
             drug: drug,
+            textColor: textColor,
+            secondaryTextColor: secondaryTextColor,
             onTap: () {
               HapticHelper.light();
               provider.selectDrug(drug);
@@ -276,7 +281,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
     );
   }
 
-  Widget _buildDrugList(VetProvider provider) {
+  Widget _buildDrugList(VetProvider provider, Color textColor, Color secondaryTextColor) {
     final drugs = provider.availableDrugs;
     if (drugs.isEmpty) {
       return SliverToBoxAdapter(
@@ -285,7 +290,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
           child: Center(
             child: Text(
               'Нет препаратов для ${provider.selectedAnimal?.name ?? "животного"}',
-              style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
+              style: AppTypography.subheadline.copyWith(color: secondaryTextColor),
             ),
           ),
         ),
@@ -298,6 +303,8 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
           final drug = drugs[index];
           return _DrugListTile(
             drug: drug,
+            textColor: textColor,
+            secondaryTextColor: secondaryTextColor,
             onTap: () {
               HapticHelper.light();
               provider.selectDrug(drug);
@@ -315,8 +322,15 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
 class _DrugListTile extends StatelessWidget {
   final dynamic drug;
   final VoidCallback onTap;
+  final Color textColor;
+  final Color secondaryTextColor;
 
-  const _DrugListTile({required this.drug, required this.onTap});
+  const _DrugListTile({
+    required this.drug,
+    required this.onTap,
+    required this.textColor,
+    required this.secondaryTextColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -358,7 +372,7 @@ class _DrugListTile extends StatelessWidget {
                       Text(
                         name,
                         style: AppTypography.headline.copyWith(
-                          color: AppColors.textPrimary,
+                          color: textColor,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -367,7 +381,7 @@ class _DrugListTile extends StatelessWidget {
                       Text(
                         subtitle,
                         style: AppTypography.footnote.copyWith(
-                          color: AppColors.textSecondary,
+                          color: secondaryTextColor,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -393,9 +407,9 @@ class _DrugListTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.chevron_right,
-                  color: AppColors.textTertiary,
+                  color: secondaryTextColor,
                   size: 20,
                 ),
               ],

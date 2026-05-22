@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_colors_resolver.dart';
 import '../../core/constants/app_constants.dart';
 
 /// Экран VetLearn — WebView с существующим веб-приложением
@@ -42,7 +43,7 @@ class _VetlearnScreenState extends State<VetlearnScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColorsResolver.background(context),
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),

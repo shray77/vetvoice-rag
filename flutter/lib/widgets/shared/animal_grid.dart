@@ -59,7 +59,7 @@ class AnimalGrid extends StatelessWidget {
                 Text(
                   animal.name,
                   style: AppTypography.caption1.copyWith(
-                    color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                    color: isSelected ? AppColors.primary : AppColorsResolver.textPrimary(context),
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   ),
                   textAlign: TextAlign.center,
@@ -72,7 +72,7 @@ class AnimalGrid extends StatelessWidget {
                     '${animal.minWeight.toStringAsFixed(0)}-'
                     '${animal.maxWeight > 100 ? animal.maxWeight.toStringAsFixed(0) : animal.maxWeight.toStringAsFixed(1)} кг',
                     style: AppTypography.caption2.copyWith(
-                      color: AppColors.textTertiary,
+                      color: AppColorsResolver.textTertiary(context),
                     ),
                   ),
                 ],

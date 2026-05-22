@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import '../models/drug_models.dart';
 
 /// Сервис загрузки данных из JSON-ассетов
@@ -29,40 +29,78 @@ class DataLoadService {
   Future<void> loadAll() async {
     if (_isLoaded) return;
 
+    int errorsCount = 0;
+
     try {
-      // Load calc drugs
+      // Load calc drugs — один некорректный препарат не должен сломать всю загрузку
       final calcData = await _loadJson('assets/data/drugs_calc.json');
       if (calcData != null) {
         final List<dynamic> drugsList = calcData['drugs_calc'] ?? [];
-        _calcDrugs = drugsList.map((e) => CalcDrug.fromJson(e as Map<String, dynamic>)).toList();
+        final drugs = <CalcDrug>[];
+        for (int i = 0; i < drugsList.length; i++) {
+          try {
+            drugs.add(CalcDrug.fromJson(drugsList[i] as Map<String, dynamic>));
+          } catch (e) {
+            errorsCount++;
+            if (errorsCount <= 3) {
+              debugPrint('CalcDrug parse error #$i: $e');
+            }
+          }
+        }
+        _calcDrugs = drugs;
+        debugPrint('Loaded ${drugs.length} calc drugs (${drugsList.length - drugs.length} parse errors)');
       }
 
       // Load registry drugs
       final regData = await _loadJson('assets/data/drugs_registry.json');
       if (regData != null) {
         final List<dynamic> drugsList = regData['drugs'] ?? [];
-        _registryDrugs = drugsList.map((e) => RegistryDrug.fromJson(e as Map<String, dynamic>)).toList();
+        final drugs = <RegistryDrug>[];
+        for (int i = 0; i < drugsList.length; i++) {
+          try {
+            drugs.add(RegistryDrug.fromJson(drugsList[i] as Map<String, dynamic>));
+          } catch (e) {
+            errorsCount++;
+            if (errorsCount <= 6) {
+              debugPrint('RegistryDrug parse error #$i: $e');
+            }
+          }
+        }
+        _registryDrugs = drugs;
+        debugPrint('Loaded ${drugs.length} registry drugs');
       }
 
       // Load simple drugs (for animals list)
       final drugsData = await _loadJson('assets/data/drugs.json');
       if (drugsData != null) {
         final List<dynamic> animalsList = drugsData['animals'] ?? [];
-        _animals = animalsList.map((e) => Animal.fromJson(e as Map<String, dynamic>)).toList();
+        final animals = <Animal>[];
+        for (final a in animalsList) {
+          try {
+            animals.add(Animal.fromJson(a as Map<String, dynamic>));
+          } catch (e) {
+            debugPrint('Animal parse error: $e');
+          }
+        }
+        _animals = animals;
       }
 
       // Load diseases
       final diseaseData = await _loadJson('assets/data/diseases.json');
       if (diseaseData != null) {
         final List<dynamic> diseasesList = diseaseData['diseases'] ?? [];
-        _diseases = diseasesList.map((e) => Disease.fromJson(e as Map<String, dynamic>)).toList();
+        _diseases = diseasesList
+            .map((e) => Disease.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
 
       // Load drug interactions
       final interactionData = await _loadJson('assets/data/advanced/drug_interactions.json');
       if (interactionData != null) {
         final List<dynamic> interactionsList = interactionData['interactions'] ?? [];
-        _interactions = interactionsList.map((e) => DrugInteraction.fromJson(e as Map<String, dynamic>)).toList();
+        _interactions = interactionsList
+            .map((e) => DrugInteraction.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
 
       // Load dosage database
@@ -72,8 +110,11 @@ class DataLoadService {
       }
 
       _isLoaded = true;
+      if (errorsCount > 0) {
+        debugPrint('DataLoadService: loaded with $errorsCount parse errors total');
+      }
     } catch (e) {
-      print('Error loading data: $e');
+      debugPrint('Error loading data: $e');
       _isLoaded = false;
     }
   }
@@ -83,7 +124,7 @@ class DataLoadService {
       final String jsonString = await rootBundle.loadString(path);
       return jsonDecode(jsonString) as Map<String, dynamic>;
     } catch (e) {
-      print('Error loading $path: $e');
+      debugPrint('Error loading $path: $e');
       return null;
     }
   }
@@ -195,6 +236,10 @@ class DataLoadService {
     } else if (dosePerKg > 0 && drug.unit == 'мл/кг') {
       volumeMl = dosePerKg * weight;
       note = '$dosePerKg мл/кг × ${weight.toStringAsFixed(1)} кг';
+    } else if (dosePerKg > 0) {
+      // Нет концентрации — покажем дозу в мг
+      final doseMg = dosePerKg * weight;
+      note = '$dosePerKg $doseUnit × ${weight.toStringAsFixed(1)} кг = ${doseMg.toStringAsFixed(1)} мг';
     }
 
     return DoseResult(

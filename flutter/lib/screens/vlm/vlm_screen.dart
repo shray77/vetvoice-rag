@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_colors_resolver.dart';
 import '../../providers/vlm_provider.dart';
 
 /// Экран VLM — ветеринарное зрение (фото + AI анализ)
@@ -56,7 +57,7 @@ class _VlmScreenState extends State<VlmScreen> {
 
     // Основной экран выбора фото
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColorsResolver.background(context),
       body: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
@@ -74,12 +75,12 @@ class _VlmScreenState extends State<VlmScreen> {
                 children: [
                   Text(
                     'VetEco Vision',
-                    style: AppTypography.largeTitle.copyWith(color: AppColors.textPrimary),
+                    style: AppTypography.largeTitle.copyWith(color: AppColorsResolver.textPrimary(context)),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'GLM-4V + RAG — загрузите фото для диагностики',
-                    style: AppTypography.subheadline.copyWith(color: AppColors.textSecondary),
+                    style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
                   ),
                 ],
               ),
@@ -111,12 +112,12 @@ class _VlmScreenState extends State<VlmScreen> {
                         const SizedBox(height: AppSpacing.md),
                         Text(
                           'Анализирую изображение...',
-                          style: AppTypography.headline.copyWith(color: AppColors.textPrimary),
+                          style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         Text(
                           _modeLabel(provider.mode),
-                          style: AppTypography.footnote.copyWith(color: AppColors.textSecondary),
+                          style: AppTypography.footnote.copyWith(color: AppColorsResolver.textSecondary(context)),
                         ),
                       ],
                     ),
@@ -172,10 +173,10 @@ class _VlmScreenState extends State<VlmScreen> {
   /// Страница результатов — автоматически показывается после анализа
   Widget _buildResultView(VlmProvider provider) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColorsResolver.background(context),
       appBar: AppBar(
         title: const Text('Результат анализа'),
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColorsResolver.background(context),
         elevation: 0,
         actions: [
           IconButton(
@@ -273,7 +274,7 @@ class _VlmScreenState extends State<VlmScreen> {
                           const SizedBox(width: 8),
                           Text(
                             'Анализ AI',
-                            style: AppTypography.headline.copyWith(color: AppColors.textPrimary),
+                            style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
                           ),
                         ],
                       ),
@@ -288,7 +289,7 @@ class _VlmScreenState extends State<VlmScreen> {
                         child: SelectableText(
                           provider.analysisResult,
                           style: AppTypography.callout.copyWith(
-                            color: AppColors.textPrimary,
+                            color: AppColorsResolver.textPrimary(context),
                             height: 1.6,
                           ),
                         ),
@@ -422,7 +423,7 @@ class _VlmScreenState extends State<VlmScreen> {
   Widget _buildImagePlaceholder(bool hasImage) {
     if (hasImage) {
       return Container(
-        color: AppColors.secondarySurface,
+        color: AppColorsResolver.secondarySurface(context),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -441,21 +442,21 @@ class _VlmScreenState extends State<VlmScreen> {
     }
 
     return Container(
-      color: AppColors.secondarySurface,
+      color: AppColorsResolver.secondarySurface(context),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.add_photo_alternate_outlined, size: 48, color: AppColors.textTertiary),
+            Icon(Icons.add_photo_alternate_outlined, size: 48, color: AppColorsResolver.textTertiary(context)),
             const SizedBox(height: 12),
             Text(
               'Загрузите фото',
-              style: AppTypography.headline.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.headline.copyWith(color: AppColorsResolver.textSecondary(context)),
             ),
             const SizedBox(height: 4),
             Text(
               'Кожа, уши, глаза, лапы — AI определит заболевание',
-              style: AppTypography.footnote.copyWith(color: AppColors.textTertiary),
+              style: AppTypography.footnote.copyWith(color: AppColorsResolver.textTertiary(context)),
               textAlign: TextAlign.center,
             ),
           ],
@@ -473,14 +474,14 @@ class _VlmScreenState extends State<VlmScreen> {
           children: [
             Text(
               'Режим анализа',
-              style: AppTypography.headline.copyWith(color: AppColors.textPrimary),
+              style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
             ),
             // Переключатель авто-анализа
             Row(
               children: [
                 Text(
                   'Авто',
-                  style: AppTypography.caption1.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.caption1.copyWith(color: AppColorsResolver.textSecondary(context)),
                 ),
                 Switch(
                   value: provider.autoAnalyze,
@@ -499,13 +500,13 @@ class _VlmScreenState extends State<VlmScreen> {
             final isSelected = provider.mode == mode;
             final (icon, label) = _modeInfo(mode);
             return ChoiceChip(
-              avatar: Icon(icon, size: 16, color: isSelected ? Colors.white : AppColors.textSecondary),
+              avatar: Icon(icon, size: 16, color: isSelected ? Colors.white : AppColorsResolver.textSecondary(context)),
               label: Text(label),
               selected: isSelected,
               onSelected: (_) => provider.setMode(mode),
               selectedColor: AppColors.primary,
               labelStyle: AppTypography.footnote.copyWith(
-                color: isSelected ? Colors.white : AppColors.textSecondary,
+                color: isSelected ? Colors.white : AppColorsResolver.textSecondary(context),
               ),
             );
           }).toList(),
@@ -581,7 +582,7 @@ class _VlmScreenState extends State<VlmScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'О модели',
-                  style: AppTypography.headline.copyWith(color: AppColors.textPrimary),
+                  style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
                 ),
               ],
             ),
@@ -592,7 +593,7 @@ class _VlmScreenState extends State<VlmScreen> {
               'патологий. Результаты дополняются контекстом из базы ветеринарных '
               'знаний (1409 чанков). Автоматический fallback на прямой GLM-4V '
               'если HF Space недоступен.',
-              style: AppTypography.footnote.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.footnote.copyWith(color: AppColorsResolver.textSecondary(context)),
             ),
           ],
         ),

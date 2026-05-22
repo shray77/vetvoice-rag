@@ -52,37 +52,84 @@ class CalcDrug {
     this.animalSpecific,
   });
 
+  /// Безопасное извлечение числа из JSON (может быть String, int, double, null)
+  static double _parseDouble(dynamic value, [double defaultValue = 0]) {
+    if (value == null) return defaultValue;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      // Убираем пробелы, неразрывные пробелы, МЕ/мг суффиксы
+      final cleaned = value
+          .replaceAll(RegExp(r'[\s\u00A0]'), '')
+          .replaceAll(RegExp(r'[Мм][Ее]|мг|мл|г'), '')
+          .replaceAll(',', '.')
+          .replaceAll(RegExp(r'[^\d.]'), '')
+          .trim();
+      if (cleaned.isEmpty) return defaultValue;
+      return double.tryParse(cleaned) ?? defaultValue;
+    }
+    return defaultValue;
+  }
+
+  /// Безопасное извлечение целого числа из JSON
+  static int _parseInt(dynamic value, [int defaultValue = 0]) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) {
+      final cleaned = value.replaceAll(RegExp(r'[^\d]'), '').trim();
+      if (cleaned.isEmpty) return defaultValue;
+      return int.tryParse(cleaned) ?? defaultValue;
+    }
+    return defaultValue;
+  }
+
+  /// Безопасное извлечение bool из JSON
+  static bool _parseBool(dynamic value, [bool defaultValue = true]) {
+    if (value == null) return defaultValue;
+    if (value is bool) return value;
+    if (value is String) {
+      return value.toLowerCase() == 'true' || value == '1';
+    }
+    if (value is int) return value != 0;
+    return defaultValue;
+  }
+
   factory CalcDrug.fromJson(Map<String, dynamic> json) {
     Map<String, AnimalSpecificDosage>? specific;
     if (json['animal_specific'] != null) {
       specific = {};
       (json['animal_specific'] as Map<String, dynamic>).forEach((key, value) {
-        specific![key] = AnimalSpecificDosage.fromJson(value as Map<String, dynamic>);
+        try {
+          specific![key] = AnimalSpecificDosage.fromJson(value as Map<String, dynamic>);
+        } catch (_) {
+          // Пропускаем некорректные записи animal_specific
+        }
       });
     }
 
     return CalcDrug(
-      id: json['id'] as int,
-      name: json['name'] as String,
+      id: _parseInt(json['id'], 0),
+      name: json['name'] as String? ?? '',
       inn: json['inn'] as String? ?? '',
       form: json['form'] as String? ?? '',
       formType: json['form_type'] as String? ?? 'injection',
-      concentration: (json['concentration'] as num?)?.toDouble() ?? 0,
+      concentration: _parseDouble(json['concentration'], 0),
       concentrationUnit: json['concentration_unit'] as String? ?? 'мг/мл',
       unit: json['unit'] as String? ?? 'мл',
-      dosePerKg: (json['dose_per_kg'] as num?)?.toDouble() ?? 0,
-      doseMin: (json['dose_min'] as num?)?.toDouble() ?? 0,
-      doseMax: (json['dose_max'] as num?)?.toDouble() ?? 0,
+      dosePerKg: _parseDouble(json['dose_per_kg'], 0),
+      doseMin: _parseDouble(json['dose_min'], 0),
+      doseMax: _parseDouble(json['dose_max'], 0),
       doseUnit: json['dose_unit'] as String? ?? 'мг/кг',
       animals: (json['animals'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ?? [],
       method: json['method'] as String? ?? '',
       frequency: json['frequency'] as String? ?? '',
-      courseDays: json['course_days'] as String? ?? '',
-      withdrawalDays: json['withdrawal_days'] as int? ?? 0,
+      courseDays: json['course_days']?.toString() ?? '',
+      withdrawalDays: _parseInt(json['withdrawal_days'], 0),
       fixedDose: json['fixed_dose'],
-      calculatorApplicable: json['calculator_applicable'] as bool? ?? true,
+      calculatorApplicable: _parseBool(json['calculator_applicable'], true),
       contraindications: json['contraindications'] as String? ?? '',
       sideEffects: (json['side_effects'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -122,9 +169,9 @@ class AnimalSpecificDosage {
 
   factory AnimalSpecificDosage.fromJson(Map<String, dynamic> json) {
     return AnimalSpecificDosage(
-      dosePerKg: (json['dose_per_kg'] as num?)?.toDouble() ?? 0,
-      doseMin: (json['dose_min'] as num?)?.toDouble() ?? 0,
-      doseMax: (json['dose_max'] as num?)?.toDouble() ?? 0,
+      dosePerKg: CalcDrug._parseDouble(json['dose_per_kg'], 0),
+      doseMin: CalcDrug._parseDouble(json['dose_min'], 0),
+      doseMax: CalcDrug._parseDouble(json['dose_max'], 0),
       doseUnit: json['dose_unit'] as String? ?? 'мг/кг',
       method: json['method'] as String? ?? '',
       frequency: json['frequency'] as String? ?? '',
@@ -169,10 +216,10 @@ class RegistryDrug {
 
   factory RegistryDrug.fromJson(Map<String, dynamic> json) {
     return RegistryDrug(
-      id: json['id'] as int,
-      tradeName: json['trade_name'] as String,
-      inn: json['inn'] as String,
-      form: json['form'] as String,
+      id: CalcDrug._parseInt(json['id'], 0),
+      tradeName: json['trade_name'] as String? ?? '',
+      inn: json['inn'] as String? ?? '',
+      form: json['form'] as String? ?? '',
       dosage: json['dosage'] as String? ?? '',
       animals: (json['animals'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -218,11 +265,11 @@ class Animal {
 
   factory Animal.fromJson(Map<String, dynamic> json) {
     return Animal(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      icon: json['icon'] as String,
-      minWeight: (json['min_weight'] as num?)?.toDouble() ?? 0.1,
-      maxWeight: (json['max_weight'] as num?)?.toDouble() ?? 2000,
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      icon: json['icon'] as String? ?? '🐾',
+      minWeight: CalcDrug._parseDouble(json['min_weight'], 0.1),
+      maxWeight: CalcDrug._parseDouble(json['max_weight'], 2000),
       weightHint: json['weight_hint'] as String? ?? '',
       pregnancyTerm: json['pregnancy_term'] as String? ?? 'Беременность',
     );

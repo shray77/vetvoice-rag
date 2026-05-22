@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_colors_resolver.dart';
 import '../../models/drug_models.dart';
@@ -13,6 +12,9 @@ class DoseResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!result.hasResult) return const SizedBox.shrink();
+
+    final textColor = AppColorsResolver.textPrimary(context);
+    final secondaryTextColor = AppColorsResolver.textSecondary(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
@@ -39,7 +41,7 @@ class DoseResultCard extends StatelessWidget {
                         child: Text(
                           result.drugName,
                           style: AppTypography.title3.copyWith(
-                            color: AppColors.textPrimary,
+                            color: textColor,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -68,7 +70,7 @@ class DoseResultCard extends StatelessWidget {
                     Text(
                       result.drugForm,
                       style: AppTypography.footnote.copyWith(
-                        color: AppColors.textSecondary,
+                        color: secondaryTextColor,
                       ),
                     ),
                   ],
@@ -81,7 +83,7 @@ class DoseResultCard extends StatelessWidget {
                   else if (result.isFixedDose)
                     _buildFixedDoseSection()
                   else if (result.hasDosage && result.volume > 0)
-                    _buildCalculatedDoseSection()
+                    _buildCalculatedDoseSection(secondaryTextColor)
                   else
                     _buildNoDoseSection(),
 
@@ -89,6 +91,7 @@ class DoseResultCard extends StatelessWidget {
                   if (result.method.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.md),
                     _buildInfoRow(
+                      context,
                       Icons.medication_outlined,
                       'Путь введения',
                       result.method,
@@ -98,6 +101,7 @@ class DoseResultCard extends StatelessWidget {
                   if (result.frequency.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.sm),
                     _buildInfoRow(
+                      context,
                       Icons.schedule_outlined,
                       'Частота',
                       result.frequency,
@@ -107,6 +111,7 @@ class DoseResultCard extends StatelessWidget {
                   if (result.courseDays.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.sm),
                     _buildInfoRow(
+                      context,
                       Icons.calendar_today_outlined,
                       'Курс',
                       result.courseDays,
@@ -116,6 +121,7 @@ class DoseResultCard extends StatelessWidget {
                   if (result.withdrawalDays > 0) ...[
                     const SizedBox(height: AppSpacing.sm),
                     _buildInfoRow(
+                      context,
                       Icons.timer_outlined,
                       'Срок ожидания',
                       '${result.withdrawalDays} дней',
@@ -131,6 +137,7 @@ class DoseResultCard extends StatelessWidget {
           if (result.hasContraindications) ...[
             const SizedBox(height: AppSpacing.sm),
             _buildWarningsCard(
+              context,
               icon: Icons.warning_amber_rounded,
               color: AppColors.error,
               title: 'Противопоказания',
@@ -142,6 +149,7 @@ class DoseResultCard extends StatelessWidget {
           if (result.hasSideEffects) ...[
             const SizedBox(height: AppSpacing.sm),
             _buildWarningsCard(
+              context,
               icon: Icons.info_outline_rounded,
               color: AppColors.systemOrange,
               title: 'Побочные эффекты',
@@ -160,12 +168,12 @@ class DoseResultCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.note_outlined, size: 16, color: AppColorsResolver.textSecondary(context)),
+                        Icon(Icons.note_outlined, size: 16, color: secondaryTextColor),
                         const SizedBox(width: 6),
                         Text(
                           'Примечание',
                           style: AppTypography.footnote.copyWith(
-                            color: AppColors.textSecondary,
+                            color: secondaryTextColor,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -174,7 +182,7 @@ class DoseResultCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       result.note,
-                      style: AppTypography.footnote.copyWith(color: AppColorsResolver.textSecondary(context)),
+                      style: AppTypography.footnote.copyWith(color: secondaryTextColor),
                     ),
                   ],
                 ),
@@ -186,7 +194,7 @@ class DoseResultCard extends StatelessWidget {
     );
   }
 
-  Widget _buildCalculatedDoseSection() {
+  Widget _buildCalculatedDoseSection(Color secondaryTextColor) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -214,7 +222,7 @@ class DoseResultCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Диапазон: ${result.doseMin}-${result.doseMax} ${result.doseUnit}',
-              style: AppTypography.caption1.copyWith(color: AppColorsResolver.textSecondary(context)),
+              style: AppTypography.caption1.copyWith(color: secondaryTextColor),
             ),
           ],
         ],
@@ -295,15 +303,18 @@ class DoseResultCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {Color? valueColor}) {
+  Widget _buildInfoRow(BuildContext context, IconData icon, String label, String value, {Color? valueColor}) {
+    final secondaryTextColor = AppColorsResolver.textSecondary(context);
+    final textColor = AppColorsResolver.textPrimary(context);
+
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColorsResolver.textSecondary(context)),
+        Icon(icon, size: 16, color: secondaryTextColor),
         const SizedBox(width: 8),
         Text(
           label,
           style: AppTypography.footnote.copyWith(
-            color: AppColors.textSecondary,
+            color: secondaryTextColor,
           ),
         ),
         const Spacer(),
@@ -311,7 +322,7 @@ class DoseResultCard extends StatelessWidget {
           child: Text(
             value,
             style: AppTypography.footnote.copyWith(
-              color: valueColor ?? AppColors.textPrimary,
+              color: valueColor ?? textColor,
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.end,
@@ -323,12 +334,14 @@ class DoseResultCard extends StatelessWidget {
     );
   }
 
-  Widget _buildWarningsCard({
+  Widget _buildWarningsCard(BuildContext context, {
     required IconData icon,
     required Color color,
     required String title,
     required List<String> items,
   }) {
+    final textColor = AppColorsResolver.textPrimary(context);
+
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.large),
@@ -360,7 +373,7 @@ class DoseResultCard extends StatelessWidget {
                     child: Text(
                       item,
                       style: AppTypography.footnote.copyWith(
-                        color: AppColors.textPrimary,
+                        color: textColor,
                       ),
                     ),
                   ),

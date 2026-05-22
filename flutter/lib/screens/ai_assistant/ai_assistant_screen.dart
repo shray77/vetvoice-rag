@@ -183,11 +183,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.smart_toy_outlined, size: 64, color: AppColors.textTertiary),
+            Icon(Icons.smart_toy_outlined, size: 64, color: secondaryTextColor),
             const SizedBox(height: AppSpacing.lg),
             Text(
               'Ветеринарный AI-ассистент',
-              style: AppTypography.title3.copyWith(color: AppColors.textPrimary),
+              style: AppTypography.title3.copyWith(color: textColor),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -337,7 +337,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
             const SizedBox(width: 8),
             CircleAvatar(
               radius: 22,
-              backgroundColor: provider.isLoading ? AppColors.textTertiary : primaryColor,
+              backgroundColor: provider.isLoading ? secondaryTextColor : primaryColor,
               child: IconButton(
                 icon: Icon(
                   provider.isLoading ? Icons.hourglass_empty : Icons.send,
@@ -515,10 +515,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                     Image.file(
                       File(provider.imagePath!),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildVlmPlaceholder(true, primaryColor, surfaceColor, secondaryTextColor),
+                      errorBuilder: (_, __, ___) => _buildVlmPlaceholder(true, primaryColor, surfaceColor, secondaryTextColor, isDark),
                     )
                   else
-                    _buildVlmPlaceholder(true, primaryColor, surfaceColor, secondaryTextColor),
+                    _buildVlmPlaceholder(true, primaryColor, surfaceColor, secondaryTextColor, isDark),
                   Positioned(
                     top: 8,
                     right: 8,
@@ -535,14 +535,14 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                   ),
                 ],
               )
-            : _buildVlmPlaceholder(false, primaryColor, surfaceColor, secondaryTextColor),
+            : _buildVlmPlaceholder(false, primaryColor, surfaceColor, secondaryTextColor, isDark),
       ),
     );
   }
 
   Widget _buildVlmPlaceholder(bool hasImage, Color primaryColor,
-      Color surfaceColor, Color secondaryTextColor) {
-    final bgColor = hasImage ? surfaceColor : AppColors.secondarySurface;
+      Color surfaceColor, Color secondaryTextColor, bool isDark) {
+    final bgColor = hasImage ? surfaceColor : (isDark ? AppColors.darkSecondarySurface : AppColors.secondarySurface);
     return Container(
       color: bgColor,
       child: Center(
@@ -552,7 +552,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
             Icon(
               hasImage ? Icons.check_circle : Icons.add_photo_alternate_outlined,
               size: 48,
-              color: hasImage ? primaryColor : AppColors.textTertiary,
+              color: hasImage ? primaryColor : secondaryTextColor,
             ),
             const SizedBox(height: 12),
             Text(
