@@ -1,8 +1,19 @@
-/// GLM API configuration
+/// Z AI API configuration
+/// Используем Z AI gateway, НЕ bigmodel.cn напрямую
 class ApiConfig {
-  // GLM API — прямой вызов из приложения (бесплатный тир)
-  static const String glmBaseUrl = 'https://open.bigmodel.cn/api/paas/v4';
-  static const String glmApiKey = '278570cc58fc4f36b9e1b73275c3f946.2Lfl9yCjMWBBs1tL';
+  // Z AI Gateway — проксирует запросы к GLM-4-Flash / GLM-4V
+  static const String baseUrl = 'http://172.25.136.193:8080/v1';
+  static const String apiKey = 'Z.ai';
+  static const String token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDA3MzE0M2QtYTUwYS00MGY5LTljMzItYjk4NDYyY2Q2OWJmIiwiY2hhdF9pZCI6ImNoYXQtNTRkMTEzZGEtNjIyMi00ZmY2LWJkYjktY2Y1MTM2ODRmMmY4IiwicGxhdGZvcm0iOiIifQ.BbbRJVrKzzkb66hJaartykfInf2Ju6zYKdCjdu1ejxM';
+  static const String chatId = 'chat-54d113da-6222-4ff6-bdb9-cf513684f2f8';
+  static const String userId = '0073143d-a50a-40f9-9c32-b98462cd69bf';
+
+  // Chat completions endpoint (Z AI)
+  static const String chatPath = '/chat/completions';
+  // Vision endpoint (Z AI — отдельный роут!)
+  static const String visionPath = '/chat/completions/vision';
+
+  // Models
   static const String glmModel = 'glm-4-flash';
   static const String glmVlmModel = 'glm-4v-flash';
 
@@ -19,12 +30,18 @@ class ApiConfig {
   // PaliGemma HF Hub (legacy)
   static const String paligemmaBaseModel = 'google/paligemma2-3b-mix-224';
   static const String paligemmaLoraRepo = 'shrayyyy/paligemma2-vet-derm';
+
+  // Легаси-алиасы для обратной совместимости
+  @Deprecated('Use baseUrl instead')
+  static const String glmBaseUrl = baseUrl;
+  @Deprecated('Use apiKey instead')
+  static const String glmApiKey = apiKey;
 }
 
 /// App-wide constants
 class AppConstants {
   static const String appName = 'VetEco';
-  static const String appVersion = '1.1.0';
+  static const String appVersion = '1.2.0';
   static const int totalRegistryDrugs = 2449;
   static const int totalDiseases = 109;
   static const int totalCalcDrugs = 2401;

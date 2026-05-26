@@ -4,36 +4,47 @@ import 'package:http/http.dart' as http;
 import '../core/constants/app_constants.dart';
 import '../models/vet_record_model.dart';
 
-/// GLM AI Service — работает через GLM-4-Flash API (бесплатный тир)
+/// Z AI Service — работает через Z AI gateway
+/// Chat: POST /chat/completions
+/// Vision: POST /chat/completions/vision
+/// Все запросы требуют заголовки: Authorization, X-Z-AI-From, X-Token, X-Chat-Id, X-User-Id
 class GlmAiService {
   static final GlmAiService _instance = GlmAiService._internal();
   factory GlmAiService() => _instance;
   GlmAiService._internal();
 
-  /// Отправить чат-запрос к GLM
+  /// Общие заголовки для Z AI
+  Map<String, String> get _headers => {
+    'Authorization': 'Bearer ${ApiConfig.apiKey}',
+    'Content-Type': 'application/json',
+    'X-Z-AI-From': 'Z',
+    'X-Token': ApiConfig.token,
+    'X-Chat-Id': ApiConfig.chatId,
+    'X-User-Id': ApiConfig.userId,
+  };
+
+  /// Отправить чат-запрос через Z AI gateway
   Future<String> chat({
     required String message,
     required String systemPrompt,
     List<Map<String, String>>? history,
   }) async {
     try {
-      final messages = <Map<String, String>>[
+      final messages = <Map<String, dynamic>>[
         {'role': 'system', 'content': systemPrompt},
         if (history != null) ...history,
         {'role': 'user', 'content': message},
       ];
 
       final response = await http.post(
-        Uri.parse('${ApiConfig.glmBaseUrl}/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer ${ApiConfig.glmApiKey}',
-          'Content-Type': 'application/json',
-        },
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.chatPath}'),
+        headers: _headers,
         body: jsonEncode({
           'model': ApiConfig.glmModel,
           'messages': messages,
           'temperature': 0.7,
           'max_tokens': 2048,
+          'thinking': {'type': 'disabled'},
         }),
       );
 
@@ -45,7 +56,7 @@ class GlmAiService {
         }
       }
 
-      return 'Ошибка: ${response.statusCode}';
+      return 'Ошибка: ${response.statusCode} — ${response.body.substring(0, response.body.length > 300 ? 300 : response.body.length)}';
     } on SocketException {
       return 'Ошибка: нет подключения к интернету';
     } catch (e) {
@@ -72,20 +83,16 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
     return chat(message: question, systemPrompt: systemPrompt);
   }
 
-  /// Анализ изображения через VLM (заглушка — будет HF Spaces)
+  /// Анализ изображения через Z AI Vision endpoint
+  /// Использует /chat/completions/vision (отдельный роут Z AI)
   Future<String> analyzeImage({
     required String imageBase64,
     String? prompt,
   }) async {
-    // TODO: Подключить HF Spaces VLM endpoint
-    // Пока используем GLM-4V если доступен
     try {
       final response = await http.post(
-        Uri.parse('${ApiConfig.glmBaseUrl}/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer ${ApiConfig.glmApiKey}',
-          'Content-Type': 'application/json',
-        },
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.visionPath}'),
+        headers: _headers,
         body: jsonEncode({
           'model': ApiConfig.glmVlmModel,
           'messages': [
@@ -105,6 +112,7 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
           ],
           'temperature': 0.5,
           'max_tokens': 1024,
+          'thinking': {'type': 'disabled'},
         }),
       );
 
@@ -116,7 +124,7 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
         }
       }
 
-      return 'VLM пока недоступен. Ошибка: ${response.statusCode}';
+      return 'VLM ошибка: ${response.statusCode} — ${response.body.substring(0, response.body.length > 300 ? 300 : response.body.length)}';
     } catch (e) {
       return 'VLM ошибка: $e';
     }
@@ -183,19 +191,17 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
 
     try {
       final response = await http.post(
-        Uri.parse('${ApiConfig.glmBaseUrl}/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer ${ApiConfig.glmApiKey}',
-          'Content-Type': 'application/json',
-        },
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.chatPath}'),
+        headers: _headers,
         body: jsonEncode({
           'model': ApiConfig.glmModel,
           'messages': [
             {'role': 'system', 'content': systemPrompt},
             {'role': 'user', 'content': dictationText},
           ],
-          'temperature': 0.2,  // Низкая температура для точного extraction
+          'temperature': 0.2,
           'max_tokens': 2048,
+          'thinking': {'type': 'disabled'},
         }),
       );
 
@@ -222,7 +228,7 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
         }
       }
 
-      throw Exception('GLM API вернул статус ${response.statusCode}');
+      throw Exception('Z AI вернул статус ${response.statusCode}');
     } on SocketException {
       throw Exception('Нет подключения к интернету');
     } on FormatException catch (e) {
