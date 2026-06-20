@@ -17,6 +17,10 @@ class AppColors {
   static const Color systemPurple = Color(0xFFAF52DE);
   static const Color systemTeal = Color(0xFF5AC8FA);
   static const Color systemIndigo = Color(0xFF5856D6);
+  static const Color systemPink = Color(0xFFFF2D55);
+  static const Color systemCyan = Color(0xFF32ADE6);
+  static const Color systemBrown = Color(0xFF8E6E53);
+  static const Color systemGrey = Color(0xFF8E8E93);
 
   // Light backgrounds
   static const Color background = Color(0xFFF2F2F7);    // Apple grouped bg
@@ -132,6 +136,9 @@ class AppTypography {
     letterSpacing: 0.07,
     height: 1.18,
   );
+
+  /// Alias for [caption1] — common shorthand used across the app.
+  static const TextStyle caption = caption1;
 }
 
 /// Apple HIG Spacing

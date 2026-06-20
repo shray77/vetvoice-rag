@@ -29,8 +29,49 @@ class VetProvider extends ChangeNotifier {
 
   // Stats
   int get totalDrugs => _dataService.calcDrugs.length + _dataService.registryDrugs.length;
-  int get totalDiseases => _dataService.diseases.length;
+  int get totalDiseases => _dataService.diseases.length + _dataService.nonContagiousDiseases.length;
+  int get totalProtocols => _dataService.treatmentProtocols.length + _dataService.nonContagiousProtocols.length;
   List<Animal> get animals => _dataService.animals;
+
+  // New data accessors (delegating to DataLoadService)
+  List<Disease> get diseases => _dataService.diseases;
+  List<Disease> get nonContagiousDiseases => _dataService.nonContagiousDiseases;
+  List<Disease> get allDiseases => _dataService.allDiseases;
+  List<DrugInteraction> get interactions => _dataService.interactions;
+  List<SideEffectEntry> get sideEffects => _dataService.sideEffects;
+  List<Antidote> get antidotes => _dataService.antidotes;
+  List<TreatmentProtocol> get treatmentProtocols => _dataService.treatmentProtocols;
+  List<TreatmentProtocol> get nonContagiousProtocols => _dataService.nonContagiousProtocols;
+  List<TreatmentProtocol> get allProtocols => _dataService.allProtocols;
+  List<EmergencyProtocol> get emergencyProtocols => _dataService.emergencyProtocols;
+  List<FluidFormula> get fluidFormulas => _dataService.fluidFormulas;
+  List<WithdrawalInfo> get withdrawals => _dataService.withdrawals;
+  Map<String, DoseAdjustment> get doseAdjustments => _dataService.doseAdjustments;
+  Map<String, VerifiedDosage> get verifiedDosages => _dataService.verifiedDosages;
+  Map<String, Map<String, dynamic>> get correctDosages => _dataService.correctDosages;
+
+  /// Сводная статистика для экрана «Справочник»
+  Map<String, int> get dbStats => _dataService.stats;
+
+  // ─── Lookup helpers ────────────────────────────────────────────────
+
+  /// Поиск болезней (contagious + non-contagious)
+  List<Disease> searchDiseases(String query) => _dataService.searchDiseases(query);
+
+  /// Найти протокол лечения по диагнозу или коду
+  TreatmentProtocol? findProtocol(String query) => _dataService.findProtocol(query);
+
+  /// Найти взаимодействия препарата
+  List<DrugInteraction> findInteractions(String drugName) => _dataService.findInteractions(drugName);
+
+  /// Найти побочные эффекты препарата
+  SideEffectEntry? findSideEffects(String drugName) => _dataService.findSideEffects(drugName);
+
+  /// Найти антидот по токсину
+  Antidote? findAntidote(String toxin) => _dataService.findAntidote(toxin);
+
+  /// Найти период ожидания по INN
+  WithdrawalInfo? findWithdrawal(String inn) => _dataService.findWithdrawal(inn);
 
   /// Инициализация — загрузка данных
   Future<void> initialize() async {

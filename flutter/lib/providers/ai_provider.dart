@@ -5,19 +5,26 @@ import '../core/constants/app_constants.dart';
 import '../models/drug_models.dart';
 import '../services/glm_ai_service.dart';
 
-/// Провайдер AI-ассистента с RAG
-/// Стратегия: сначала RAG через HF Space (текстовый API, надёжный),
-/// fallback на прямой GLM без RAG
+/// Провайдер AI-ассистента с RAG.
+///
+/// Стратегия запроса (по убыванию приоритета):
+///   1. Локальный FastAPI сервер (`/v1/rag/search`) — если запущен, использует
+///      локальный KB (12 024 чанков) и автоматически обновляет chatId из /etc/.z-ai-config.
+///   2. HF Space Gradio API (`shrayyyy-vetderm-ai.hf.space`) — удалённый RAG,
+///      запасной вариант если FastAPI не запущен.
+///   3. Прямой GLM без RAG — финальный fallback, отвечает на основе общих знаний.
 class AiProvider extends ChangeNotifier {
   final GlmAiService _aiService = GlmAiService();
 
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
   String _error = '';
+  String _lastSource = '';   // 'local' | 'hf_space' | 'direct_glm'
 
   List<ChatMessage> get messages => List.unmodifiable(_messages);
   bool get isLoading => _isLoading;
   String get error => _error;
+  String get lastSource => _lastSource;
 
   /// Отправить вопрос AI-ассистенту
   Future<void> sendMessage(String content) async {
@@ -34,29 +41,43 @@ class AiProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Сначала пробуем RAG через HF Space
-      String? ragAnswer = await _askRagViaHfSpace(content);
-      if (ragAnswer != null && ragAnswer.isNotEmpty) {
-        _messages.add(ChatMessage(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          content: ragAnswer,
-          isUser: false,
-          timestamp: DateTime.now(),
-        ));
-      } else {
-        // Fallback на прямой GLM
-        final response = await _aiService.askWithRag(
+      String? answer;
+      String source = '';
+
+      // 1) Try local FastAPI server first
+      answer = await _askLocalFastApi(content);
+      if (answer != null && answer.isNotEmpty) {
+        source = 'local';
+      }
+
+      // 2) Fallback to HF Space Gradio API
+      if (answer == null || answer.isEmpty) {
+        answer = await _askRagViaHfSpace(content);
+        if (answer != null && answer.isNotEmpty) {
+          source = 'hf_space';
+        }
+      }
+
+      // 3) Final fallback: direct GLM without RAG
+      if (answer == null || answer.isEmpty) {
+        answer = await _aiService.askWithRag(
           question: content,
           ragContext: null,
         );
-
-        _messages.add(ChatMessage(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          content: response,
-          isUser: false,
-          timestamp: DateTime.now(),
-        ));
+        source = 'direct_glm';
       }
+
+      _lastSource = source;
+
+      _messages.add(ChatMessage(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        content: answer,
+        isUser: false,
+        timestamp: DateTime.now(),
+        sources: source == 'local' || source == 'hf_space'
+            ? [SourceReference(title: 'Источник: $source', snippet: 'RAG context used')]
+            : null,
+      ));
     } catch (e) {
       _error = 'Ошибка: $e';
       debugPrint('AI Provider error: $e');
@@ -64,6 +85,39 @@ class AiProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  /// Запрос к локальному FastAPI серверу (`/v1/rag/search`).
+  /// Сервер использует локальный KB (12 024 чанков) и сам ходит в Z AI с chatId из /etc/.z-ai-config.
+  Future<String?> _askLocalFastApi(String query) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.localApiUrl}${ApiConfig.localApiPath}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'query': query, 'top_k': 5}),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode != 200) {
+        debugPrint('Local FastAPI returned ${response.statusCode}');
+        return null;
+      }
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final context = data['context'] as String?;
+      if (context == null || context.isEmpty) {
+        return null;
+      }
+
+      // Now use the local context to ask GLM directly
+      final aiResponse = await _aiService.askWithRag(
+        question: query,
+        ragContext: context,
+      );
+      return aiResponse;
+    } catch (e) {
+      debugPrint('Local FastAPI error (likely not running): $e');
+      return null;
+    }
   }
 
   /// Запрос к RAG через HF Space Gradio API (текстовый — надёжный)
@@ -121,6 +175,7 @@ class AiProvider extends ChangeNotifier {
   void clearChat() {
     _messages.clear();
     _error = '';
+    _lastSource = '';
     notifyListeners();
   }
 }

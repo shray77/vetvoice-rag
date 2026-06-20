@@ -413,61 +413,683 @@ class DoseResult {
   }
 }
 
-/// Болезнь
+/// Болезнь (contagious + non-contagious)
 class Disease {
+  final int id;
   final String name;
+  final String code;
   final String category;
   final List<String> animals;
-  final String dangerLevel;
   final String description;
   final String symptoms;
+  final bool isContagious;
 
   const Disease({
+    required this.id,
     required this.name,
+    required this.code,
     required this.category,
     required this.animals,
-    this.dangerLevel = '',
     this.description = '',
     this.symptoms = '',
+    this.isContagious = true,
   });
 
-  factory Disease.fromJson(Map<String, dynamic> json) {
+  /// Русское название категории
+  String get categoryRu {
+    switch (category) {
+      case 'particularly_dangerous':
+        return 'Особо опасные';
+      case 'infectious':
+        return 'Инфекционные';
+      case 'non_contagious':
+        return 'Незаразные';
+      case 'parasitic':
+        return 'Паразитарные';
+      default:
+        return category;
+    }
+  }
+
+  factory Disease.fromJson(Map<String, dynamic> json, {bool isContagious = true}) {
     return Disease(
+      id: CalcDrug._parseInt(json['id'], 0),
       name: json['name'] as String? ?? '',
+      code: json['code'] as String? ?? '',
       category: json['category'] as String? ?? '',
       animals: (json['animals'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ?? [],
-      dangerLevel: json['danger_level'] as String? ?? '',
       description: json['description'] as String? ?? '',
       symptoms: json['symptoms'] as String? ?? '',
+      isContagious: isContagious,
     );
   }
 }
 
 /// Взаимодействие препаратов
+/// Schema: { drug1, drug2, severity, effect, consequence, recommendation }
 class DrugInteraction {
   final String drug1;
   final String drug2;
-  final String severity;
-  final String description;
+  final String severity;        // critical | warning | moderate | info
+  final String effect;
+  final String consequence;
   final String recommendation;
 
   const DrugInteraction({
     required this.drug1,
     required this.drug2,
     this.severity = 'moderate',
-    this.description = '',
+    this.effect = '',
+    this.consequence = '',
     this.recommendation = '',
   });
+
+  /// Человекочитаемое название тяжести
+  String get severityRu {
+    switch (severity.toLowerCase()) {
+      case 'critical':
+        return 'Критично';
+      case 'warning':
+        return 'Предупреждение';
+      case 'moderate':
+        return 'Умеренное';
+      case 'info':
+        return 'Информация';
+      default:
+        return severity;
+    }
+  }
+
+  /// Цвет для UI (название цвета в Material)
+  String get severityColor {
+    switch (severity.toLowerCase()) {
+      case 'critical':
+        return 'red';
+      case 'warning':
+        return 'orange';
+      case 'moderate':
+        return 'amber';
+      case 'info':
+        return 'blue';
+      default:
+        return 'grey';
+    }
+  }
 
   factory DrugInteraction.fromJson(Map<String, dynamic> json) {
     return DrugInteraction(
       drug1: json['drug1'] as String? ?? '',
       drug2: json['drug2'] as String? ?? '',
       severity: json['severity'] as String? ?? 'moderate',
-      description: json['description'] as String? ?? '',
+      effect: json['effect'] as String? ?? '',
+      consequence: json['consequence'] as String? ?? '',
       recommendation: json['recommendation'] as String? ?? '',
+    );
+  }
+}
+
+/// Антидот при отравлении
+/// Schema: { toxin, common_names, symptoms, antidote, antidote_dose, alternative, notes, prognosis }
+class Antidote {
+  final String toxin;
+  final List<String> commonNames;
+  final List<String> symptoms;
+  final String antidote;
+  final String antidoteDose;
+  final String alternative;
+  final String notes;
+  final String prognosis;
+
+  const Antidote({
+    required this.toxin,
+    this.commonNames = const [],
+    this.symptoms = const [],
+    required this.antidote,
+    this.antidoteDose = '',
+    this.alternative = '',
+    this.notes = '',
+    this.prognosis = '',
+  });
+
+  factory Antidote.fromJson(Map<String, dynamic> json) {
+    return Antidote(
+      toxin: json['toxin'] as String? ?? '',
+      commonNames: (json['common_names'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ?? [],
+      symptoms: (json['symptoms'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ?? [],
+      antidote: json['antidote'] as String? ?? '',
+      antidoteDose: json['antidote_dose'] as String? ?? '',
+      alternative: json['alternative'] as String? ?? '',
+      notes: json['notes'] as String? ?? '',
+      prognosis: json['prognosis'] as String? ?? '',
+    );
+  }
+}
+
+/// Препарат в протоколе лечения
+class ProtocolDrug {
+  final String name;
+  final String inn;
+  final String dose;
+  final String route;
+  final String frequency;
+  final String duration;
+  final String pharmGroup;
+  final String waitingPeriod;
+
+  const ProtocolDrug({
+    this.name = '',
+    this.inn = '',
+    this.dose = '',
+    this.route = '',
+    this.frequency = '',
+    this.duration = '',
+    this.pharmGroup = '',
+    this.waitingPeriod = '',
+  });
+
+  factory ProtocolDrug.fromJson(Map<String, dynamic> json) {
+    return ProtocolDrug(
+      name: json['name'] as String? ?? '',
+      inn: json['inn'] as String? ?? '',
+      dose: json['dose']?.toString() ?? '',
+      route: json['route'] as String? ?? '',
+      frequency: json['frequency'] as String? ?? '',
+      duration: json['duration']?.toString() ?? '',
+      pharmGroup: json['pharm_group'] as String? ?? '',
+      waitingPeriod: json['waiting_period'] as String? ?? '',
+    );
+  }
+}
+
+/// Ярус лечения (primary / secondary / supportive / symptomatic)
+class TreatmentTier {
+  final List<ProtocolDrug> drugs;
+  final String notes;
+
+  const TreatmentTier({
+    this.drugs = const [],
+    this.notes = '',
+  });
+
+  factory TreatmentTier.fromJson(Map<String, dynamic> json) {
+    final drugsRaw = json['drugs'];
+    List<ProtocolDrug> drugs = [];
+    if (drugsRaw is List) {
+      drugs = drugsRaw
+          .whereType<Map<String, dynamic>>()
+          .map((d) => ProtocolDrug.fromJson(d))
+          .where((d) => d.name.isNotEmpty)
+          .toList();
+    }
+    return TreatmentTier(
+      drugs: drugs,
+      notes: json['notes']?.toString() ?? '',
+    );
+  }
+}
+
+/// Протокол лечения болезни
+/// Schema (treatment_protocols.json): { disease_id, diagnosis, code, category,
+///   category_name, species, pathogen_type, severity, order_number,
+///   treatment: { primary, secondary, supportive, symptomatic }, notes, warnings }
+class TreatmentProtocol {
+  final int diseaseId;
+  final String diagnosis;
+  final String code;
+  final String category;
+  final String categoryName;
+  final List<String> species;
+  final String pathogenType;
+  final String severity;
+  final String orderNumber;
+  final Map<String, TreatmentTier> treatment; // 'primary', 'supportive', etc.
+  final String notes;
+  final String warnings;
+
+  const TreatmentProtocol({
+    this.diseaseId = 0,
+    required this.diagnosis,
+    required this.code,
+    this.category = '',
+    this.categoryName = '',
+    this.species = const [],
+    this.pathogenType = '',
+    this.severity = '',
+    this.orderNumber = '',
+    this.treatment = const {},
+    this.notes = '',
+    this.warnings = '',
+  });
+
+  /// Все препараты из всех ярусов одним списком
+  List<ProtocolDrug> get allDrugs {
+    final all = <ProtocolDrug>[];
+    for (final tier in treatment.values) {
+      all.addAll(tier.drugs);
+    }
+    return all;
+  }
+
+  /// Список ярусов с названиями (primary, supportive, ...)
+  List<MapEntry<String, TreatmentTier>> get sortedTiers {
+    const order = ['primary', 'secondary', 'supportive', 'symptomatic'];
+    final sorted = <MapEntry<String, TreatmentTier>>[];
+    for (final name in order) {
+      final t = treatment[name];
+      if (t != null && (t.drugs.isNotEmpty || t.notes.isNotEmpty)) {
+        sorted.add(MapEntry(name, t));
+      }
+    }
+    // Add any other tiers not in the standard order
+    for (final entry in treatment.entries) {
+      if (!order.contains(entry.key) &&
+          (entry.value.drugs.isNotEmpty || entry.value.notes.isNotEmpty)) {
+        sorted.add(entry);
+      }
+    }
+    return sorted;
+  }
+
+  factory TreatmentProtocol.fromJson(Map<String, dynamic> json) {
+    final treatmentRaw = json['treatment'];
+    final treatment = <String, TreatmentTier>{};
+    if (treatmentRaw is Map<String, dynamic>) {
+      treatmentRaw.forEach((key, value) {
+        if (value is Map<String, dynamic>) {
+          final tier = TreatmentTier.fromJson(value);
+          if (tier.drugs.isNotEmpty || tier.notes.isNotEmpty) {
+            treatment[key] = tier;
+          }
+        }
+      });
+    }
+    return TreatmentProtocol(
+      diseaseId: CalcDrug._parseInt(json['disease_id'], 0),
+      diagnosis: json['diagnosis'] as String? ?? '',
+      code: json['code'] as String? ?? '',
+      category: json['category'] as String? ?? '',
+      categoryName: json['category_name'] as String? ?? '',
+      species: (json['species'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ?? [],
+      pathogenType: json['pathogen_type'] as String? ?? '',
+      severity: json['severity'] as String? ?? '',
+      orderNumber: json['order_number']?.toString() ?? '',
+      treatment: treatment,
+      notes: json['notes']?.toString() ?? '',
+      warnings: json['warnings']?.toString() ?? '',
+    );
+  }
+}
+
+/// Экстренный протокол
+/// Schema (emergency_protocols.json): { name, code, indication, algorithm, drugs, monitoring, termination }
+class EmergencyProtocol {
+  final String name;
+  final String code;
+  final String indication;
+  final List<EmergencyStep> algorithm;
+  final List<EmergencyDrug> drugs;
+  final List<String> monitoring;
+  final String termination;
+
+  const EmergencyProtocol({
+    required this.name,
+    this.code = '',
+    this.indication = '',
+    this.algorithm = const [],
+    this.drugs = const [],
+    this.monitoring = const [],
+    this.termination = '',
+  });
+
+  factory EmergencyProtocol.fromJson(Map<String, dynamic> json) {
+    return EmergencyProtocol(
+      name: json['name'] as String? ?? '',
+      code: json['code'] as String? ?? '',
+      indication: json['indication'] as String? ?? '',
+      algorithm: (json['algorithm'] as List<dynamic>?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(EmergencyStep.fromJson)
+              .toList() ?? [],
+      drugs: (json['drugs'] as List<dynamic>?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(EmergencyDrug.fromJson)
+              .toList() ?? [],
+      monitoring: (json['monitoring'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ?? [],
+      termination: json['termination'] as String? ?? '',
+    );
+  }
+}
+
+class EmergencyStep {
+  final int step;
+  final String action;
+  final String detail;
+
+  const EmergencyStep({
+    this.step = 0,
+    this.action = '',
+    this.detail = '',
+  });
+
+  factory EmergencyStep.fromJson(Map<String, dynamic> json) {
+    return EmergencyStep(
+      step: CalcDrug._parseInt(json['step'], 0),
+      action: json['action'] as String? ?? '',
+      detail: json['detail'] as String? ?? '',
+    );
+  }
+}
+
+class EmergencyDrug {
+  final String drug;
+  final String dose;
+  final String route;
+  final String frequency;
+
+  const EmergencyDrug({
+    this.drug = '',
+    this.dose = '',
+    this.route = '',
+    this.frequency = '',
+  });
+
+  factory EmergencyDrug.fromJson(Map<String, dynamic> json) {
+    return EmergencyDrug(
+      drug: json['drug'] as String? ?? '',
+      dose: json['dose'] as String? ?? '',
+      route: json['route'] as String? ?? '',
+      frequency: json['frequency'] as String? ?? '',
+    );
+  }
+}
+
+/// Побочный эффект препарата
+/// Schema (side_effects.json): { drug, side_effects: [{ effect, age?, dose?, condition?, frequency?, action }], monitoring }
+class SideEffectEntry {
+  final String drugName;
+  final List<SideEffectItem> effects;
+  final String monitoring;
+
+  const SideEffectEntry({
+    required this.drugName,
+    this.effects = const [],
+    this.monitoring = '',
+  });
+
+  factory SideEffectEntry.fromJson(Map<String, dynamic> json) {
+    return SideEffectEntry(
+      drugName: json['drug'] as String? ?? '',
+      effects: (json['side_effects'] as List<dynamic>?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(SideEffectItem.fromJson)
+              .toList() ?? [],
+      monitoring: json['monitoring'] as String? ?? '',
+    );
+  }
+}
+
+class SideEffectItem {
+  final String effect;
+  final String age;
+  final String dose;
+  final String condition;
+  final String frequency;
+  final String action;
+
+  const SideEffectItem({
+    this.effect = '',
+    this.age = '',
+    this.dose = '',
+    this.condition = '',
+    this.frequency = '',
+    this.action = '',
+  });
+
+  factory SideEffectItem.fromJson(Map<String, dynamic> json) {
+    return SideEffectItem(
+      effect: json['effect'] as String? ?? '',
+      age: json['age'] as String? ?? '',
+      dose: json['dose'] as String? ?? '',
+      condition: json['condition'] as String? ?? '',
+      frequency: json['frequency'] as String? ?? '',
+      action: json['action'] as String? ?? '',
+    );
+  }
+}
+
+/// Жидкостная терапия — формула
+/// Schema (fluid_therapy.json): { formulas: [{ name, formula, dehydration_levels, example }] }
+class FluidFormula {
+  final String name;
+  final String formula;
+  final Map<String, DehydrationLevel> dehydrationLevels;
+  final String example;
+
+  const FluidFormula({
+    this.name = '',
+    this.formula = '',
+    this.dehydrationLevels = const {},
+    this.example = '',
+  });
+
+  factory FluidFormula.fromJson(Map<String, dynamic> json) {
+    final dh = <String, DehydrationLevel>{};
+    final dhRaw = json['dehydration_levels'];
+    if (dhRaw is Map<String, dynamic>) {
+      dhRaw.forEach((k, v) {
+        if (v is Map<String, dynamic>) {
+          dh[k] = DehydrationLevel.fromJson(v);
+        }
+      });
+    }
+    return FluidFormula(
+      name: json['name'] as String? ?? '',
+      formula: json['formula'] as String? ?? '',
+      dehydrationLevels: dh,
+      example: json['example'] as String? ?? '',
+    );
+  }
+}
+
+class DehydrationLevel {
+  final int percent;
+  final String signs;
+
+  const DehydrationLevel({
+    this.percent = 0,
+    this.signs = '',
+  });
+
+  factory DehydrationLevel.fromJson(Map<String, dynamic> json) {
+    return DehydrationLevel(
+      percent: CalcDrug._parseInt(json['percent'], 0),
+      signs: json['signs'] as String? ?? '',
+    );
+  }
+}
+
+/// Период ожидания для препарата
+/// Schema (withdrawal_by_product.json): { inn, products: { animal: { meat, milk, eggs } }, notes }
+class WithdrawalInfo {
+  final String inn;
+  final Map<String, WithdrawalProduct> products;
+  final String notes;
+
+  const WithdrawalInfo({
+    required this.inn,
+    this.products = const {},
+    this.notes = '',
+  });
+
+  factory WithdrawalInfo.fromJson(Map<String, dynamic> json) {
+    final products = <String, WithdrawalProduct>{};
+    final pRaw = json['products'];
+    if (pRaw is Map<String, dynamic>) {
+      pRaw.forEach((k, v) {
+        if (v is Map<String, dynamic>) {
+          products[k] = WithdrawalProduct.fromJson(v);
+        }
+      });
+    }
+    return WithdrawalInfo(
+      inn: json['inn'] as String? ?? '',
+      products: products,
+      notes: json['notes'] as String? ?? '',
+    );
+  }
+}
+
+class WithdrawalProduct {
+  /// meat — int (days) or string (e.g. "НЕ ПРИМЕНЯТЬ")
+  final dynamic meat;
+  final dynamic milk;
+  final dynamic eggs;
+
+  const WithdrawalProduct({
+    this.meat,
+    this.milk,
+    this.eggs,
+  });
+
+  factory WithdrawalProduct.fromJson(Map<String, dynamic> json) {
+    return WithdrawalProduct(
+      meat: json['meat'],
+      milk: json['milk'],
+      eggs: json['eggs'],
+    );
+  }
+
+  String get meatLabel {
+    if (meat == null) return '—';
+    if (meat is int) return '$meat сут';
+    return meat.toString();
+  }
+
+  String get milkLabel {
+    if (milk == null) return '—';
+    if (milk is int) return '$milk сут';
+    return milk.toString();
+  }
+
+  String get eggsLabel {
+    if (eggs == null) return '—';
+    if (eggs is int) return '$eggs сут';
+    return eggs.toString();
+  }
+}
+
+/// Коррекция дозы
+/// Schema (dose_adjustments.json): { age_adjustments, renal_adjustment, hepatic_adjustment,
+///   cardiac_adjustment, pregnancy_lactation }
+class DoseAdjustment {
+  final String description;
+  final List<String> issues;
+  final String generalRule;
+  final List<String> drugsCareful;
+  final List<String> monitoring;
+  final Map<String, dynamic> raw;
+
+  const DoseAdjustment({
+    this.description = '',
+    this.issues = const [],
+    this.generalRule = '',
+    this.drugsCareful = const [],
+    this.monitoring = const [],
+    this.raw = const {},
+  });
+
+  factory DoseAdjustment.fromJson(Map<String, dynamic> json) {
+    return DoseAdjustment(
+      description: json['description'] as String? ?? '',
+      issues: (json['issues'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ?? [],
+      generalRule: json['general_rule'] as String? ?? '',
+      drugsCareful: (json['drugs_careful'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ?? [],
+      monitoring: (json['monitoring'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ?? [],
+      raw: json,
+    );
+  }
+}
+
+/// Эталонная дозировка из verified_dosages.json
+class VerifiedDosage {
+  final String drugName;
+  final String inn;
+  final dynamic concentration;
+  final String concentrationUnit;
+  final String form;
+  final List<String> animals;
+  final Map<String, AnimalSpecificDosage> animalSpecific;
+  final String source;
+  final String url;
+  final List<String> warnings;
+  final Map<String, dynamic> contraindications;
+
+  const VerifiedDosage({
+    required this.drugName,
+    this.inn = '',
+    this.concentration,
+    this.concentrationUnit = 'мг/мл',
+    this.form = '',
+    this.animals = const [],
+    this.animalSpecific = const {},
+    this.source = '',
+    this.url = '',
+    this.warnings = const [],
+    this.contraindications = const {},
+  });
+
+  factory VerifiedDosage.fromJson(String name, Map<String, dynamic> json) {
+    final specific = <String, AnimalSpecificDosage>{};
+    final spRaw = json['animal_specific'];
+    if (spRaw is Map<String, dynamic>) {
+      spRaw.forEach((k, v) {
+        if (v is Map<String, dynamic>) {
+          specific[k] = AnimalSpecificDosage.fromJson(v);
+        }
+      });
+    }
+    final contra = json['contraindications'];
+    final warnings = <String>[];
+    if (contra is Map<String, dynamic>) {
+      final w = contra['warnings'];
+      if (w is List) {
+        warnings.addAll(w.map((e) => e.toString()));
+      }
+    }
+    final ws = json['_warnings'];
+    if (ws is List) {
+      warnings.addAll(ws.map((e) => e.toString()));
+    }
+    return VerifiedDosage(
+      drugName: name,
+      inn: json['inn'] as String? ?? '',
+      concentration: json['concentration'],
+      concentrationUnit: json['concentration_unit'] as String? ?? 'мг/мл',
+      form: json['form'] as String? ?? '',
+      animals: (json['animals'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ?? [],
+      animalSpecific: specific,
+      source: json['_source'] as String? ?? '',
+      url: json['_url'] as String? ?? '',
+      warnings: warnings,
+      contraindications: contra is Map<String, dynamic> ? contra : {},
     );
   }
 }

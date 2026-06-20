@@ -24,6 +24,12 @@ class ApiConfig {
   // Gradio 6.x uses /gradio_api/ prefix!
   static const String ragApiPath = '/gradio_api/call/rag_search';
 
+  // Local FastAPI server (preferred over HF Space when available).
+  // Run: `uvicorn src.api.app:app --host 0.0.0.0 --port 7860`
+  // Falls back to HF Space automatically if local server is unreachable.
+  static const String localApiUrl = 'http://10.0.2.2:7860';  // Android emulator → host
+  static const String localApiPath = '/v1/rag/search';
+
   // VetLearn URL
   static const String vetlearnUrl = 'https://t107t4hs5wm0-d.space-z.ai';
 
@@ -41,11 +47,45 @@ class ApiConfig {
 /// App-wide constants
 class AppConstants {
   static const String appName = 'VetEco';
-  static const String appVersion = '1.2.0';
+  static const String appVersion = '1.3.0';
+  // Total counts reflect actual JSON data (audited 2026-06-21 via scripts/audit_data.py):
+  //   - drugs_calc.json:           2401 drugs
+  //   - drugs_registry.json:       2449 drugs
+  //   - diseases.json:              139 contagious diseases
+  //   - non_contagious_diseases:     30 non-contagious diseases
+  //   - treatment_protocols.json:   124 protocols
+  //   - non_contagious_protocols:    30 protocols
+  //   - drug_interactions.json:      73 interactions
+  //   - antidotes.json:              17 antidotes
+  //   - emergency_protocols.json:    16 emergency protocols
+  //   - side_effects.json:           19 drug entries
+  //   - fluid_therapy.json:           4 formulas
+  //   - withdrawal_by_product.json:  83 entries
+  //   - dose_adjustments.json:        5 sections
+  //   - verified_dosages.json:       7 entries
+  //   - correct_dosages_reference:  27 entries
+  //   - dosage_database.json:      684 entries
+  //   - unofficial_protocols.json:1116 records
   static const int totalRegistryDrugs = 2449;
-  static const int totalDiseases = 109;
+  static const int totalContagiousDiseases = 139;
+  static const int totalNonContagiousDiseases = 30;
+  static const int totalDiseases = totalContagiousDiseases + totalNonContagiousDiseases; // 169
+  static const int totalTreatmentProtocols = 124;
+  static const int totalNonContagiousProtocols = 30;
+  static const int totalProtocols = totalTreatmentProtocols + totalNonContagiousProtocols; // 154
   static const int totalCalcDrugs = 2401;
-  static const String vlmModelName = 'GLM-4V Flash + RAG';
+  static const int totalInteractions = 73;
+  static const int totalAntidotes = 17;
+  static const int totalEmergencyProtocols = 16;
+  static const int totalSideEffectEntries = 19;
+  static const int totalFluidFormulas = 4;
+  static const int totalWithdrawals = 83;
+  static const int totalDoseAdjustments = 5;
+  static const int totalVerifiedDosages = 7;
+  static const int totalCorrectDosages = 27;
+  static const int totalDosageDatabase = 684;
+  static const int totalUnofficialProtocols = 1116;
+  static const String vlmModelName = 'GLM-4.6V + RAG';
 }
 
 /// Animal IDs matching JSON data

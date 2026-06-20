@@ -4,6 +4,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/vet_provider.dart';
+import '../reference/reference_screen.dart';
 
 /// Экран «Ещё» — Настройки + VetLearn + О приложении
 class SettingsScreen extends StatefulWidget {
@@ -92,6 +94,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     secondaryTextColor: secondaryTextColor,
                     isDark: isDark,
                   ),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // Reference (Справочник) — all 18 data sources
+                  Consumer<VetProvider>(
+                    builder: (context, vet, _) {
+                      final stats = vet.dbStats;
+                      final total = stats.values.fold(0, (a, b) => a + b);
+                      return _buildNavCard(
+                        icon: Icons.menu_book,
+                        iconColor: AppColors.systemGreen,
+                        title: 'Справочник',
+                        subtitle: 'Все базы: $total записей (болезни, протоколы, взаимодействия, антидоты…)',
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ReferenceScreen(),
+                            ),
+                          );
+                        },
+                        surfaceColor: surfaceColor,
+                        textColor: textColor,
+                        secondaryTextColor: secondaryTextColor,
+                        isDark: isDark,
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -165,8 +193,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 _buildInfoTile('Версия', AppConstants.appVersion, textColor, secondaryTextColor),
                 _buildInfoTile('Препаратов в реестре', '${AppConstants.totalRegistryDrugs}', textColor, secondaryTextColor),
-                _buildInfoTile('Болезней', '${AppConstants.totalDiseases}', textColor, secondaryTextColor),
-                _buildInfoTile('API', 'GLM-4-Flash (бесплатно)', textColor, secondaryTextColor),
+                _buildInfoTile('Препаратов для калькулятора', '${AppConstants.totalCalcDrugs}', textColor, secondaryTextColor),
+                _buildInfoTile('Болезней (инфекц.)', '${AppConstants.totalContagiousDiseases}', textColor, secondaryTextColor),
+                _buildInfoTile('Болезней (незаразн.)', '${AppConstants.totalNonContagiousDiseases}', textColor, secondaryTextColor),
+                _buildInfoTile('Протоколов лечения', '${AppConstants.totalProtocols}', textColor, secondaryTextColor),
+                _buildInfoTile('Взаимодействий', '${AppConstants.totalInteractions}', textColor, secondaryTextColor),
+                _buildInfoTile('Антидотов', '${AppConstants.totalAntidotes}', textColor, secondaryTextColor),
+                _buildInfoTile('Экстренных протоколов', '${AppConstants.totalEmergencyProtocols}', textColor, secondaryTextColor),
+                _buildInfoTile('Записей побочных эфф.', '${AppConstants.totalSideEffectEntries}', textColor, secondaryTextColor),
+                _buildInfoTile('API', 'GLM-4-Flash + GLM-4.6V (Z AI)', textColor, secondaryTextColor),
+                _buildInfoTile('RAG KB', '12 024 чанков, FAISS TF-IDF', textColor, secondaryTextColor),
               ],
             ),
           ),

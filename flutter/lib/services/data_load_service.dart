@@ -3,37 +3,97 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../models/drug_models.dart';
 
-/// Сервис загрузки данных из JSON-ассетов
+/// Сервис загрузки данных из JSON-ассетов.
+///
+/// Грузит ВСЕ 18 JSON-файлов из assets/data/ и assets/data/advanced/:
+///  - drugs_calc, drugs_registry, drugs (animals), diseases, non_contagious_diseases
+///  - drug_interactions, side_effects, antidotes, dose_adjustments
+///  - treatment_protocols, non_contagious_protocols, emergency_protocols
+///  - fluid_therapy, withdrawal_by_product, verified_dosages, correct_dosages_reference
+///  - dosage_database, unofficial_protocols
 class DataLoadService {
   static final DataLoadService _instance = DataLoadService._internal();
   factory DataLoadService() => _instance;
   DataLoadService._internal();
 
+  // ─── Loaded data ───────────────────────────────────────────────────
   List<CalcDrug>? _calcDrugs;
   List<RegistryDrug>? _registryDrugs;
   List<Animal>? _animals;
-  List<Disease>? _diseases;
+  List<Disease>? _diseases;             // contagious + non-contagious merged
+  List<Disease>? _nonContagiousDiseases;
   List<DrugInteraction>? _interactions;
-  Map<String, dynamic>? _dosageDatabase;
+  List<SideEffectEntry>? _sideEffects;
+  List<Antidote>? _antidotes;
+  List<TreatmentProtocol>? _treatmentProtocols;
+  List<TreatmentProtocol>? _nonContagiousProtocols;
+  List<EmergencyProtocol>? _emergencyProtocols;
+  List<FluidFormula>? _fluidFormulas;
+  List<WithdrawalInfo>? _withdrawals;
+  Map<String, DoseAdjustment>? _doseAdjustments;
+  Map<String, VerifiedDosage>? _verifiedDosages;       // verified_dosages.json
+  Map<String, Map<String, dynamic>>? _correctDosages;  // correct_dosages_reference.json
+  Map<String, dynamic>? _dosageDatabase;                // dosage_database.json (raw)
+  List<Map<String, dynamic>>? _unofficialProtocols;
 
   bool _isLoaded = false;
   bool get isLoaded => _isLoaded;
 
+  // ─── Getters ───────────────────────────────────────────────────────
   List<CalcDrug> get calcDrugs => _calcDrugs ?? [];
   List<RegistryDrug> get registryDrugs => _registryDrugs ?? [];
   List<Animal> get animals => _animals ?? [];
   List<Disease> get diseases => _diseases ?? [];
+  List<Disease> get nonContagiousDiseases => _nonContagiousDiseases ?? [];
   List<DrugInteraction> get interactions => _interactions ?? [];
+  List<SideEffectEntry> get sideEffects => _sideEffects ?? [];
+  List<Antidote> get antidotes => _antidotes ?? [];
+  List<TreatmentProtocol> get treatmentProtocols => _treatmentProtocols ?? [];
+  List<TreatmentProtocol> get nonContagiousProtocols => _nonContagiousProtocols ?? [];
+  List<EmergencyProtocol> get emergencyProtocols => _emergencyProtocols ?? [];
+  List<FluidFormula> get fluidFormulas => _fluidFormulas ?? [];
+  List<WithdrawalInfo> get withdrawals => _withdrawals ?? [];
+  Map<String, DoseAdjustment> get doseAdjustments => _doseAdjustments ?? {};
+  Map<String, VerifiedDosage> get verifiedDosages => _verifiedDosages ?? {};
+  Map<String, Map<String, dynamic>> get correctDosages => _correctDosages ?? {};
   Map<String, dynamic> get dosageDatabase => _dosageDatabase ?? {};
+  List<Map<String, dynamic>> get unofficialProtocols => _unofficialProtocols ?? [];
+
+  /// Все болезни (contagious + non-contagious)
+  List<Disease> get allDiseases => [...diseases, ...nonContagiousDiseases];
+
+  /// Все протоколы (contagious + non-contagious)
+  List<TreatmentProtocol> get allProtocols => [...treatmentProtocols, ...nonContagiousProtocols];
+
+  /// Сводная статистика для UI
+  Map<String, int> get stats => {
+    'calcDrugs': calcDrugs.length,
+    'registryDrugs': registryDrugs.length,
+    'diseases': diseases.length,
+    'nonContagiousDiseases': nonContagiousDiseases.length,
+    'interactions': interactions.length,
+    'sideEffects': sideEffects.length,
+    'antidotes': antidotes.length,
+    'treatmentProtocols': treatmentProtocols.length,
+    'nonContagiousProtocols': nonContagiousProtocols.length,
+    'emergencyProtocols': emergencyProtocols.length,
+    'fluidFormulas': fluidFormulas.length,
+    'withdrawals': withdrawals.length,
+    'doseAdjustments': doseAdjustments.length,
+    'verifiedDosages': verifiedDosages.length,
+    'correctDosages': correctDosages.length,
+    'unofficialProtocols': unofficialProtocols.length,
+  };
 
   /// Загрузить все базы данных
   Future<void> loadAll() async {
     if (_isLoaded) return;
 
     int errorsCount = 0;
+    final sw = Stopwatch()..start();
 
     try {
-      // Load calc drugs — один некорректный препарат не должен сломать всю загрузку
+      // 1. Calc drugs (drugs_calc.json) — 2401 drugs
       final calcData = await _loadJson('assets/data/drugs_calc.json');
       if (calcData != null) {
         final List<dynamic> drugsList = calcData['drugs_calc'] ?? [];
@@ -49,10 +109,11 @@ class DataLoadService {
           }
         }
         _calcDrugs = drugs;
-        debugPrint('Loaded ${drugs.length} calc drugs (${drugsList.length - drugs.length} parse errors)');
+        debugPrint('Loaded ${drugs.length} calc drugs '
+            '(${drugsList.length - drugs.length} parse errors)');
       }
 
-      // Load registry drugs
+      // 2. Registry drugs (drugs_registry.json) — 2449 entries
       final regData = await _loadJson('assets/data/drugs_registry.json');
       if (regData != null) {
         final List<dynamic> drugsList = regData['drugs'] ?? [];
@@ -71,7 +132,7 @@ class DataLoadService {
         debugPrint('Loaded ${drugs.length} registry drugs');
       }
 
-      // Load simple drugs (for animals list)
+      // 3. Simple drugs (drugs.json) — for animals list
       final drugsData = await _loadJson('assets/data/drugs.json');
       if (drugsData != null) {
         final List<dynamic> animalsList = drugsData['animals'] ?? [];
@@ -86,36 +147,196 @@ class DataLoadService {
         _animals = animals;
       }
 
-      // Load diseases
+      // 4. Contagious diseases (diseases.json) — 139 entries
       final diseaseData = await _loadJson('assets/data/diseases.json');
       if (diseaseData != null) {
         final List<dynamic> diseasesList = diseaseData['diseases'] ?? [];
         _diseases = diseasesList
-            .map((e) => Disease.fromJson(e as Map<String, dynamic>))
+            .whereType<Map<String, dynamic>>()
+            .map((e) => Disease.fromJson(e, isContagious: true))
             .toList();
+        debugPrint('Loaded ${_diseases!.length} contagious diseases');
       }
 
-      // Load drug interactions
+      // 5. Non-contagious diseases (non_contagious_diseases.json) — 30 entries
+      final ncData = await _loadJson('assets/data/non_contagious_diseases.json');
+      if (ncData != null) {
+        final List<dynamic> list = ncData['diseases'] ?? [];
+        _nonContagiousDiseases = list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => Disease.fromJson(e, isContagious: false))
+            .toList();
+        debugPrint('Loaded ${_nonContagiousDiseases!.length} non-contagious diseases');
+      }
+
+      // 6. Drug interactions (advanced/drug_interactions.json) — 73 entries
       final interactionData = await _loadJson('assets/data/advanced/drug_interactions.json');
       if (interactionData != null) {
-        final List<dynamic> interactionsList = interactionData['interactions'] ?? [];
-        _interactions = interactionsList
-            .map((e) => DrugInteraction.fromJson(e as Map<String, dynamic>))
+        final List<dynamic> list = interactionData['interactions'] ?? [];
+        _interactions = list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => DrugInteraction.fromJson(e))
             .toList();
+        debugPrint('Loaded ${_interactions!.length} drug interactions');
       }
 
-      // Load dosage database
-      final dosageData = await _loadJson('assets/data/dosage_database.json');
-      if (dosageData != null) {
-        _dosageDatabase = dosageData['dosages'] as Map<String, dynamic>? ?? {};
+      // 7. Side effects (advanced/side_effects.json) — 20 entries
+      final seData = await _loadJson('assets/data/advanced/side_effects.json');
+      if (seData != null) {
+        final List<dynamic> list = seData['drugs'] ?? [];
+        _sideEffects = list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => SideEffectEntry.fromJson(e))
+            .where((e) => e.drugName.isNotEmpty)
+            .toList();
+        debugPrint('Loaded ${_sideEffects!.length} side-effect entries');
+      }
+
+      // 8. Antidotes (advanced/antidotes.json) — 17 entries
+      final anData = await _loadJson('assets/data/advanced/antidotes.json');
+      if (anData != null) {
+        final List<dynamic> list = anData['poisonings'] ?? [];
+        _antidotes = list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => Antidote.fromJson(e))
+            .where((e) => e.toxin.isNotEmpty)
+            .toList();
+        debugPrint('Loaded ${_antidotes!.length} antidotes');
+      }
+
+      // 9. Treatment protocols (advanced/treatment_protocols.json) — 124 entries
+      final tpData = await _loadJson('assets/data/advanced/treatment_protocols.json');
+      if (tpData != null) {
+        final List<dynamic> list = tpData['protocols'] ?? [];
+        _treatmentProtocols = list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => TreatmentProtocol.fromJson(e))
+            .where((e) => e.diagnosis.isNotEmpty)
+            .toList();
+        debugPrint('Loaded ${_treatmentProtocols!.length} treatment protocols');
+      }
+
+      // 10. Non-contagious protocols (advanced/non_contagious_protocols.json) — 30 entries
+      final ncpData = await _loadJson('assets/data/advanced/non_contagious_protocols.json');
+      if (ncpData != null) {
+        final List<dynamic> list = ncpData['protocols'] ?? [];
+        _nonContagiousProtocols = list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => TreatmentProtocol.fromJson(e))
+            .where((e) => e.diagnosis.isNotEmpty)
+            .toList();
+        debugPrint('Loaded ${_nonContagiousProtocols!.length} non-contagious protocols');
+      }
+
+      // 11. Emergency protocols (advanced/emergency_protocols.json) — 16 entries
+      final epData = await _loadJson('assets/data/advanced/emergency_protocols.json');
+      if (epData != null) {
+        final List<dynamic> list = epData['protocols'] ?? [];
+        _emergencyProtocols = list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => EmergencyProtocol.fromJson(e))
+            .where((e) => e.name.isNotEmpty)
+            .toList();
+        debugPrint('Loaded ${_emergencyProtocols!.length} emergency protocols');
+      }
+
+      // 12. Fluid therapy (advanced/fluid_therapy.json) — formulas
+      final ftData = await _loadJson('assets/data/advanced/fluid_therapy.json');
+      if (ftData != null) {
+        final List<dynamic> list = ftData['formulas'] ?? [];
+        _fluidFormulas = list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => FluidFormula.fromJson(e))
+            .where((e) => e.name.isNotEmpty)
+            .toList();
+        debugPrint('Loaded ${_fluidFormulas!.length} fluid therapy formulas');
+      }
+
+      // 13. Withdrawal periods (advanced/withdrawal_by_product.json)
+      final wData = await _loadJson('assets/data/advanced/withdrawal_by_product.json');
+      if (wData != null) {
+        final List<dynamic> list = wData['drugs'] ?? [];
+        _withdrawals = list
+            .whereType<Map<String, dynamic>>()
+            .map((e) => WithdrawalInfo.fromJson(e))
+            .where((e) => e.inn.isNotEmpty)
+            .toList();
+        debugPrint('Loaded ${_withdrawals!.length} withdrawal entries');
+      }
+
+      // 14. Dose adjustments (advanced/dose_adjustments.json) — 5 sections
+      final daData = await _loadJson('assets/data/advanced/dose_adjustments.json');
+      if (daData != null) {
+        _doseAdjustments = {};
+        for (final key in ['age_adjustments', 'renal_adjustment',
+                           'hepatic_adjustment', 'cardiac_adjustment',
+                           'pregnancy_lactation']) {
+          final v = daData[key];
+          if (v is Map<String, dynamic>) {
+            _doseAdjustments![key] = DoseAdjustment.fromJson(v);
+          }
+        }
+        debugPrint('Loaded ${_doseAdjustments!.length} dose-adjustment sections');
+      }
+
+      // 15. Verified dosages (verified_dosages.json) — 7 named entries
+      final vdData = await _loadJson('assets/data/verified_dosages.json');
+      if (vdData != null) {
+        _verifiedDosages = {};
+        vdData.forEach((key, value) {
+          if (key == '_meta') return;
+          if (value is Map<String, dynamic>) {
+            try {
+              _verifiedDosages![key] = VerifiedDosage.fromJson(key, value);
+            } catch (e) {
+              debugPrint('VerifiedDosage parse error for $key: $e');
+            }
+          }
+        });
+        debugPrint('Loaded ${_verifiedDosages!.length} verified dosages');
+      }
+
+      // 16. Correct dosages reference (correct_dosages_reference.json) — 27 drugs
+      final cdData = await _loadJson('assets/data/correct_dosages_reference.json');
+      if (cdData != null) {
+        _correctDosages = {};
+        final dosages = cdData['dosages'];
+        if (dosages is Map<String, dynamic>) {
+          dosages.forEach((drug, animals) {
+            if (animals is Map<String, dynamic>) {
+              _correctDosages![drug] = animals;
+            }
+          });
+        }
+        debugPrint('Loaded ${_correctDosages!.length} correct-dosage entries');
+      }
+
+      // 17. Dosage database (dosage_database.json) — raw map {drug: {animal: {...}}}
+      final ddData = await _loadJson('assets/data/dosage_database.json');
+      if (ddData != null) {
+        _dosageDatabase = ddData['dosages'] as Map<String, dynamic>? ?? {};
+        debugPrint('Loaded ${_dosageDatabase!.length} dosage-database entries');
+      }
+
+      // 18. Unofficial protocols (unofficial_protocols.json) — raw list of records
+      final upData = await _loadJson('assets/data/unofficial_protocols.json');
+      if (upData != null) {
+        final List<dynamic> list = upData['records'] ?? [];
+        _unofficialProtocols = list
+            .whereType<Map<String, dynamic>>()
+            .toList();
+        debugPrint('Loaded ${_unofficialProtocols!.length} unofficial protocols');
       }
 
       _isLoaded = true;
+      sw.stop();
+      debugPrint('DataLoadService: loaded all 18 data sources in ${sw.elapsedMilliseconds}ms '
+          '($errorsCount parse errors total)');
       if (errorsCount > 0) {
-        debugPrint('DataLoadService: loaded with $errorsCount parse errors total');
+        debugPrint('DataLoadService: $errorsCount total parse errors');
       }
-    } catch (e) {
-      debugPrint('Error loading data: $e');
+    } catch (e, st) {
+      debugPrint('Error loading data: $e\n$st');
       _isLoaded = false;
     }
   }
@@ -136,19 +357,19 @@ class DataLoadService {
     final lower = query.toLowerCase();
     final results = <dynamic>[];
 
-    // Search in calc drugs first
     for (final drug in _calcDrugs ?? []) {
       if (!drug.calculatorApplicable) continue;
       if (animalFilter != null && !drug.isForAnimal(animalFilter)) continue;
-      if (drug.name.toLowerCase().contains(lower) || drug.inn.toLowerCase().contains(lower)) {
+      if (drug.name.toLowerCase().contains(lower) ||
+          drug.inn.toLowerCase().contains(lower)) {
         results.add(drug);
       }
     }
 
-    // Then search in registry
     for (final drug in _registryDrugs ?? []) {
       if (animalFilter != null && !drug.isForAnimal(animalFilter)) continue;
-      if (drug.tradeName.toLowerCase().contains(lower) || drug.inn.toLowerCase().contains(lower)) {
+      if (drug.tradeName.toLowerCase().contains(lower) ||
+          drug.inn.toLowerCase().contains(lower)) {
         results.add(drug);
       }
     }
@@ -175,6 +396,83 @@ class DataLoadService {
     return results;
   }
 
+  /// Поиск болезней по названию или коду (contagious + non-contagious)
+  List<Disease> searchDiseases(String query) {
+    if (query.isEmpty) return allDiseases;
+    final lower = query.toLowerCase();
+    return allDiseases.where((d) =>
+      d.name.toLowerCase().contains(lower) ||
+      d.code.toLowerCase().contains(lower) ||
+      d.categoryRu.toLowerCase().contains(lower)
+    ).toList();
+  }
+
+  /// Найти протокол лечения по диагнозу или коду
+  TreatmentProtocol? findProtocol(String query) {
+    if (query.isEmpty) return null;
+    final lower = query.toLowerCase();
+    try {
+      return allProtocols.firstWhere((p) =>
+        p.diagnosis.toLowerCase().contains(lower) ||
+        p.code.toLowerCase().contains(lower)
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Найти взаимодействие по препарату
+  List<DrugInteraction> findInteractions(String drugName) {
+    if (drugName.isEmpty) return [];
+    final lower = drugName.toLowerCase();
+    return interactions.where((i) =>
+      i.drug1.toLowerCase().contains(lower) ||
+      i.drug2.toLowerCase().contains(lower)
+    ).toList();
+  }
+
+  /// Найти побочные эффекты по препарату
+  SideEffectEntry? findSideEffects(String drugName) {
+    if (drugName.isEmpty) return null;
+    final lower = drugName.toLowerCase();
+    try {
+      return sideEffects.firstWhere((e) =>
+        e.drugName.toLowerCase() == lower ||
+        e.drugName.toLowerCase().contains(lower)
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Найти антидот по токсину
+  Antidote? findAntidote(String toxin) {
+    if (toxin.isEmpty) return null;
+    final lower = toxin.toLowerCase();
+    try {
+      return antidotes.firstWhere((a) =>
+        a.toxin.toLowerCase().contains(lower) ||
+        a.commonNames.any((n) => n.toLowerCase().contains(lower))
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Найти период ожидания по INN препарата
+  WithdrawalInfo? findWithdrawal(String inn) {
+    if (inn.isEmpty) return null;
+    final lower = inn.toLowerCase();
+    try {
+      return withdrawals.firstWhere((w) =>
+        w.inn.toLowerCase() == lower ||
+        w.inn.toLowerCase().contains(lower)
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Рассчитать дозу для CalcDrug
   DoseResult calculateDose(CalcDrug drug, double weight, {String? animalName}) {
     if (weight <= 0) {
@@ -194,7 +492,6 @@ class DataLoadService {
     String frequency = drug.frequency;
 
     if (animalName != null && drug.animalSpecific != null) {
-      // Try Russian animal names first
       final specific = drug.animalSpecific![animalName];
       if (specific != null) {
         dosePerKg = specific.dosePerKg > 0 ? specific.dosePerKg : dosePerKg;
@@ -230,7 +527,6 @@ class DataLoadService {
     String note = '';
 
     if (drug.concentration > 0 && dosePerKg > 0) {
-      // dose_mg = dose_per_kg * weight; volume_ml = dose_mg / concentration
       final doseMg = dosePerKg * weight;
       volumeMl = doseMg / drug.concentration;
       note = '$dosePerKg $doseUnit × ${weight.toStringAsFixed(1)} кг ÷ ${drug.concentration} ${drug.concentrationUnit}';
@@ -238,7 +534,6 @@ class DataLoadService {
       volumeMl = dosePerKg * weight;
       note = '$dosePerKg мл/кг × ${weight.toStringAsFixed(1)} кг';
     } else if (dosePerKg > 0) {
-      // Нет концентрации — покажем дозу в мг
       final doseMg = dosePerKg * weight;
       note = '$dosePerKg $doseUnit × ${weight.toStringAsFixed(1)} кг = ${doseMg.toStringAsFixed(1)} мг';
     }
