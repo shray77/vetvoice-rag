@@ -1,18 +1,33 @@
 # VetVoice RAG Configuration
+# --------------------------
+# Knowledge base is built locally (scripts/build_rag.py) and loaded from
+# `knowledge_base/` next to this repo. HF Hub is only used as a fallback
+# when HF_TOKEN is set and local files are missing.
+
 api:
   host: "0.0.0.0"
   port: 7860
   cors_origins: ["*"]
 
 rag:
+  # Local KB dir — defaults to <repo>/knowledge_base if empty.
+  # Override with env VETVOICE_KB_DIR for Docker/HF Spaces.
+  local_dir: ""
+  hf_dir: "/tmp/vet_rag"
   repo_id: "shrayyyy/vet-derm-rag"
-  local_dir: "/tmp/vet_rag"
   top_k: 5
   max_context_chars: 5000
+  # Minimum similarity score (cosine, 0..1) for a chunk to be returned.
+  min_score: 0.01
 
-models:
-  vlm: "glm-4.6v"
-  llm: "glm-4"
+# Z AI SDK — chatId and token are read dynamically from /etc/.z-ai-config
+# at every request to avoid TTL expiration. Override via env if needed.
+zai:
+  config_path: "/etc/.z-ai-config"
+  base_url: "https://internal-api.z.ai/v1"
+  models:
+    vlm: "glm-4v-flash"
+    llm: "glm-4-flash"
 
 logging:
   level: "INFO"
