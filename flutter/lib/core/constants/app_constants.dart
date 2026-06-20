@@ -1,11 +1,11 @@
 /// Z AI API configuration
-/// Используем Z AI gateway, НЕ bigmodel.cn напрямую
+/// Используем Z AI gateway напрямую (НЕ локальный IP)
 class ApiConfig {
   // Z AI Gateway — проксирует запросы к GLM-4-Flash / GLM-4V
-  static const String baseUrl = 'http://172.25.136.193:8080/v1';
+  static const String baseUrl = 'https://internal-api.z.ai/v1';
   static const String apiKey = 'Z.ai';
-  static const String token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDA3MzE0M2QtYTUwYS00MGY5LTljMzItYjk4NDYyY2Q2OWJmIiwiY2hhdF9pZCI6ImNoYXQtNTRkMTEzZGEtNjIyMi00ZmY2LWJkYjktY2Y1MTM2ODRmMmY4IiwicGxhdGZvcm0iOiIifQ.BbbRJVrKzzkb66hJaartykfInf2Ju6zYKdCjdu1ejxM';
-  static const String chatId = 'chat-54d113da-6222-4ff6-bdb9-cf513684f2f8';
+  static const String token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDA3MzE0M2QtYTUwYS00MGY5LTljMzItYjk4NDYyY2Q2OWJmIiwiY2hhdF9pZCI6ImNoYXQtNzkzN2VhNTQtMGQ2My00ZjIxLWI0YWEtYzJlMzYxODc1YzQyIiwicGxhdGZvcm0iOiJ6YWkifQ.Rmtru5GZmsbYNW2hEeZNdgxrVeBQzrbp7xp5A0KbUE4';
+  static const String chatId = 'chat-7937ea54-0d63-4f21-b4aa-c2e361875c42';
   static const String userId = '0073143d-a50a-40f9-9c32-b98462cd69bf';
 
   // Chat completions endpoint (Z AI)
