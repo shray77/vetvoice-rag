@@ -102,8 +102,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       final stats = vet.dbStats;
                       final total = stats.values.fold(0, (a, b) => a + b);
                       return _buildNavCard(
-                        icon: Icons.menu_book,
-                        iconColor: AppColors.systemGreen,
+                        icon: Icons.menu_book_rounded,
+                        iconColor: AppColors.primary,
                         title: 'Справочник',
                         subtitle: 'Все базы: $total записей (болезни, протоколы, взаимодействия, антидоты…)',
                         onTap: () {

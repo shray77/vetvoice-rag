@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+import 'core/widgets/app_components.dart';
 import 'providers/vet_provider.dart';
 import 'providers/ai_provider.dart';
 import 'providers/vlm_provider.dart';
@@ -61,7 +62,7 @@ class VetEcoApp extends StatelessWidget {
   }
 }
 
-/// Главная навигация — 4 таба
+/// Главная навигация — 4 таба с плавными переходами.
 /// Записи → Калькулятор → AI (Чат + VLM) → Ещё
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -70,21 +71,43 @@ class MainNavigation extends StatefulWidget {
   State<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class _MainNavigationState extends State<MainNavigation>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+  late final AnimationController _controller;
 
   static const List<Widget> _screens = [
     NotesScreen(),        // 0 — Записи (главный экран)
     DoseCalcScreen(),     // 1 — Калькулятор дозировок
     AiAssistantScreen(),  // 2 — AI (Чат + VLM с табами внутри)
-    SettingsScreen(),     // 3 — Настройки + VetLearn
+    SettingsScreen(),     // 3 — Настройки + VetLearn + Справочник
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppDurations.medium,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged(int index) {
+    if (index == _currentIndex) return;
+    HapticHelper.selection();
+    setState(() => _currentIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final primaryColor = isDark ? AppColors.primaryLight : AppColors.primary;
 
     return Scaffold(
       body: IndexedStack(
@@ -102,32 +125,29 @@ class _MainNavigationState extends State<MainNavigation> {
         ),
         child: NavigationBar(
           selectedIndex: _currentIndex,
-          onDestinationSelected: (index) {
-            setState(() => _currentIndex = index);
-            HapticFeedback.selectionClick();
-          },
+          onDestinationSelected: _onTabChanged,
           backgroundColor: isDark ? AppColors.darkSurface : AppColors.surface,
-          indicatorColor: primaryColor.withAlpha(30),
           height: 64,
-          destinations: [
+          animationDuration: AppDurations.medium,
+          destinations: const [
             NavigationDestination(
-              icon: Icon(Icons.description_outlined, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
-              selectedIcon: Icon(Icons.description, color: primaryColor),
+              icon: Icon(Icons.description_outlined),
+              selectedIcon: Icon(Icons.description_rounded),
               label: 'Записи',
             ),
             NavigationDestination(
-              icon: Icon(Icons.calculate_outlined, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
-              selectedIcon: Icon(Icons.calculate, color: primaryColor),
+              icon: Icon(Icons.calculate_outlined),
+              selectedIcon: Icon(Icons.calculate_rounded),
               label: 'Дозы',
             ),
             NavigationDestination(
-              icon: Icon(Icons.smart_toy_outlined, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
-              selectedIcon: Icon(Icons.smart_toy, color: primaryColor),
+              icon: Icon(Icons.smart_toy_outlined),
+              selectedIcon: Icon(Icons.smart_toy_rounded),
               label: 'AI',
             ),
             NavigationDestination(
-              icon: Icon(Icons.menu_outlined, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
-              selectedIcon: Icon(Icons.menu, color: primaryColor),
+              icon: Icon(Icons.menu_outlined),
+              selectedIcon: Icon(Icons.menu_rounded),
               label: 'Ещё',
             ),
           ],

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
-/// Утилиты для получения правильных цветов в зависимости от темы
-/// Используется вместо прямого обращения к AppColors в виджетах
+/// Утилиты для получения правильных цветов в зависимости от темы.
+/// Используется вместо прямого обращения к AppColors в виджетах.
 class AppColorsResolver {
   static bool isDark(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark;
@@ -15,6 +15,9 @@ class AppColorsResolver {
 
   static Color secondarySurface(BuildContext context) =>
       isDark(context) ? AppColors.darkSecondarySurface : AppColors.secondarySurface;
+
+  static Color tertiarySurface(BuildContext context) =>
+      isDark(context) ? AppColors.darkTertiarySurface : AppColors.tertiarySurface;
 
   static Color textPrimary(BuildContext context) =>
       isDark(context) ? AppColors.darkTextPrimary : AppColors.textPrimary;
@@ -30,6 +33,9 @@ class AppColorsResolver {
 
   static Color primary(BuildContext context) =>
       isDark(context) ? AppColors.primaryLight : AppColors.primary;
+
+  static Color primaryContainer(BuildContext context) =>
+      isDark(context) ? AppColors.primaryContainerDark : AppColors.primaryContainer;
 
   static Color fillPrimary(BuildContext context) =>
       isDark(context) ? AppColors.darkFillPrimary : AppColors.fillPrimary;
