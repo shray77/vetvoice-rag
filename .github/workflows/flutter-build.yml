@@ -56,7 +56,10 @@ jobs:
 
       - name: Install dependencies
         working-directory: flutter
-        run: flutter pub get
+        # Remove stale lock so fresh shared_preferences_android can be resolved
+        run: |
+          rm -f pubspec.lock
+          flutter pub get
 
       - name: Create local.properties
         working-directory: flutter
