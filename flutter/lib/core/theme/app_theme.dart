@@ -491,7 +491,7 @@ class AppTheme {
       activeTrackColor: AppColors.primary,
       inactiveTrackColor: AppColors.tertiarySurface,
       thumbColor: AppColors.primary,
-      overlayColor: AppColors.primary.withValues(alpha: 0.12),
+      overlayColor: WidgetStateProperty.all(AppColors.primary.withValues(alpha: 0.12)),
       trackHeight: 4,
     ),
     tabBarTheme: TabBarThemeData(
@@ -502,7 +502,7 @@ class AppTheme {
       indicatorColor: AppColors.primary,
       indicatorSize: TabBarIndicatorSize.label,
       dividerColor: Colors.transparent,
-      overlayColor: AppColors.primary.withValues(alpha: 0.08),
+      overlayColor: WidgetStateProperty.all(AppColors.primary.withValues(alpha: 0.08)),
     ),
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: AppColors.surface,
@@ -738,7 +738,7 @@ class AppTheme {
       activeTrackColor: AppColors.primaryLight,
       inactiveTrackColor: AppColors.darkTertiarySurface,
       thumbColor: AppColors.primaryLight,
-      overlayColor: AppColors.primaryLight.withValues(alpha: 0.12),
+      overlayColor: WidgetStateProperty.all(AppColors.primaryLight.withValues(alpha: 0.12)),
       trackHeight: 4,
     ),
     tabBarTheme: TabBarThemeData(
@@ -749,7 +749,7 @@ class AppTheme {
       indicatorColor: AppColors.primaryLight,
       indicatorSize: TabBarIndicatorSize.label,
       dividerColor: Colors.transparent,
-      overlayColor: AppColors.primaryLight.withValues(alpha: 0.08),
+      overlayColor: WidgetStateProperty.all(AppColors.primaryLight.withValues(alpha: 0.08)),
     ),
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: AppColors.darkSurface,

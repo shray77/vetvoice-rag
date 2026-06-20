@@ -51,6 +51,12 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
 
+dependency_overrides:
+  # 2.4.11 has Kotlin compilation errors with Flutter 3.27
+  # (SharedPreferencesPigeonOptions, StringListResult unresolved).
+  # 2.4.10 is the last stable version that compiles cleanly.
+  shared_preferences_android: 2.4.10
+
 flutter:
   uses-material-design: true
 

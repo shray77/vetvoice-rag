@@ -103,10 +103,6 @@ String? parseAnimal(String text) {
   return null;
 }
 
-/// Haptic feedback helpers
-class HapticHelper {
-  static void light() => HapticFeedback.lightImpact();
-  static void medium() => HapticFeedback.mediumImpact();
-  static void heavy() => HapticFeedback.heavyImpact();
-  static void selection() => HapticFeedback.selectionClick();
-}
+// HapticHelper moved to app_theme.dart — single source of truth.
+// Exported here for backward compatibility with older imports.
+export '../theme/app_theme.dart' show HapticHelper;
