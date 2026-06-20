@@ -491,7 +491,7 @@ class AppTheme {
       activeTrackColor: AppColors.primary,
       inactiveTrackColor: AppColors.tertiarySurface,
       thumbColor: AppColors.primary,
-      overlayColor: WidgetStateProperty.all(AppColors.primary.withValues(alpha: 0.12)),
+      overlayColor: AppColors.primary.withValues(alpha: 0.12),
       trackHeight: 4,
     ),
     tabBarTheme: TabBarThemeData(
@@ -738,7 +738,7 @@ class AppTheme {
       activeTrackColor: AppColors.primaryLight,
       inactiveTrackColor: AppColors.darkTertiarySurface,
       thumbColor: AppColors.primaryLight,
-      overlayColor: WidgetStateProperty.all(AppColors.primaryLight.withValues(alpha: 0.12)),
+      overlayColor: AppColors.primaryLight.withValues(alpha: 0.12),
       trackHeight: 4,
     ),
     tabBarTheme: TabBarThemeData(
