@@ -459,7 +459,7 @@ class AppTheme {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: ButtonStyle(
         foregroundColor: WidgetStateProperty.all(AppColors.primary),
-        side: const BorderSide(color: AppColors.separator, width: 1),
+        side: WidgetStateProperty.all(const BorderSide(color: AppColors.separator, width: 1)),
         padding: WidgetStateProperty.all(
           const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         ),
@@ -706,7 +706,7 @@ class AppTheme {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: ButtonStyle(
         foregroundColor: WidgetStateProperty.all(AppColors.primaryLight),
-        side: const BorderSide(color: AppColors.darkSeparator, width: 1),
+        side: WidgetStateProperty.all(const BorderSide(color: AppColors.darkSeparator, width: 1)),
         padding: WidgetStateProperty.all(
           const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         ),
@@ -794,4 +794,12 @@ class AppTheme {
       labelSmall: AppTypography.caption2,
     ),
   );
+}
+
+/// Haptic feedback helpers — keep interactions tactile.
+class HapticHelper {
+  static void light() => HapticFeedback.lightImpact();
+  static void medium() => HapticFeedback.mediumImpact();
+  static void heavy() => HapticFeedback.heavyImpact();
+  static void selection() => HapticFeedback.selectionClick();
 }

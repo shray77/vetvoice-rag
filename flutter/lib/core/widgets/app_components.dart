@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_colors_resolver.dart';
 
 /// Polished card with consistent radius, padding, and optional header/footer.
 ///
