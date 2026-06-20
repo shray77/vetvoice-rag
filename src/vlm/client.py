@@ -34,7 +34,7 @@ class GLMVisionClient:
     ):
         self.api_key = api_key or os.environ.get("GLM_API_KEY", os.environ.get("OPENAI_API_KEY", ""))
         self.base_url = base_url or os.environ.get("GLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4")
-        self.model = model or os.environ.get("VLM_MODEL", "glm-4v")
+        self.model = model or os.environ.get("VLM_MODEL", "glm-4.6v")
 
     def _image_to_base64(self, image: Image.Image) -> str:
         """Convert PIL Image to base64 string"""

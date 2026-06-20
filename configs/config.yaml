@@ -11,7 +11,7 @@ rag:
   max_context_chars: 5000
 
 models:
-  vlm: "glm-4v"
+  vlm: "glm-4.6v"
   llm: "glm-4"
 
 logging:

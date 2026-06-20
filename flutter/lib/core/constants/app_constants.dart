@@ -15,7 +15,7 @@ class ApiConfig {
 
   // Models
   static const String glmModel = 'glm-4-flash';
-  static const String glmVlmModel = 'glm-4v-flash';
+  static const String glmVlmModel = 'glm-4.6v';
 
   // VetEcosystem HF Space (RAG only — текстовый API, надёжный)
   static const String hfSpaceUrl = 'https://shrayyyy-vetderm-ai.hf.space';

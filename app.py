@@ -176,7 +176,7 @@ class GLMClient:
     def __init__(self):
         self.api_key = os.environ.get("GLM_API_KEY", os.environ.get("OPENAI_API_KEY", ""))
         self.base_url = os.environ.get("GLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4")
-        self.vlm_model = os.environ.get("VLM_MODEL", "glm-4v-flash")
+        self.vlm_model = os.environ.get("VLM_MODEL", "glm-4.6v")
         self.llm_model = os.environ.get("LLM_MODEL", "glm-4-flash")
 
     def _call_api(self, payload: dict, timeout: int = 90) -> dict:
