@@ -18,6 +18,12 @@ on:
         required: false
         default: 'batch'
 
+# Top-level env — secrets exposed to ALL steps in the job.
+# This fixes the classic "env.HF_TOKEN != '' is always false" bug.
+env:
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -30,9 +36,16 @@ jobs:
           python-version: "3.12"
 
       - name: Check required secrets
+        # Now HF_TOKEN is available here via the top-level env block.
         run: |
           if [ -z "$HF_TOKEN" ]; then
-            echo "::warning::HF_TOKEN secret is not configured. RAG data download will be skipped."
+            echo "::warning::HF_TOKEN secret is not configured in repo settings."
+            echo "::warning::Go to: https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo "::warning::Click 'New repository secret', name=HF_TOKEN, value=<your-token>"
+          else
+            # Show only first 4 chars to confirm it's set without leaking it
+            TOKEN_PREFIX="${HF_TOKEN:0:4}"
+            echo "::notice::HF_TOKEN is set (starts with ${TOKEN_PREFIX}...)"
           fi
           if [ -z "$NCBI_API_KEY" ]; then
             echo "::warning::NCBI_API_KEY secret is not configured. PubMed harvesting will be rate-limited."
@@ -42,9 +55,8 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Download existing RAG data from HF Hub
+        # Now uses the top-level env var, so this condition actually works.
         if: env.HF_TOKEN != ''
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           python -c "
           from huggingface_hub import hf_hub_download
@@ -58,9 +70,7 @@ jobs:
           "
 
       - name: Harvest papers from academic sources
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          NCBI_API_KEY: ${{ secrets.NCBI_API_KEY }}
+        # Always run, but paper_harvester.py handles missing HF_TOKEN gracefully.
         run: |
           SOURCE="${{ github.event.inputs.source || 'all' }}"
           MAX="${{ github.event.inputs.max_results || '10' }}"

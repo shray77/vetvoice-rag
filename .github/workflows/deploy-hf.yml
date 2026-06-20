@@ -3,8 +3,12 @@ name: Deploy to HF Spaces
 on:
   push:
     branches: [main]
-    paths: ['src/**', 'configs/**', 'requirements.txt', 'Dockerfile']
+    paths: ['src/**', 'configs/**', 'requirements.txt', 'Dockerfile', 'app.py', 'scripts/**']
   workflow_dispatch:
+
+# Top-level env — exposes the secret to ALL steps consistently.
+env:
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
 jobs:
   deploy:
@@ -12,10 +16,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify HF_TOKEN is configured
+        # Fail early with a clear message if the secret is missing.
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::error::HF_TOKEN secret is NOT configured."
+            echo "::error::Repository: https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo "::error::Click 'New repository secret', name=HF_TOKEN, value=<your-hf-token>"
+            echo "::error::Token must have 'write' permission on the target Space repo."
+            exit 1
+          fi
+          TOKEN_PREFIX="${HF_TOKEN:0:4}"
+          echo "::notice::HF_TOKEN is set (starts with ${TOKEN_PREFIX}...)"
+
       - name: Install huggingface_hub
         run: pip install huggingface_hub
 
       - name: Deploy to HuggingFace Spaces
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        # Top-level env is inherited, no need to re-declare here.
         run: python scripts/deploy_hf.py
