@@ -118,7 +118,6 @@ EN_RU_DRUG_TERMS = {
     "tulathromycin": "тулатромицин",
     "gamithromycin": "гамитромицин",
     "tilmicosin": "тилмикозин",
-    "tulathromycin": "тулатромицин",
     "atropine": "атропин",
     "diazepam": "диазепам",
     "ketamine": "кетамин",
