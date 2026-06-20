@@ -3,11 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_colors_resolver.dart';
-
+import '../../core/utils/voice_parser.dart';
+import '../../core/widgets/app_components.dart';
 import '../../providers/notes_provider.dart';
 import '../../models/vet_record_model.dart';
 
-/// Экран структурированных ветеринарных записей
+/// Экран структурированных ветеринарных записей.
 /// Голос → AI Parse → SOAP Card → Save
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
@@ -19,6 +20,7 @@ class NotesScreen extends StatefulWidget {
 class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _textController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -30,6 +32,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
   void dispose() {
     _tabController.dispose();
     _textController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -39,28 +42,14 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
       backgroundColor: AppColorsResolver.background(context),
       body: Column(
         children: [
-          // Header
           _buildHeader(),
-
-          // Tab bar
-          Container(
-            color: AppColorsResolver.surface(context),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: AppColorsResolver.textSecondary(context),
-              indicatorColor: AppColors.primary,
-              indicatorSize: TabBarIndicatorSize.label,
-              labelStyle: AppTypography.headline,
-              unselectedLabelStyle: AppTypography.subheadline,
-              tabs: const [
-                Tab(text: 'Новая запись'),
-                Tab(text: 'Архив'),
-              ],
-            ),
+          TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(text: 'Новая запись'),
+              Tab(text: 'Архив'),
+            ],
           ),
-
-          // Content
           Expanded(
             child: TabBarView(
               controller: _tabController,
@@ -76,8 +65,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
   }
 
   Widget _buildHeader() {
-    return Container(
-      color: AppColorsResolver.surface(context),
+    return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.screenPadding,
         AppSpacing.lg,
@@ -89,12 +77,16 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
         children: [
           Text(
             'Записи',
-            style: AppTypography.largeTitle.copyWith(color: AppColorsResolver.textPrimary(context)),
+            style: AppTypography.largeTitle.copyWith(
+              color: AppColorsResolver.textPrimary(context),
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             'Надиктуйте — AI заполнит карточку',
-            style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
+            style: AppTypography.subheadline.copyWith(
+              color: AppColorsResolver.textSecondary(context),
+            ),
           ),
         ],
       ),
@@ -102,41 +94,33 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
   }
 
   // ==========================================
-  // НОВАЯ ЗАПИСЬ — голос / текст → AI → карточка
+  // НОВАЯ ЗАПИСЬ
   // ==========================================
 
   Widget _buildNewRecordTab() {
     final provider = context.watch<NotesProvider>();
-
-    // Если есть распарсенная запись — показать карточку
     if (provider.currentRecord != null) {
       return _buildRecordPreview(provider);
     }
-
-    // Иначе — экран диктовки
     return _buildDictationInput(provider);
   }
 
-  /// Экран ввода диктовки (голос или текст)
   Widget _buildDictationInput(NotesProvider provider) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Большая кнопка голосового ввода
           _buildVoiceButton(provider),
-
           const SizedBox(height: AppSpacing.lg),
-
-          // Текстовое поле для диктовки
           Text(
             'Или введите текст вручную',
-            style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
+            style: AppTypography.subheadline.copyWith(
+              color: AppColorsResolver.textSecondary(context),
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.sm),
-
           TextField(
             controller: _textController,
             maxLines: 6,
@@ -145,15 +129,17 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                   'снижен аппетит, хромает на правую заднюю, подозрение на '
                   'травматический ретикулит. Назначен энрофлоксацин 5 мг/кг '
                   'внутримышечно 5 дней, новокаиновая блокада...',
-              hintStyle: AppTypography.callout.copyWith(color: AppColors.textPlaceholder),
-              alignLabelWithHint: true,
+              hintStyle: AppTypography.body.copyWith(
+                color: AppColorsResolver.textTertiary(context),
+                height: 1.4,
+              ),
+            ),
+            style: AppTypography.body.copyWith(
+              color: AppColorsResolver.textPrimary(context),
             ),
             onChanged: (text) => provider.updateDictationText(text),
           ),
-
           const SizedBox(height: AppSpacing.md),
-
-          // Кнопка парсинга
           if (provider.dictationText.isNotEmpty)
             FilledButton.icon(
               onPressed: provider.isParsing ? null : () => _parseDictation(provider),
@@ -166,43 +152,29 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                         color: Colors.white,
                       ),
                     )
-                  : const Icon(Icons.auto_fix_high, size: 20),
-              label: Text(provider.isParsing ? 'Обработка...' : 'Структурировать'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.medium),
-                ),
-              ),
+                  : const Icon(Icons.auto_fix_high_rounded, size: 20),
+              label: Text(provider.isParsing ? 'Обработка…' : 'Структурировать'),
             ),
-
-          // Ошибка парсинга
           if (provider.parseError.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
-            Container(
+            AppCard(
+              backgroundColor: AppColors.dangerContainer,
+              border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
               padding: const EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                color: AppColors.error.withAlpha(10),
-                borderRadius: BorderRadius.circular(AppRadius.medium),
-                border: Border.all(color: AppColors.error.withAlpha(30)),
-              ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                  const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       provider.parseError,
-                      style: AppTypography.footnote.copyWith(color: AppColors.error),
+                      style: AppTypography.footnote.copyWith(color: AppColors.danger),
                     ),
                   ),
                 ],
               ),
             ),
           ],
-
-          // Пример диктовки
           const SizedBox(height: AppSpacing.xl),
           _buildExampleCard(),
         ],
@@ -210,67 +182,65 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
     );
   }
 
-  /// Большая кнопка голосового ввода (Apple HIG style)
   Widget _buildVoiceButton(NotesProvider provider) {
     final isListening = provider.isListening;
+    final primary = AppColorsResolver.primary(context);
+    final textColor = AppColorsResolver.textPrimary(context);
+    final tertiary = AppColorsResolver.textTertiary(context);
 
     return GestureDetector(
       onTap: () => _toggleVoiceInput(provider),
       child: AnimatedContainer(
         duration: AppDurations.medium,
-        curve: Curves.easeInOut,
-        height: 160,
+        curve: AppCurves.decelerate,
+        height: 180,
         decoration: BoxDecoration(
           color: isListening
-              ? AppColors.primary.withAlpha(15)
+              ? AppColorsResolver.primaryContainer(context)
               : AppColorsResolver.surface(context),
           borderRadius: BorderRadius.circular(AppRadius.xl),
           border: Border.all(
-            color: isListening ? AppColors.primary : AppColors.separator,
-            width: isListening ? 2 : 1,
+            color: isListening ? primary : AppColorsResolver.separator(context),
+            width: isListening ? 2 : 0.5,
           ),
-          boxShadow: isListening
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withAlpha(30),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                  ),
-                ]
-              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Mic icon with animation
             AnimatedScale(
               scale: isListening ? 1.15 : 1.0,
               duration: AppDurations.fast,
+              curve: AppCurves.spring,
               child: Container(
-                width: 64,
-                height: 64,
+                width: 72,
+                height: 72,
                 decoration: BoxDecoration(
-                  color: isListening ? AppColors.primary : AppColors.primary.withAlpha(15),
+                  color: isListening ? primary : primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
+                  boxShadow: isListening
+                      ? [BoxShadow(color: primary.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 4)]
+                      : null,
                 ),
                 child: Icon(
-                  isListening ? Icons.mic : Icons.mic_none,
-                  color: isListening ? Colors.white : AppColors.primary,
-                  size: 32,
+                  isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                  color: isListening ? Colors.white : primary,
+                  size: 36,
                 ),
               ),
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              isListening ? 'Слушаю...' : 'Нажмите для диктовки',
+              isListening ? 'Слушаю…' : 'Нажмите для диктовки',
               style: AppTypography.headline.copyWith(
-                color: isListening ? AppColors.primary : AppColorsResolver.textPrimary(context),
+                color: isListening ? primary : textColor,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              isListening ? 'Говорите чётко, называйте препараты и дозы' : 'Голосом или текстом',
-              style: AppTypography.footnote.copyWith(color: AppColorsResolver.textTertiary(context)),
+              isListening
+                  ? 'Говорите чётко, называйте препараты и дозы'
+                  : 'Голосом или текстом',
+              style: AppTypography.footnote.copyWith(color: tertiary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -279,25 +249,19 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
     );
   }
 
-  /// Карточка с примером диктовки
   Widget _buildExampleCard() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.systemBlue.withAlpha(8),
-        borderRadius: BorderRadius.circular(AppRadius.medium),
-        border: Border.all(color: AppColors.systemBlue.withAlpha(20)),
-      ),
+    return AppCard.tinted(
+      tintColor: AppColors.infoContainer,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.lightbulb_outline, size: 16, color: AppColors.systemBlue),
+              const Icon(Icons.lightbulb_outline_rounded, size: 18, color: AppColors.info),
               const SizedBox(width: 6),
               Text(
                 'Пример диктовки',
-                style: AppTypography.headline.copyWith(color: AppColors.systemBlue),
+                style: AppTypography.headline.copyWith(color: AppColors.info),
               ),
             ],
           ),
@@ -312,6 +276,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             style: AppTypography.callout.copyWith(
               color: AppColorsResolver.textSecondary(context),
               fontStyle: FontStyle.italic,
+              height: 1.45,
             ),
           ),
         ],
@@ -319,7 +284,10 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
     );
   }
 
-  /// Превью распарсенной записи (SOAP карточка)
+  // ==========================================
+  // SOAP КАРТОЧКА
+  // ==========================================
+
   Widget _buildRecordPreview(NotesProvider provider) {
     final record = provider.currentRecord!;
 
@@ -328,15 +296,14 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Completeness indicator
           _buildCompletenessBar(record),
           const SizedBox(height: AppSpacing.md),
 
-          // Animal info card
+          // Animal info
           _buildSectionCard(
-            icon: Icons.pets,
+            icon: Icons.pets_rounded,
             title: 'Животное',
-            color: AppColors.primary,
+            color: AppColorsResolver.primary(context),
             children: [
               _buildInfoRow('Вид', record.animalType),
               if (record.animalBreed != null) _buildInfoRow('Порода', record.animalBreed!),
@@ -347,27 +314,25 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             ],
           ),
 
-          // Subjective (S)
           if (record.complaint != null || record.anamnesis != null)
             _buildSectionCard(
-              icon: Icons.record_voice_over,
+              icon: Icons.record_voice_over_rounded,
               title: 'S — Субъективно',
-              color: AppColors.systemBlue,
+              color: AppColors.info,
               children: [
                 if (record.complaint != null) _buildInfoRow('Жалоба', record.complaint!),
                 if (record.anamnesis != null) _buildInfoRow('Анамнез', record.anamnesis!),
               ],
             ),
 
-          // Objective (O)
           if (record.temperature != null || record.heartRate != null ||
               record.respiratoryRate != null || record.physicalExam != null ||
               record.mucousMembranes != null || record.lymphNodes != null ||
               record.skinCoat != null)
             _buildSectionCard(
-              icon: Icons.assignment,
+              icon: Icons.assignment_rounded,
               title: 'O — Объективно',
-              color: AppColors.systemOrange,
+              color: AppColors.warning,
               children: [
                 if (record.temperature != null) _buildInfoRow('Температура', '${record.temperature} °C'),
                 if (record.heartRate != null) _buildInfoRow('ЧСС', '${record.heartRate} уд/мин'),
@@ -379,10 +344,9 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
               ],
             ),
 
-          // Assessment (A)
           if (record.diagnosis != null || record.differentialDx != null)
             _buildSectionCard(
-              icon: Icons.psychology,
+              icon: Icons.psychology_rounded,
               title: 'A — Оценка',
               color: AppColors.systemPurple,
               children: [
@@ -392,13 +356,12 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
               ],
             ),
 
-          // Plan (P)
           if (record.prescribedDrugs.isNotEmpty || record.procedures != null ||
               record.diet != null || record.followUp != null)
             _buildSectionCard(
-              icon: Icons.medication,
+              icon: Icons.medication_rounded,
               title: 'P — План',
-              color: AppColors.systemRed,
+              color: AppColors.danger,
               children: [
                 if (record.prescribedDrugs.isNotEmpty) ...[
                   _buildInfoRow('Препараты', ''),
@@ -411,22 +374,17 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
               ],
             ),
 
-          // Notes
           if (record.notes != null)
             _buildSectionCard(
-              icon: Icons.note,
+              icon: Icons.note_rounded,
               title: 'Заметки',
               color: AppColorsResolver.textTertiary(context),
-              children: [
-                _buildInfoRow('Дополнительно', record.notes!),
-              ],
+              children: [_buildInfoRow('Дополнительно', record.notes!)],
             ),
 
-          // Raw dictation (collapsible)
           if (record.rawDictation != null) ...[
             const SizedBox(height: AppSpacing.sm),
             ExpansionTile(
-              backgroundColor: AppColorsResolver.surface(context),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppRadius.medium),
               ),
@@ -435,7 +393,9 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
               ),
               title: Text(
                 'Оригинал диктовки',
-                style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
+                style: AppTypography.subheadline.copyWith(
+                  color: AppColorsResolver.textSecondary(context),
+                ),
               ),
               children: [
                 Padding(
@@ -453,22 +413,13 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
           ],
 
           const SizedBox(height: AppSpacing.md),
-
-          // Action buttons
           Row(
             children: [
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => provider.discardCurrentRecord(),
-                  icon: const Icon(Icons.refresh, size: 18),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('Заново'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColorsResolver.textSecondary(context),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.medium),
-                    ),
-                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -476,37 +427,28 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                 flex: 2,
                 child: FilledButton.icon(
                   onPressed: () => _saveRecord(provider),
-                  icon: const Icon(Icons.check, size: 20),
+                  icon: const Icon(Icons.check_rounded, size: 20),
                   label: const Text('Сохранить'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.medium),
-                    ),
-                  ),
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 100),
         ],
       ),
     );
   }
 
-  /// Бар заполненности записи
   Widget _buildCompletenessBar(VetRecord record) {
     final completeness = record.completeness;
     final percent = (completeness * 100).toInt();
+    final color = completeness > 0.7
+        ? AppColors.success
+        : completeness > 0.4
+            ? AppColors.warning
+            : AppColors.danger;
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColorsResolver.surface(context),
-        borderRadius: BorderRadius.circular(AppRadius.medium),
-      ),
+    return AppCard.standard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -515,17 +457,13 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             children: [
               Text(
                 'Заполненность записи',
-                style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
+                style: AppTypography.subheadline.copyWith(
+                  color: AppColorsResolver.textSecondary(context),
+                ),
               ),
               Text(
                 '$percent%',
-                style: AppTypography.headline.copyWith(
-                  color: completeness > 0.7
-                      ? AppColors.success
-                      : completeness > 0.4
-                          ? AppColors.warning
-                          : AppColors.error,
-                ),
+                style: AppTypography.headline.copyWith(color: color),
               ),
             ],
           ),
@@ -535,14 +473,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             child: LinearProgressIndicator(
               value: completeness,
               minHeight: 6,
-              backgroundColor: AppColors.fillPrimary,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                completeness > 0.7
-                    ? AppColors.success
-                    : completeness > 0.4
-                        ? AppColors.warning
-                        : AppColors.error,
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
             ),
           ),
         ],
@@ -550,34 +481,31 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
     );
   }
 
-  /// Секция SOAP карточки
   Widget _buildSectionCard({
     required IconData icon,
     required String title,
     required Color color,
     required List<Widget> children,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColorsResolver.surface(context),
-          borderRadius: BorderRadius.circular(AppRadius.medium),
-        ),
+      child: AppCard.standard(
+        padding: EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Section header
             Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md,
                 vertical: AppSpacing.sm + 2,
               ),
               decoration: BoxDecoration(
-                color: color.withAlpha(8),
+                color: color.withValues(alpha: isDark ? 0.18 : 0.08),
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(AppRadius.medium),
-                  topRight: Radius.circular(AppRadius.medium),
+                  topLeft: Radius.circular(AppRadius.card),
+                  topRight: Radius.circular(AppRadius.card),
                 ),
               ),
               child: Row(
@@ -591,7 +519,6 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                 ],
               ),
             ),
-            // Section content
             Padding(
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(children: children),
@@ -602,7 +529,6 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
     );
   }
 
-  /// Строка информации в карточке
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -613,13 +539,17 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             width: 110,
             child: Text(
               label,
-              style: AppTypography.footnote.copyWith(color: AppColorsResolver.textTertiary(context)),
+              style: AppTypography.footnote.copyWith(
+                color: AppColorsResolver.textTertiary(context),
+              ),
             ),
           ),
           Expanded(
             child: Text(
               value.isEmpty ? '—' : value,
-              style: AppTypography.callout.copyWith(color: AppColorsResolver.textPrimary(context)),
+              style: AppTypography.callout.copyWith(
+                color: AppColorsResolver.textPrimary(context),
+              ),
             ),
           ),
         ],
@@ -627,28 +557,27 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
     );
   }
 
-  /// Строка назначенного препарата
   Widget _buildDrugRow(PrescribedDrug drug) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
+      child: AppCard.tinted(
+        tintColor: AppColors.dangerContainer,
         padding: const EdgeInsets.all(AppSpacing.sm + 2),
-        decoration: BoxDecoration(
-          color: AppColors.systemRed.withAlpha(6),
-          borderRadius: BorderRadius.circular(AppRadius.small),
-          border: Border.all(color: AppColors.systemRed.withAlpha(15)),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               drug.name,
-              style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
+              style: AppTypography.headline.copyWith(
+                color: AppColorsResolver.textPrimary(context),
+              ),
             ),
             const SizedBox(height: 2),
             Text(
               drug.shortDescription,
-              style: AppTypography.footnote.copyWith(color: AppColorsResolver.textSecondary(context)),
+              style: AppTypography.footnote.copyWith(
+                color: AppColorsResolver.textSecondary(context),
+              ),
             ),
           ],
         ),
@@ -657,7 +586,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
   }
 
   // ==========================================
-  // АРХИВ ЗАПИСЕЙ
+  // АРХИВ
   // ==========================================
 
   Widget _buildArchiveTab() {
@@ -665,74 +594,38 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
     final records = provider.filteredRecords;
 
     if (records.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.folder_open_outlined,
-                size: 64,
-                color: AppColorsResolver.textTertiary(context),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Text(
-                'Записей пока нет',
-                style: AppTypography.title3.copyWith(color: AppColorsResolver.textPrimary(context)),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Надиктуйте первую запись на вкладке «Новая запись»',
-                style: AppTypography.subheadline.copyWith(color: AppColorsResolver.textSecondary(context)),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+      return AppEmptyState(
+        icon: Icons.folder_open_outlined,
+        title: 'Записей пока нет',
+        subtitle: 'Надиктуйте первую запись на вкладке «Новая запись»',
       );
     }
 
     return Column(
       children: [
-        // Search bar
         Padding(
           padding: const EdgeInsets.all(AppSpacing.screenPadding),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'Поиск по записям...',
-              prefixIcon: Icon(Icons.search, color: AppColorsResolver.textTertiary(context)),
-              suffixIcon: provider.searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(Icons.clear, color: AppColorsResolver.textTertiary(context)),
-                      onPressed: () => provider.setSearchQuery(''),
-                    )
-                  : null,
-              filled: true,
-              fillColor: AppColorsResolver.surface(context),
-            ),
-            onChanged: (value) => provider.setSearchQuery(value),
+          child: AppSearchBar(
+            controller: _searchController,
+            hintText: 'Поиск по записям…',
+            onChanged: (v) => provider.setSearchQuery(v),
+            onClear: () => provider.setSearchQuery(''),
           ),
         ),
-
-        // Records list
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
             itemCount: records.length,
-            itemBuilder: (context, index) {
-              return _buildRecordListTile(records[index], provider);
-            },
+            itemBuilder: (context, index) => _buildRecordListTile(records[index], provider),
           ),
         ),
       ],
     );
   }
 
-  /// Карточка записи в списке архива
   Widget _buildRecordListTile(VetRecord record, NotesProvider provider) {
     final severityColor = record.diseaseSeverity == 'тяжёлая'
-        ? AppColors.error
+        ? AppColors.danger
         : record.diseaseSeverity == 'средняя'
             ? AppColors.warning
             : AppColors.success;
@@ -746,125 +639,121 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: AppSpacing.lg),
           decoration: BoxDecoration(
-            color: AppColors.error.withAlpha(15),
-            borderRadius: BorderRadius.circular(AppRadius.medium),
+            color: AppColors.dangerContainer,
+            borderRadius: BorderRadius.circular(AppRadius.card),
           ),
-          child: const Icon(Icons.delete_outline, color: AppColors.error),
+          child: const Icon(Icons.delete_outline_rounded, color: AppColors.danger),
         ),
         onDismissed: (_) => provider.deleteRecord(record.id),
-        child: Card(
-          child: InkWell(
-            onTap: () {
-              HapticFeedback.selectionClick();
-              provider.openRecord(record);
-              _tabController.animateTo(0);
-            },
-            borderRadius: BorderRadius.circular(AppRadius.medium),
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: AppCard.standard(
+          onTap: () {
+            HapticHelper.selection();
+            provider.openRecord(record);
+            _tabController.animateTo(0);
+          },
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Row 1: Animal + Date
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.pets, size: 16, color: AppColors.primary),
-                          const SizedBox(width: 6),
-                          Text(
-                            record.animalType.isNotEmpty ? record.animalType : 'Не указано',
-                            style: AppTypography.headline.copyWith(color: AppColorsResolver.textPrimary(context)),
-                          ),
-                          if (record.animalWeight != null) ...[
-                            const SizedBox(width: 6),
-                            Text(
-                              '${record.animalWeight} кг',
-                              style: AppTypography.footnote.copyWith(color: AppColorsResolver.textSecondary(context)),
-                            ),
-                          ],
-                        ],
-                      ),
+                      const Icon(Icons.pets_rounded, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 6),
                       Text(
-                        _fmtDate(record.createdAt),
-                        style: AppTypography.caption1.copyWith(color: AppColorsResolver.textTertiary(context)),
+                        record.animalType.isNotEmpty ? record.animalType : 'Не указано',
+                        style: AppTypography.headline.copyWith(
+                          color: AppColorsResolver.textPrimary(context),
+                        ),
                       ),
+                      if (record.animalWeight != null) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          '${record.animalWeight} кг',
+                          style: AppTypography.footnote.copyWith(
+                            color: AppColorsResolver.textSecondary(context),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
-
-                  // Row 2: Diagnosis
-                  if (record.diagnosis != null) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        if (record.diseaseSeverity != null)
-                          Container(
-                            width: 8,
-                            height: 8,
-                            margin: const EdgeInsets.only(right: 6),
-                            decoration: BoxDecoration(
-                              color: severityColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        Expanded(
-                          child: Text(
-                            record.diagnosis!,
-                            style: AppTypography.callout.copyWith(color: AppColorsResolver.textSecondary(context)),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                  Text(
+                    _fmtDate(record.createdAt),
+                    style: AppTypography.caption1.copyWith(
+                      color: AppColorsResolver.textTertiary(context),
                     ),
-                  ],
-
-                  // Row 3: Drugs count
-                  if (record.prescribedDrugs.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.medication, size: 14, color: AppColors.systemRed),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${record.prescribedDrugs.length} препарат(ов): '
-                          '${record.prescribedDrugs.map((d) => d.name).take(3).join(", ")}',
-                          style: AppTypography.caption1.copyWith(color: AppColorsResolver.textTertiary(context)),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ],
-
-                  // Status badge
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      _buildStatusBadge(record.status),
-                      const SizedBox(width: 8),
-                      // Completeness mini bar
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(AppRadius.full),
-                          child: LinearProgressIndicator(
-                            value: record.completeness,
-                            minHeight: 3,
-                            backgroundColor: AppColors.fillPrimary,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              record.completeness > 0.7
-                                  ? AppColors.success
-                                  : AppColors.warning,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
-            ),
+              if (record.diagnosis != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    if (record.diseaseSeverity != null)
+                      Container(
+                        width: 8,
+                        height: 8,
+                        margin: const EdgeInsets.only(right: 6),
+                        decoration: BoxDecoration(
+                          color: severityColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    Expanded(
+                      child: Text(
+                        record.diagnosis!,
+                        style: AppTypography.callout.copyWith(
+                          color: AppColorsResolver.textSecondary(context),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (record.prescribedDrugs.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.medication_rounded, size: 14, color: AppColors.danger),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        '${record.prescribedDrugs.length} препарат(ов): '
+                        '${record.prescribedDrugs.map((d) => d.name).take(3).join(", ")}',
+                        style: AppTypography.caption1.copyWith(
+                          color: AppColorsResolver.textTertiary(context),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  _buildStatusBadge(record.status),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                      child: LinearProgressIndicator(
+                        value: record.completeness,
+                        minHeight: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          record.completeness > 0.7 ? AppColors.success : AppColors.warning,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -872,24 +761,13 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
   }
 
   Widget _buildStatusBadge(VetRecordStatus status) {
-    final (label, color) = switch (status) {
-      VetRecordStatus.draft => ('Черновик', AppColorsResolver.textTertiary(context)),
-      VetRecordStatus.parsed => ('AI', AppColors.systemPurple),
-      VetRecordStatus.edited => ('Правки', AppColors.systemBlue),
-      VetRecordStatus.saved => ('Сохранено', AppColors.success),
+    final (label, variant) = switch (status) {
+      VetRecordStatus.draft  => ('Черновик', AppBadgeVariant.neutral),
+      VetRecordStatus.parsed => ('AI', AppBadgeVariant.info),
+      VetRecordStatus.edited => ('Правки', AppBadgeVariant.primary),
+      VetRecordStatus.saved  => ('Сохранено', AppBadgeVariant.mild),
     };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      decoration: BoxDecoration(
-        color: color.withAlpha(15),
-        borderRadius: BorderRadius.circular(AppRadius.full),
-      ),
-      child: Text(
-        label,
-        style: AppTypography.caption2.copyWith(color: color),
-      ),
-    );
+    return AppBadge(label: label, variant: variant);
   }
 
   // ==========================================
@@ -897,32 +775,27 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
   // ==========================================
 
   void _toggleVoiceInput(NotesProvider provider) {
-    // TODO: Подключить speech_to_text
-    // Пока — toggle состояния для UI
     if (provider.isListening) {
       provider.setListening(false);
-      // После остановки — автоматически парсим
       if (provider.dictationText.isNotEmpty) {
         _parseDictation(provider);
       }
     } else {
       provider.setListening(true);
-      // TODO: Запустить SpeechRecognition
-      // Временная заглушка — добавляем текст в поле
-      HapticFeedback.mediumImpact();
+      HapticHelper.medium();
     }
   }
 
   Future<void> _parseDictation(NotesProvider provider) async {
-    HapticFeedback.mediumImpact();
+    HapticHelper.medium();
     await provider.parseDictation();
   }
 
   Future<void> _saveRecord(NotesProvider provider) async {
-    HapticFeedback.heavyImpact();
+    HapticHelper.heavy();
     await provider.saveCurrentRecord();
     _textController.clear();
-    _tabController.animateTo(1); // Переключаемся на архив
+    _tabController.animateTo(1);
   }
 
   String _fmtDate(DateTime dt) =>

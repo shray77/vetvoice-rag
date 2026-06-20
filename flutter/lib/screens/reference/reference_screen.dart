@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_colors_resolver.dart';
+import '../../core/widgets/app_components.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/vet_provider.dart';
 import '../../models/drug_models.dart';
@@ -46,11 +48,8 @@ class _ReferenceScreenState extends State<ReferenceScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final bgColor = isDark ? AppColors.darkBackground : AppColors.background;
-    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final textColor = AppColorsResolver.textPrimary(context);
+    final bgColor = AppColorsResolver.background(context);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -76,19 +75,10 @@ class _ReferenceScreenState extends State<ReferenceScreen>
                     builder: (context, vet, _) {
                       final stats = vet.dbStats;
                       final total = stats.values.fold(0, (a, b) => a + b);
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: (isDark ? AppColors.primaryLight : AppColors.primary).withAlpha(20),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '$total записей',
-                          style: AppTypography.caption.copyWith(
-                            color: isDark ? AppColors.primaryLight : AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                      return AppBadge(
+                        label: '$total записей',
+                        variant: AppBadgeVariant.primary,
+                        compact: false,
                       );
                     },
                   ),
@@ -97,32 +87,11 @@ class _ReferenceScreenState extends State<ReferenceScreen>
             ),
 
             // Search bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
-              child: TextField(
-                controller: _searchCtrl,
-                decoration: InputDecoration(
-                  hintText: 'Поиск по болезням, протоколам, препаратам…',
-                  prefixIcon: const Icon(Icons.search, size: 20),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, size: 20),
-                          onPressed: () {
-                            _searchCtrl.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                        )
-                      : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: surfaceColor,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  isDense: true,
-                ),
-              ),
+            AppSearchBar(
+              controller: _searchCtrl,
+              hintText: 'Поиск по болезням, протоколам, препаратам…',
+              onChanged: (v) => setState(() => _searchQuery = v),
+              onClear: () => setState(() => _searchQuery = ''),
             ),
 
             const SizedBox(height: AppSpacing.sm),
@@ -1148,25 +1117,10 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final secondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.search_off, size: 64, color: AppColors.systemGrey),
-            const SizedBox(height: 12),
-            Text(
-              query.isEmpty ? 'Нет данных' : 'Ничего не найдено по запросу «$query»',
-              style: AppTypography.body.copyWith(color: secondary),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+    return AppEmptyState(
+      icon: Icons.search_off_rounded,
+      title: query.isEmpty ? 'Нет данных' : 'Ничего не найдено',
+      subtitle: query.isEmpty ? null : 'По запросу «$query»',
     );
   }
 }
@@ -1178,16 +1132,10 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withAlpha(30),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        text,
-        style: AppTypography.caption.copyWith(color: color, fontSize: 10, fontWeight: FontWeight.w600),
-      ),
+    return AppChip(
+      label: text,
+      color: color,
+      style: AppChipStyle.filled,
     );
   }
 }
