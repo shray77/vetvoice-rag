@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../models/drug_models.dart';
 import '../services/data_load_service.dart';
 
@@ -26,6 +28,71 @@ class VetProvider extends ChangeNotifier {
   double get weight => _weight;
   DoseResult get result => _result;
   String get searchQuery => _searchQuery;
+
+  // ─── History & Favorites ───────────────────────────────────────────
+  final List<HistoryEntry> _history = [];
+  final Set<String> _favorites = {}; // drug IDs (name-based)
+
+  List<HistoryEntry> get history => List.unmodifiable(_history);
+  List<HistoryEntry> get recentHistory => _history.take(10).toList();
+  Set<String> get favorites => Set.unmodifiable(_favorites);
+
+  bool isFavorite(String drugName) => _favorites.contains(drugName);
+
+  void toggleFavorite(String drugName) {
+    if (_favorites.contains(drugName)) {
+      _favorites.remove(drugName);
+    } else {
+      _favorites.add(drugName);
+    }
+    _saveFavorites();
+    notifyListeners();
+  }
+
+  void addHistory(HistoryEntry entry) {
+    _history.insert(0, entry);
+    if (_history.length > 50) _history.removeLast();
+    _saveHistory();
+    notifyListeners();
+  }
+
+  void clearHistory() {
+    _history.clear();
+    _saveHistory();
+    notifyListeners();
+  }
+
+  Future<void> _loadHistoryAndFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    // History
+    final histJson = prefs.getString('dose_history');
+    if (histJson != null) {
+      try {
+        final list = jsonDecode(histJson) as List<dynamic>;
+        _history.addAll(list.map((e) => HistoryEntry.fromJson(e as Map<String, dynamic>)));
+      } catch (_) {}
+    }
+    // Favorites
+    final favJson = prefs.getString('dose_favorites');
+    if (favJson != null) {
+      try {
+        final list = jsonDecode(favJson) as List<dynamic>;
+        _favorites.addAll(list.map((e) => e.toString()));
+      } catch (_) {}
+    }
+    notifyListeners();
+  }
+
+  Future<void> _saveHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = _history.map((e) => e.toJson()).toList();
+    await prefs.setString('dose_history', jsonEncode(list));
+  }
+
+  Future<void> _saveFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('dose_favorites', jsonEncode(_favorites.toList()));
+  }
 
   // Stats
   int get totalDrugs => _dataService.calcDrugs.length + _dataService.registryDrugs.length;
@@ -80,6 +147,7 @@ class VetProvider extends ChangeNotifier {
     notifyListeners();
 
     await _dataService.loadAll();
+    await _loadHistoryAndFavorites();
 
     _statusMessage = 'Загружено: ${_dataService.calcDrugs.length} препаратов для расчёта, '
         '${_dataService.registryDrugs.length} в реестре';
@@ -104,6 +172,7 @@ class VetProvider extends ChangeNotifier {
       _selectedRegistryDrug = null;
       if (_weight > 0) {
         _recalculate();
+        _addCurrentToHistory(drug.name);
       } else {
         _result = DoseResult(
           drugName: drug.name,
@@ -167,6 +236,20 @@ class VetProvider extends ChangeNotifier {
       _weight,
       animalName: _selectedAnimal?.name,
     );
+  }
+
+  /// Сохраняет текущий расчёт в историю.
+  void _addCurrentToHistory(String drugName) {
+    if (_result.volume <= 0 && !_result.hasResult) return;
+    addHistory(HistoryEntry(
+      drugName: drugName,
+      animalName: _selectedAnimal?.name ?? '',
+      weight: _weight,
+      volume: _result.volume,
+      unit: _result.unit,
+      method: _result.method,
+      timestamp: DateTime.now(),
+    ));
   }
 
   /// Сбросить всё

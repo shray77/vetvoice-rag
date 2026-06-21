@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_colors_resolver.dart';
 import '../../core/utils/voice_parser.dart';
@@ -422,6 +423,14 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                   label: const Text('Заново'),
                 ),
               ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _shareRecord(provider),
+                  icon: const Icon(Icons.share_rounded, size: 18),
+                  label: const Text('Поделиться'),
+                ),
+              ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 flex: 2,
@@ -796,6 +805,25 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
     await provider.saveCurrentRecord();
     _textController.clear();
     _tabController.animateTo(1);
+  }
+
+  void _shareRecord(NotesProvider provider) {
+    final record = provider.currentRecord;
+    if (record == null) return;
+    HapticHelper.light();
+    final text = record.toText();
+    // Используем Clipboard как fallback (без share_plus зависимости)
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Запись скопирована в буфер обмена'),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'OK',
+          onPressed: () {},
+        ),
+      ),
+    );
   }
 
   String _fmtDate(DateTime dt) =>

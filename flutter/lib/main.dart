@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/widgets/app_components.dart';
@@ -13,6 +14,7 @@ import 'screens/notes/notes_screen.dart';
 import 'screens/dose_calc/dose_calc_screen.dart';
 import 'screens/ai_assistant/ai_assistant_screen.dart';
 import 'screens/settings/settings_screen.dart';
+import 'screens/onboarding/onboarding_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,11 +56,51 @@ class VetEcoApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
-            home: const MainNavigation(),
+            home: const _AppStart(),
           );
         },
       ),
     );
+  }
+}
+
+/// Проверяет флаг onboarding при старте — показывает онбординг
+/// только при первом запуске, потом сразу MainNavigation.
+class _AppStart extends StatefulWidget {
+  const _AppStart();
+
+  @override
+  State<_AppStart> createState() => _AppStartState();
+}
+
+class _AppStartState extends State<_AppStart> {
+  bool? _showOnboarding;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboarding();
+  }
+
+  Future<void> _checkOnboarding() async {
+    final show = await shouldShowOnboarding();
+    if (mounted) setState(() => _showOnboarding = show);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_showOnboarding == null) {
+      return Scaffold(
+        backgroundColor: AppColorsResolver.background(context),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_showOnboarding!) {
+      return OnboardingScreen(
+        onComplete: () => setState(() => _showOnboarding = false),
+      );
+    }
+    return const MainNavigation();
   }
 }
 

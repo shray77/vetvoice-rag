@@ -1123,3 +1123,45 @@ class SourceReference {
     this.snippet = '',
   });
 }
+
+/// Запись истории расчёта дозы.
+/// Сохраняется в SharedPreferences (до 50 записей).
+class HistoryEntry {
+  final String drugName;
+  final String animalName;
+  final double weight;
+  final double volume;
+  final String unit;
+  final String method;
+  final DateTime timestamp;
+
+  const HistoryEntry({
+    required this.drugName,
+    required this.animalName,
+    required this.weight,
+    required this.volume,
+    required this.unit,
+    required this.method,
+    required this.timestamp,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'drugName': drugName,
+    'animalName': animalName,
+    'weight': weight,
+    'volume': volume,
+    'unit': unit,
+    'method': method,
+    'timestamp': timestamp.toIso8601String(),
+  };
+
+  factory HistoryEntry.fromJson(Map<String, dynamic> json) => HistoryEntry(
+    drugName: json['drugName'] as String? ?? '',
+    animalName: json['animalName'] as String? ?? '',
+    weight: (json['weight'] as num?)?.toDouble() ?? 0,
+    volume: (json['volume'] as num?)?.toDouble() ?? 0,
+    unit: json['unit'] as String? ?? 'мл',
+    method: json['method'] as String? ?? '',
+    timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
+  );
+}

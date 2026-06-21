@@ -296,6 +296,77 @@ class VetRecord {
 
   String _fmtDate(DateTime dt) =>
       '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
+
+  /// Экспорт записи в текстовый формат (для печати/шаринга).
+  String toText() {
+    final buf = StringBuffer();
+    buf.writeln('═══════════════════════════════════════');
+    buf.writeln('  VetEco — Ветеринарная запись');
+    buf.writeln('  ${_fmtDate(createdAt)}');
+    buf.writeln('═══════════════════════════════════════');
+    buf.writeln();
+
+    buf.writeln('ЖИВОТНОЕ');
+    buf.writeln('  Вид: $animalType');
+    if (animalBreed != null) buf.writeln('  Порода: $animalBreed');
+    if (animalWeight != null) buf.writeln('  Вес: $animalWeight кг');
+    if (animalAge != null) buf.writeln('  Возраст: $animalAge ${animalAgeUnit ?? 'лет'}');
+    if (animalGender != null) buf.writeln('  Пол: $animalGender');
+    if (animalId != null) buf.writeln('  Идентификация: $animalId');
+    buf.writeln();
+
+    if (complaint != null || anamnesis != null) {
+      buf.writeln('S — СУБЪЕКТИВНО');
+      if (complaint != null) buf.writeln('  Жалоба: $complaint');
+      if (anamnesis != null) buf.writeln('  Анамнез: $anamnesis');
+      buf.writeln();
+    }
+
+    if (temperature != null || heartRate != null ||
+        respiratoryRate != null || physicalExam != null) {
+      buf.writeln('O — ОБЪЕКТИВНО');
+      if (temperature != null) buf.writeln('  Температура: $temperature °C');
+      if (heartRate != null) buf.writeln('  ЧСС: $heartRate уд/мин');
+      if (respiratoryRate != null) buf.writeln('  ЧДД: $respiratoryRate /мин');
+      if (physicalExam != null) buf.writeln('  Осмотр: $physicalExam');
+      if (mucousMembranes != null) buf.writeln('  Слизистые: $mucousMembranes');
+      if (lymphNodes != null) buf.writeln('  Лимфоузлы: $lymphNodes');
+      if (skinCoat != null) buf.writeln('  Кожа/шерсть: $skinCoat');
+      buf.writeln();
+    }
+
+    if (diagnosis != null || differentialDx != null) {
+      buf.writeln('A — ОЦЕНКА');
+      if (diagnosis != null) buf.writeln('  Диагноз: $diagnosis');
+      if (differentialDx != null) buf.writeln('  Дифф. диагноз: $differentialDx');
+      if (diseaseSeverity != null) buf.writeln('  Тяжесть: $diseaseSeverity');
+      buf.writeln();
+    }
+
+    if (prescribedDrugs.isNotEmpty || procedures != null ||
+        diet != null || followUp != null) {
+      buf.writeln('P — ПЛАН');
+      if (prescribedDrugs.isNotEmpty) {
+        buf.writeln('  Препараты:');
+        for (final d in prescribedDrugs) {
+          buf.writeln('    • ${d.name}: ${d.shortDescription}');
+        }
+      }
+      if (procedures != null) buf.writeln('  Процедуры: $procedures');
+      if (diet != null) buf.writeln('  Содержание: $diet');
+      if (followUp != null) buf.writeln('  Контроль: $followUp');
+      buf.writeln();
+    }
+
+    if (notes != null) {
+      buf.writeln('Заметки');
+      buf.writeln('  $notes');
+      buf.writeln();
+    }
+
+    buf.writeln('═══════════════════════════════════════');
+    return buf.toString();
+  }
 }
 
 /// Назначенный препарат в записи

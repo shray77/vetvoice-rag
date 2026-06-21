@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_colors_resolver.dart';
 import '../../core/utils/voice_parser.dart';
@@ -42,9 +43,10 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
   final GlobalKey _searchKey = GlobalKey();
   final GlobalKey _resultKey = GlobalKey();
 
-  /// Пульсирующая подсветка активной секции.
+  /// Пульсирующая подсветка активной секции (только при первом запуске).
   late final AnimationController _pulseController;
   int _previousStep = 1;
+  bool _walkthroughActive = false;
 
   /// Текущий шаг выводится из состояния провайдера.
   int _currentStep(VetProvider p) {
@@ -62,13 +64,33 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
-    _pulseController.repeat(reverse: true);
+    _checkWalkthrough();
     _searchController.addListener(() {
       final has = _searchController.text.isNotEmpty;
       if (has != _searchHasText) {
         setState(() => _searchHasText = has);
       }
     });
+  }
+
+  /// Walkthrough (пульсирующая рамка + авто-скролл) показывается
+  /// только при первом запуске. Флаг 'dose_walkthrough_complete'
+  /// сохраняется в SharedPreferences.
+  Future<void> _checkWalkthrough() async {
+    final prefs = await SharedPreferences.getInstance();
+    final show = !prefs.getBool('dose_walkthrough_complete', false);
+    if (show && mounted) {
+      setState(() => _walkthroughActive = true);
+      _pulseController.repeat(reverse: true);
+    }
+  }
+
+  Future<void> _markWalkthroughComplete() async {
+    if (!_walkthroughActive) return;
+    setState(() => _walkthroughActive = false);
+    _pulseController.stop();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dose_walkthrough_complete', true);
   }
 
   @override
@@ -84,6 +106,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
 
   /// Плавно скроллит к указанной секции.
   void _scrollToKey(GlobalKey key, {double alignment = -0.1}) {
+    if (!_walkthroughActive) return;
     final ctx = key.currentContext;
     if (ctx == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -97,13 +120,13 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
     });
   }
 
-  /// Подсветка рамки для активной секции.
+  /// Подсветка рамки для активной секции (только при активном walkthrough).
   Border? _highlightBorder(int sectionStep, int currentStep) {
+    if (!_walkthroughActive) return null;
     if (sectionStep != currentStep) return null;
     final primary = AppColorsResolver.primary(context);
-    // Анимированная прозрачность рамки — пульс
     final t = _pulseController.value;
-    final alpha = 0.4 + 0.5 * t; // 0.4..0.9
+    final alpha = 0.4 + 0.5 * t;
     return Border.all(color: primary.withValues(alpha: alpha), width: 2);
   }
 
@@ -117,27 +140,33 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
 
     final step = _currentStep(provider);
 
-    // Реагируем на смену шага
+    // Реагируем на смену шага (только при активном walkthrough)
     if (step != _previousStep) {
-      final targetKey = switch (step) {
-        1 => _animalKey,
-        2 => _weightKey,
-        3 => _searchKey,
-        4 => _resultKey,
-        _ => null,
-      };
-      if (targetKey != null) {
-        _scrollToKey(targetKey);
-      }
-      // Авто-фокус на поле ввода при переходе к шагу
-      if (step == 2 && provider.weight <= 0) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _weightFocusNode.requestFocus();
-        });
-      } else if (step == 3 && !_searchHasText) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _searchFocusNode.requestFocus();
-        });
+      if (_walkthroughActive) {
+        final targetKey = switch (step) {
+          1 => _animalKey,
+          2 => _weightKey,
+          3 => _searchKey,
+          4 => _resultKey,
+          _ => null,
+        };
+        if (targetKey != null) {
+          _scrollToKey(targetKey);
+        }
+        // Авто-фокус на поле ввода при переходе к шагу
+        if (step == 2 && provider.weight <= 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _weightFocusNode.requestFocus();
+          });
+        } else if (step == 3 && !_searchHasText) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _searchFocusNode.requestFocus();
+          });
+        }
+        // Завершаем walkthrough когда пользователь дошёл до результата
+        if (step == 4) {
+          _markWalkthroughComplete();
+        }
       }
       _previousStep = step;
     }
@@ -148,9 +177,10 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
         controller: _scrollController,
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-          // Header + step indicator
+          // Header + step indicator (indicator only during walkthrough)
           SliverToBoxAdapter(child: _buildHeader(provider)),
-          SliverToBoxAdapter(child: _buildStepIndicator(step)),
+          if (_walkthroughActive)
+            SliverToBoxAdapter(child: _buildStepIndicator(step)),
 
           // Шаг 1: Animal selector
           SliverToBoxAdapter(
@@ -213,6 +243,18 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
                 subtitle: 'Начните с выбора вида — калькулятор проведёт вас по шагам.',
               ),
             ),
+
+          // Favorites section (только если есть избранное)
+          if (provider.favorites.isNotEmpty &&
+              provider.selectedCalcDrug == null &&
+              provider.selectedRegistryDrug == null)
+            SliverToBoxAdapter(child: _buildFavoritesSection(provider)),
+
+          // History section (только если есть история и нет активного результата)
+          if (provider.recentHistory.isNotEmpty &&
+              provider.selectedCalcDrug == null &&
+              provider.selectedRegistryDrug == null)
+            SliverToBoxAdapter(child: _buildHistorySection(provider)),
 
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
@@ -479,6 +521,106 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
     );
   }
 
+  /// Секция избранного — показывает препараты, отмеченные звёздочкой.
+  /// Отображается только если есть хотя бы 1 избранный препарат.
+  Widget _buildFavoritesSection(VetProvider provider) {
+    if (provider.favorites.isEmpty) return const SizedBox.shrink();
+    final textColor = AppColorsResolver.textPrimary(context);
+    final secondary = AppColorsResolver.textSecondary(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppSectionHeader(
+          title: 'Избранное',
+          subtitle: '${provider.favorites.length} препаратов',
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: provider.favorites.map((name) {
+              return ActionChip(
+                label: Text(name, style: AppTypography.caption1.copyWith(color: textColor)),
+                avatar: const Icon(Icons.star_rounded, size: 14, color: AppColors.systemYellow),
+                backgroundColor: AppColors.systemYellow.withValues(alpha: 0.08),
+                side: BorderSide(color: AppColors.systemYellow.withValues(alpha: 0.3), width: 0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.chip)),
+                onPressed: () {
+                  _searchController.text = name;
+                  provider.setSearchQuery(name);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Секция истории — последние 10 расчётов.
+  Widget _buildHistorySection(VetProvider provider) {
+    if (provider.recentHistory.isEmpty) return const SizedBox.shrink();
+    final textColor = AppColorsResolver.textPrimary(context);
+    final secondary = AppColorsResolver.textSecondary(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppSectionHeader(
+          title: 'История',
+          subtitle: 'Последние ${provider.recentHistory.length} расчётов',
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          child: Column(
+            children: provider.recentHistory.map((h) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: AppCard.standard(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Row(
+                    children: [
+                      Icon(Icons.history_rounded, size: 16, color: secondary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              h.drugName,
+                              style: AppTypography.body.copyWith(
+                                color: textColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '${h.animalName} • ${h.weight.toStringAsFixed(0)} кг → ${h.volume.toStringAsFixed(1)} ${h.unit} ${h.method}',
+                              style: AppTypography.caption1.copyWith(color: secondary),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '${h.timestamp.day.toString().padLeft(2, '0')}.${h.timestamp.month.toString().padLeft(2, '0')}',
+                        style: AppTypography.caption2.copyWith(color: secondary),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSearchResults(VetProvider provider) {
     final results = provider.searchResults;
     if (results.isEmpty) {
@@ -587,6 +729,7 @@ class _DrugListTile extends StatelessWidget {
     final textColor = AppColorsResolver.textPrimary(context);
     final secondary = AppColorsResolver.textSecondary(context);
     final primary = AppColorsResolver.primary(context);
+    final vet = context.watch<VetProvider>();
 
     final String name;
     final String subtitle;
@@ -606,6 +749,8 @@ class _DrugListTile extends StatelessWidget {
       category = null;
     }
 
+    final isFav = vet.isFavorite(name);
+
     return AppCard.standard(
       onTap: onTap,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -615,14 +760,34 @@ class _DrugListTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name,
-                  style: AppTypography.body.copyWith(
-                    color: textColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: AppTypography.body.copyWith(
+                          color: textColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        HapticHelper.light();
+                        vet.toggleFavorite(name);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Icon(
+                          isFav ? Icons.star_rounded : Icons.star_border_rounded,
+                          color: isFav ? AppColors.systemYellow : AppColorsResolver.textTertiary(context),
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(
