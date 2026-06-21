@@ -260,21 +260,21 @@ class AppElevation {
   static const List<BoxShadow> none = [];
   static List<BoxShadow> get low => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.04),
+      color: Colors.black.withValues(alpha: 0.04),
       blurRadius: 8,
       offset: const Offset(0, 2),
     ),
   ];
   static List<BoxShadow> get medium => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.06),
+      color: Colors.black.withValues(alpha: 0.06),
       blurRadius: 16,
       offset: const Offset(0, 4),
     ),
   ];
   static List<BoxShadow> get high => [
     BoxShadow(
-      color: Colors.black.withOpacity(0.08),
+      color: Colors.black.withValues(alpha: 0.08),
       blurRadius: 24,
       offset: const Offset(0, 8),
     ),
@@ -342,7 +342,7 @@ class AppTheme {
         statusBarBrightness: Brightness.light,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.surface,
       elevation: 0,
       margin: EdgeInsets.zero,
@@ -491,10 +491,10 @@ class AppTheme {
       activeTrackColor: AppColors.primary,
       inactiveTrackColor: AppColors.tertiarySurface,
       thumbColor: AppColors.primary,
-      overlayColor: AppColors.primary.withOpacity(0.12),
+      overlayColor: AppColors.primary.withValues(alpha: 0.12),
       trackHeight: 4,
     ),
-    tabBarTheme: TabBarTheme(
+    tabBarTheme: TabBarThemeData(
       labelColor: AppColors.primary,
       unselectedLabelColor: AppColors.textSecondary,
       labelStyle: AppTypography.subheadline.copyWith(fontWeight: FontWeight.w600),
@@ -502,9 +502,9 @@ class AppTheme {
       indicatorColor: AppColors.primary,
       indicatorSize: TabBarIndicatorSize.label,
       dividerColor: Colors.transparent,
-      overlayColor: WidgetStateProperty.all(AppColors.primary.withOpacity(0.08)),
+      overlayColor: WidgetStateProperty.all(AppColors.primary.withValues(alpha: 0.08)),
     ),
-    bottomSheetTheme: const BottomSheetTheme(
+    bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: AppColors.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -512,7 +512,7 @@ class AppTheme {
       ),
       modalBarrierColor: Color(0x66000000),
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: AppColors.surface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -589,7 +589,7 @@ class AppTheme {
         statusBarBrightness: Brightness.dark,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.darkSurface,
       elevation: 0,
       margin: EdgeInsets.zero,
@@ -738,10 +738,10 @@ class AppTheme {
       activeTrackColor: AppColors.primaryLight,
       inactiveTrackColor: AppColors.darkTertiarySurface,
       thumbColor: AppColors.primaryLight,
-      overlayColor: AppColors.primaryLight.withOpacity(0.12),
+      overlayColor: AppColors.primaryLight.withValues(alpha: 0.12),
       trackHeight: 4,
     ),
-    tabBarTheme: TabBarTheme(
+    tabBarTheme: TabBarThemeData(
       labelColor: AppColors.primaryLight,
       unselectedLabelColor: AppColors.darkTextSecondary,
       labelStyle: AppTypography.subheadline.copyWith(fontWeight: FontWeight.w600),
@@ -749,9 +749,9 @@ class AppTheme {
       indicatorColor: AppColors.primaryLight,
       indicatorSize: TabBarIndicatorSize.label,
       dividerColor: Colors.transparent,
-      overlayColor: WidgetStateProperty.all(AppColors.primaryLight.withOpacity(0.08)),
+      overlayColor: WidgetStateProperty.all(AppColors.primaryLight.withValues(alpha: 0.08)),
     ),
-    bottomSheetTheme: const BottomSheetTheme(
+    bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: AppColors.darkSurface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -759,7 +759,7 @@ class AppTheme {
       ),
       modalBarrierColor: Color(0x99000000),
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: AppColors.darkSurface,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(

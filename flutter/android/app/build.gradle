@@ -16,13 +16,12 @@ apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.veteco.app"
-    compileSdk 36
-    ndkVersion "26.1.10909125"
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.veteco.app"
         minSdk 24
-        targetSdk 36
+        targetSdk 35
         versionCode 1
         versionName "1.0.0"
     }

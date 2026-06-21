@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.9.24'
+    ext.kotlin_version = '2.1.0'
     repositories {
         google()
         mavenCentral()
@@ -22,9 +22,9 @@ allprojects {
 // This is normally provided by dev.flutter.flutter-gradle-plugin,
 // but we use apply from: flutter.gradle which doesn't expose it.
 project.ext.flutter = [
-    compileSdkVersion: 36,
+    compileSdkVersion: 35,
     minSdkVersion: 24,
-    targetSdkVersion: 36,
+    targetSdkVersion: 35,
 ]
 
 rootProject.buildDir = '../build'

@@ -235,7 +235,7 @@ class AppEmptyState extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: tint.withOpacity(0.1),
+                color: tint.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 32, color: tint),
@@ -460,14 +460,14 @@ class AppChip extends StatelessWidget {
 
     switch (style) {
       case AppChipStyle.filled:
-        bg = tint.withOpacity(selected ? 0.18 : 0.10);
+        bg = tint.withValues(alpha: selected ? 0.18 : 0.10);
         fg = tint;
         border = Colors.transparent;
         break;
       case AppChipStyle.outlined:
         bg = Colors.transparent;
         fg = tint;
-        border = tint.withOpacity(0.3);
+        border = tint.withValues(alpha: 0.3);
         break;
       case AppChipStyle.solid:
         bg = tint;
@@ -689,7 +689,7 @@ class AppMetricCard extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: accent.withOpacity(0.12),
+                      color: accent.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppRadius.small),
                     ),
                     child: Icon(icon, color: accent, size: 18),

@@ -86,7 +86,7 @@ class _AnimalTile extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? primaryColor.withOpacity(0.15)
+                      ? primaryColor.withValues(alpha: 0.15)
                       : AppColorsResolver.tertiarySurface(context),
                   shape: BoxShape.circle,
                 ),
@@ -114,7 +114,7 @@ class _AnimalTile extends StatelessWidget {
                   _weightLabel(animal),
                   style: AppTypography.caption2.copyWith(
                     color: isSelected
-                        ? primaryColor.withOpacity(0.8)
+                        ? primaryColor.withValues(alpha: 0.8)
                         : tertiaryColor,
                     fontWeight: FontWeight.w500,
                   ),
