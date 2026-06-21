@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../core/theme/app_theme.dart';
-import '../core/utils/app_colors_resolver.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/utils/app_colors_resolver.dart';
 
 /// Onboarding экран — показывается ОДИН раз при первом запуске.
 /// Флаг 'onboarding_complete' сохраняется в SharedPreferences.
@@ -220,5 +220,5 @@ class _OnboardingPage {
 /// Проверяет, нужно ли показать onboarding.
 Future<bool> shouldShowOnboarding() async {
   final prefs = await SharedPreferences.getInstance();
-  return !prefs.getBool('onboarding_complete', false);
+  return !(prefs.getBool('onboarding_complete') ?? false);
 }
