@@ -71,3 +71,4 @@ collected_papers/
 
 # Flutter assets symlink (real data in /assets/data/)
 flutter/assets/data
+node_modules/

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/app_constants.dart';
 import '../models/drug_models.dart';
 import '../services/glm_ai_service.dart';
@@ -22,12 +23,50 @@ class AiProvider extends ChangeNotifier {
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
   String _error = '';
-  String _lastSource = '';   // 'hf_space' | 'direct_glm'
+  String _lastSource = '';   // 'hf_space' | 'direct_glm' | 'cache'
+
+  // ─── Offline cache ────────────────────────────────────────────────
+  // Last 20 Q&A pairs saved in SharedPreferences for offline access.
+  static const _cacheKey = 'rag_cache';
+  static const _maxCache = 20;
+  final Map<String, String> _cache = {}; // query → answer
 
   List<ChatMessage> get messages => List.unmodifiable(_messages);
   bool get isLoading => _isLoading;
   String get error => _error;
   String get lastSource => _lastSource;
+
+  AiProvider() {
+    _loadCache();
+  }
+
+  Future<void> _loadCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString(_cacheKey);
+    if (json != null) {
+      try {
+        final map = jsonDecode(json) as Map<String, dynamic>;
+        _cache.addAll(map.cast<String, String>());
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _saveToCache(String query, String answer) async {
+    _cache[query.toLowerCase().trim()] = answer;
+    // Trim to max entries
+    if (_cache.length > _maxCache) {
+      final keys = _cache.keys.toList();
+      for (final k in keys.sublist(0, _cache.length - _maxCache)) {
+        _cache.remove(k);
+      }
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_cacheKey, jsonEncode(_cache));
+  }
+
+  String? _getFromCache(String query) {
+    return _cache[query.toLowerCase().trim()];
+  }
 
   /// Отправить вопрос AI-ассистенту
   Future<void> sendMessage(String content) async {
@@ -48,10 +87,10 @@ class AiProvider extends ChangeNotifier {
       String source = '';
 
       // 1) HF Space Gradio API — returns FINAL GLM answer (with RAG context).
-      //    DO NOT send this answer to GLM again — it's already a complete response.
       answer = await _askRagViaHfSpace(content);
       if (answer != null && answer.isNotEmpty) {
         source = 'hf_space';
+        _saveToCache(content, answer);
       }
 
       // 2) Fallback: direct GLM without RAG context.
@@ -61,6 +100,16 @@ class AiProvider extends ChangeNotifier {
           ragContext: null,
         );
         source = 'direct_glm';
+        if (answer.isNotEmpty) _saveToCache(content, answer);
+      }
+
+      // 3) Last resort: check offline cache.
+      if (answer == null || answer.isEmpty) {
+        final cached = _getFromCache(content);
+        if (cached != null) {
+          answer = '$cached\n\n⚠️ Ответ из офлайн-кэша (нет соединения с сервером).';
+          source = 'cache';
+        }
       }
 
       _lastSource = source;

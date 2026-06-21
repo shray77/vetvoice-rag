@@ -115,11 +115,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Consumer<ThemeProvider>(
                   builder: (context, themeProvider, _) {
-                    return _buildSwitchTile(
-                      title: 'Тёмная тема',
-                      subtitle: 'Переключить на тёмную тему',
-                      value: themeProvider.isDarkMode,
-                      onChanged: (v) => themeProvider.setDarkMode(v),
+                    return Column(
+                      children: [
+                        _buildThemeOption('system', 'Системная', Icons.brightness_auto_outlined, themeProvider),
+                        _buildThemeOption('light', 'Светлая', Icons.light_mode_outlined, themeProvider),
+                        _buildThemeOption('dark', 'Тёмная', Icons.dark_mode_outlined, themeProvider),
+                        _buildThemeOption('night', 'Ночной дежурный', Icons.nights_stay_outlined, themeProvider),
+                      ],
                     );
                   },
                 ),
@@ -382,6 +384,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(title, style: AppTypography.body.copyWith(color: textColor)),
           Text(value, style: AppTypography.body.copyWith(color: secondaryTextColor)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(String mode, String label, IconData icon, ThemeProvider provider) {
+    final textColor = AppColorsResolver.textPrimary(context);
+    final secondary = AppColorsResolver.textSecondary(context);
+    final primary = AppColorsResolver.primary(context);
+    final isSelected = provider.mode == mode;
+    return InkWell(
+      onTap: () => provider.setMode(mode),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.cardPadding, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: isSelected ? primary : secondary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(label, style: AppTypography.body.copyWith(color: textColor)),
+            ),
+            if (isSelected)
+              Icon(Icons.check_rounded, size: 20, color: primary),
+          ],
+        ),
       ),
     );
   }
