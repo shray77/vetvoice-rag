@@ -27,9 +27,8 @@ import re
 import sys
 import hashlib
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
 
-import numpy as np
 
 try:
     from sklearn.feature_extraction.text import TfidfVectorizer

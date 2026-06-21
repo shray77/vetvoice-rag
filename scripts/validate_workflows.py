@@ -33,17 +33,17 @@ def main():
         try:
             with f.open("r", encoding="utf-8") as fp:
                 data = yaml.safe_load(fp)
-            print(f"  ✓ Valid YAML")
+            print("  ✓ Valid YAML")
 
             # Check required top-level keys
             if "name" not in data:
-                print(f"  ⚠️  Missing 'name' field")
+                print("  ⚠️  Missing 'name' field")
                 all_ok = False
             else:
                 print(f"  name: {data['name']}")
 
             if "on" not in data:
-                print(f"  ⚠️  Missing 'on' field (triggers)")
+                print("  ⚠️  Missing 'on' field (triggers)")
                 all_ok = False
             else:
                 triggers = data["on"]
@@ -54,7 +54,7 @@ def main():
                 print(f"  triggers: {', '.join(trigger_names)}")
 
             if "jobs" not in data:
-                print(f"  ⚠️  Missing 'jobs' field")
+                print("  ⚠️  Missing 'jobs' field")
                 all_ok = False
             else:
                 job_names = list(data["jobs"].keys())
@@ -65,7 +65,7 @@ def main():
                 env_keys = list(data["env"].keys())
                 print(f"  top-level env: {', '.join(env_keys)}")
                 if "HF_TOKEN" in data["env"]:
-                    print(f"  ✓ HF_TOKEN exposed to all steps")
+                    print("  ✓ HF_TOKEN exposed to all steps")
 
             # Check each job
             for job_name, job in data.get("jobs", {}).items():

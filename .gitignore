@@ -68,3 +68,6 @@ collected_papers/
 # Secrets
 *.pem
 *.key
+
+# Flutter assets symlink (real data in /assets/data/)
+flutter/assets/data

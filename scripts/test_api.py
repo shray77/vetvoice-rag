@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Test VetVoice API endpoint"""
 
-import sys
 import requests
-import json
 
 BASE_URL = "http://localhost:7860"
 

@@ -29,8 +29,7 @@ import time
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
-from urllib.parse import quote_plus
+from typing import List, Dict, Optional
 
 import requests
 
@@ -599,11 +598,11 @@ class SemanticScholarScraper:
                     continue
                 resp.raise_for_status()
                 return resp
-            except requests.exceptions.HTTPError as e:
+            except requests.exceptions.HTTPError:
                 if resp.status_code == 429 and attempt < max_retries - 1:
                     continue
                 raise
-            except Exception as e:
+            except Exception:
                 if attempt < max_retries - 1:
                     time.sleep(3)
                     continue
