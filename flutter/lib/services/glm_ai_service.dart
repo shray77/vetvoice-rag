@@ -31,7 +31,7 @@ class GlmAiService {
   }) async {
     try {
       final messages = <Map<String, dynamic>>[
-        {'role': 'system', 'content': systemPrompt},
+        {'role': 'assistant', 'content': systemPrompt},
         if (history != null) ...history,
         {'role': 'user', 'content': message},
       ];
@@ -196,7 +196,7 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
         body: jsonEncode({
           'model': ApiConfig.glmModel,
           'messages': [
-            {'role': 'system', 'content': systemPrompt},
+            {'role': 'assistant', 'content': systemPrompt},
             {'role': 'user', 'content': dictationText},
           ],
           'temperature': 0.2,
