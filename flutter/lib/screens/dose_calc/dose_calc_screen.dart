@@ -9,7 +9,17 @@ import '../../models/drug_models.dart';
 import '../../widgets/shared/animal_grid.dart';
 import '../../widgets/dose_calc/dose_result_card.dart';
 
-/// Главный экран калькулятора дозировок — Apple Health-style.
+/// Главный экран калькулятора дозировок — Apple Health-style
+/// с onboarding-флоу: пошаговое ведение пользователя за руку.
+///
+/// Шаги:
+///   1. Выбери животное
+///   2. Укажи вес
+///   3. Найди препарат
+///   4. Получи результат
+///
+/// На каждом шаге автоматически скроллит к активной секции
+/// и подсвечивает её пульсирующей рамкой.
 class DoseCalcScreen extends StatefulWidget {
   const DoseCalcScreen({super.key});
 
@@ -17,16 +27,42 @@ class DoseCalcScreen extends StatefulWidget {
   State<DoseCalcScreen> createState() => _DoseCalcScreenState();
 }
 
-class _DoseCalcScreenState extends State<DoseCalcScreen> {
+class _DoseCalcScreenState extends State<DoseCalcScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _weightController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _weightFocusNode = FocusNode();
   final FocusNode _searchFocusNode = FocusNode();
   bool _searchHasText = false;
 
+  // ─── Walkthrough machinery ────────────────────────────────────────
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _animalKey = GlobalKey();
+  final GlobalKey _weightKey = GlobalKey();
+  final GlobalKey _searchKey = GlobalKey();
+  final GlobalKey _resultKey = GlobalKey();
+
+  /// Пульсирующая подсветка активной секции.
+  late final AnimationController _pulseController;
+  int _previousStep = 1;
+
+  /// Текущий шаг выводится из состояния провайдера.
+  int _currentStep(VetProvider p) {
+    if (p.selectedCalcDrug != null || p.selectedRegistryDrug != null) return 4;
+    if (p.searchQuery.isNotEmpty) return 3;
+    if (p.selectedAnimal != null && p.weight > 0) return 3;
+    if (p.selectedAnimal != null) return 2;
+    return 1;
+  }
+
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    _pulseController.repeat(reverse: true);
     _searchController.addListener(() {
       final has = _searchController.text.isNotEmpty;
       if (has != _searchHasText) {
@@ -41,7 +77,34 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
     _searchController.dispose();
     _weightFocusNode.dispose();
     _searchFocusNode.dispose();
+    _scrollController.dispose();
+    _pulseController.dispose();
     super.dispose();
+  }
+
+  /// Плавно скроллит к указанной секции.
+  void _scrollToKey(GlobalKey key, {double alignment = -0.1}) {
+    final ctx = key.currentContext;
+    if (ctx == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 600),
+        curve: AppCurves.decelerate,
+        alignment: alignment,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
+      );
+    });
+  }
+
+  /// Подсветка рамки для активной секции.
+  Border? _highlightBorder(int sectionStep, int currentStep) {
+    if (sectionStep != currentStep) return null;
+    final primary = AppColorsResolver.primary(context);
+    // Анимированная прозрачность рамки — пульс
+    final t = _pulseController.value;
+    final alpha = 0.4 + 0.5 * t; // 0.4..0.9
+    return Border.all(color: primary.withValues(alpha: alpha), width: 2);
   }
 
   @override
@@ -52,45 +115,102 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
       return AppLoadingState(message: provider.statusMessage);
     }
 
+    final step = _currentStep(provider);
+
+    // Реагируем на смену шага
+    if (step != _previousStep) {
+      final targetKey = switch (step) {
+        1 => _animalKey,
+        2 => _weightKey,
+        3 => _searchKey,
+        4 => _resultKey,
+        _ => null,
+      };
+      if (targetKey != null) {
+        _scrollToKey(targetKey);
+      }
+      // Авто-фокус на поле ввода при переходе к шагу
+      if (step == 2 && provider.weight <= 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _weightFocusNode.requestFocus();
+        });
+      } else if (step == 3 && !_searchHasText) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _searchFocusNode.requestFocus();
+        });
+      }
+      _previousStep = step;
+    }
+
     return Scaffold(
       backgroundColor: AppColorsResolver.background(context),
       body: CustomScrollView(
+        controller: _scrollController,
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-          // Header with status
+          // Header + step indicator
           SliverToBoxAdapter(child: _buildHeader(provider)),
+          SliverToBoxAdapter(child: _buildStepIndicator(step)),
 
-          // Animal selector
-          SliverToBoxAdapter(child: _buildAnimalSection(provider)),
-
-          // Search bar (always visible)
+          // Шаг 1: Animal selector
           SliverToBoxAdapter(
-            child: AppSearchBar(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              hintText: 'Поиск препарата или МНН…',
-              onChanged: (v) => provider.setSearchQuery(v),
+            child: _HighlightBox(
+              key: _animalKey,
+              border: _highlightBorder(1, step),
+              child: _buildAnimalSection(provider),
             ),
           ),
 
-          // Weight input (only when animal selected)
+          // Шаг 2: Weight (only when animal selected)
           if (provider.selectedAnimal != null)
-            SliverToBoxAdapter(child: _buildWeightSection(provider)),
+            SliverToBoxAdapter(
+              child: _HighlightBox(
+                key: _weightKey,
+                border: _highlightBorder(2, step),
+                child: _buildWeightSection(provider),
+              ),
+            ),
 
-          // Result / drug list / empty
+          // Шаг 3: Search bar
+          SliverToBoxAdapter(
+            child: _HighlightBox(
+              key: _searchKey,
+              border: _highlightBorder(3, step),
+              child: AppSearchBar(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                hintText: provider.selectedAnimal == null
+                    ? 'Сначала выберите животное ↑'
+                    : 'Поиск препарата или МНН…',
+                onChanged: (v) => provider.setSearchQuery(v),
+              ),
+            ),
+          ),
+
+          // Шаг 4: Result / drug list / empty
           if (provider.selectedCalcDrug != null ||
               provider.selectedRegistryDrug != null)
-            SliverToBoxAdapter(child: DoseResultCard(result: provider.result))
+            SliverToBoxAdapter(
+              child: _HighlightBox(
+                key: _resultKey,
+                border: _highlightBorder(4, step),
+                child: DoseResultCard(result: provider.result),
+              ),
+            )
           else if (provider.searchQuery.isNotEmpty)
             _buildSearchResults(provider)
-          else if (provider.selectedAnimal != null)
+          else if (provider.selectedAnimal != null && provider.weight > 0)
             _buildDrugList(provider)
+          else if (provider.selectedAnimal != null)
+            SliverToBoxAdapter(
+              child: _buildWeightHint(),
+            )
           else
             SliverToBoxAdapter(
               child: AppEmptyState(
                 icon: Icons.pets_rounded,
                 title: 'Выберите животное',
-                subtitle: 'Сначала укажите вид животного, затем препарат для расчёта дозы.',
+                subtitle: 'Начните с выбора вида — калькулятор проведёт вас по шагам.',
               ),
             ),
 
@@ -99,6 +219,111 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
       ),
     );
   }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Step indicator (1 → 2 → 3 → 4)
+  // ═══════════════════════════════════════════════════════════════════
+
+  Widget _buildStepIndicator(int currentStep) {
+    final primary = AppColorsResolver.primary(context);
+    final tertiary = AppColorsResolver.textTertiary(context);
+
+    const steps = [
+      (1, 'Животное', Icons.pets_rounded),
+      (2, 'Вес', Icons.scale_rounded),
+      (3, 'Препарат', Icons.medication_rounded),
+      (4, 'Результат', Icons.check_circle_rounded),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenPadding,
+        0,
+        AppSpacing.screenPadding,
+        AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          for (int i = 0; i < steps.length; i++) ...[
+            _stepDot(steps[i].$1, steps[i].$2, steps[i].$3, currentStep, primary, tertiary),
+            if (i < steps.length - 1)
+              Expanded(
+                child: Container(
+                  height: 2,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: steps[i].$1 < currentStep
+                        ? primary.withValues(alpha: 0.4)
+                        : tertiary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _stepDot(
+    int step,
+    String label,
+    IconData icon,
+    int currentStep,
+    Color primary,
+    Color tertiary,
+  ) {
+    final isDone = step < currentStep;
+    final isActive = step == currentStep;
+    final color = isDone || isActive ? primary : tertiary;
+    final textColor = AppColorsResolver.textPrimary(context);
+
+    return Tooltip(
+      message: 'Шаг $step: $label',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: isActive ? 36 : 28,
+            height: isActive ? 36 : 28,
+            decoration: BoxDecoration(
+              color: isDone
+                  ? primary
+                  : isActive
+                      ? primary.withValues(alpha: 0.12)
+                      : AppColorsResolver.tertiarySurface(context),
+              shape: BoxShape.circle,
+              border: isActive
+                  ? Border.all(color: primary, width: 2)
+                  : null,
+            ),
+            child: Icon(
+              isDone ? Icons.check_rounded : icon,
+              size: isActive ? 18 : 14,
+              color: isDone
+                  ? Colors.white
+                  : isActive
+                      ? primary
+                      : tertiary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: AppTypography.caption2.copyWith(
+              color: isActive ? textColor : tertiary,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Sections
+  // ═══════════════════════════════════════════════════════════════════
 
   Widget _buildHeader(VetProvider provider) {
     return Padding(
@@ -152,7 +377,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
       children: [
         AppSectionHeader(
           title: 'Животное',
-          subtitle: 'Выберите вид — можно голосом: «корова», «собака»…',
+          subtitle: 'Выберите вид — калькулятор продолжит автоматически',
         ),
         const SizedBox(height: AppSpacing.sm),
         Padding(
@@ -213,7 +438,6 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
               suffixIcon: IconButton(
                 icon: const Icon(Icons.mic_none_rounded, color: AppColors.primary),
                 onPressed: () {
-                  // TODO: Voice input
                   HapticHelper.light();
                 },
                 tooltip: 'Голосовой ввод веса',
@@ -226,6 +450,31 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildWeightHint() {
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.screenPadding),
+      child: AppCard.tinted(
+        tintColor: AppColorsResolver.primaryContainer(context),
+        child: Row(
+          children: [
+            Icon(Icons.arrow_upward_rounded,
+                color: AppColorsResolver.primary(context), size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Укажите вес животного выше — калькулятор сам подберёт препараты',
+                style: AppTypography.footnote.copyWith(
+                  color: AppColorsResolver.primary(context),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -300,6 +549,28 @@ class _DoseCalcScreenState extends State<DoseCalcScreen> {
         },
         childCount: drugs.length > 30 ? 30 : drugs.length,
       ),
+    );
+  }
+}
+
+/// Контейнер с опциональной подсветкой-рамкой для walkthrough.
+/// Принимает GlobalKey через `key` (стандартный параметр Widget),
+/// чтобы потом можно было сделать Scrollable.ensureVisible(key.currentContext).
+class _HighlightBox extends StatelessWidget {
+  final Border? border;
+  final Widget child;
+
+  const _HighlightBox({super.key, required this.border, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    if (border == null) return child;
+    return Container(
+      decoration: BoxDecoration(
+        border: border,
+        borderRadius: BorderRadius.circular(AppRadius.large),
+      ),
+      child: child,
     );
   }
 }
