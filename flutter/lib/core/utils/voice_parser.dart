@@ -1,5 +1,9 @@
 import 'package:flutter/services.dart';
 
+// Re-export HapticHelper from app_theme.dart for backward compatibility
+// with files that still import voice_parser.dart.
+export '../theme/app_theme.dart' show HapticHelper;
+
 /// Number words to digit mapping for Russian voice input
 const Map<String, int> _numberWords = {
   'ноль': 0, 'нуль': 0,
@@ -102,7 +106,3 @@ String? parseAnimal(String text) {
   }
   return null;
 }
-
-// HapticHelper moved to app_theme.dart — single source of truth.
-// Exported here for backward compatibility with older imports.
-export '../theme/app_theme.dart' show HapticHelper;
