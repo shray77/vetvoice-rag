@@ -16,13 +16,11 @@ dependencies:
   provider: ^6.1.2
 
   # Speech
-  # Pinned: speech_to_text 7.0.3 and flutter_tts 4.0.2 are the last versions
-  # compiled against Kotlin 1.9.x. Newer versions (speech_to_text 7.1+,
-  # flutter_tts 4.2.5) ship with Kotlin 2.2.0 metadata which fails to
-  # compile with both Kotlin 1.9.24 AND Kotlin 2.1.0 — only works with
-  # Kotlin 2.2.x which isn't yet supported by Flutter's gradle plugin.
-  speech_to_text: 7.0.3
-  flutter_tts: 4.0.2
+  # speech_to_text 7.4.0 + flutter_tts 4.2.5 are the latest versions.
+  # Both ship with Kotlin 2.2.0 metadata — requires Kotlin 2.2.20+
+  # compiler (set in android/build.gradle).
+  speech_to_text: ^7.4.0
+  flutter_tts: ^4.2.5
 
   # HTTP
   http: ^1.2.1
@@ -55,12 +53,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-
-dependency_overrides:
-  # shared_preferences_android 2.4.10+ ships with Kotlin 2.2.0 metadata
-  # which fails to compile with Kotlin 2.1.0 (max metadata version 2.0.0).
-  # 2.4.9 is the last version compatible with Kotlin 1.9.x/2.1.0.
-  shared_preferences_android: 2.4.9
 
 flutter:
   uses-material-design: true
