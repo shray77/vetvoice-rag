@@ -209,7 +209,7 @@ class DoseResultCard extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 result.unit,
-                style: AppTypography.title3.copyWith(color: primary.withValues(alpha: 0.8)),
+                style: AppTypography.title3.copyWith(color: primary.withOpacity(0.8)),
               ),
             ],
           ),
@@ -217,7 +217,7 @@ class DoseResultCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'Диапазон: ${result.doseMin}-${result.doseMax} ${result.doseUnit}',
-              style: AppTypography.caption1.copyWith(color: primary.withValues(alpha: 0.7)),
+              style: AppTypography.caption1.copyWith(color: primary.withOpacity(0.7)),
             ),
           ],
         ],
@@ -345,12 +345,12 @@ class DoseResultCard extends StatelessWidget {
     final textColor = AppColorsResolver.textPrimary(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final containerColor = isDark
-        ? color.withValues(alpha: 0.18)
+        ? color.withOpacity(0.18)
         : _lightContainerFor(color);
 
     return AppCard(
       backgroundColor: containerColor,
-      border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+      border: Border.all(color: color.withOpacity(0.3), width: 1),
       padding: const EdgeInsets.all(AppSpacing.cardPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,6 +392,6 @@ class DoseResultCard extends StatelessWidget {
     if (c == AppColors.warning) return AppColors.warningContainer;
     if (c == AppColors.success) return AppColors.successContainer;
     if (c == AppColors.info) return AppColors.infoContainer;
-    return c.withValues(alpha: 0.08);
+    return c.withOpacity(0.08);
   }
 }

@@ -182,7 +182,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: primary.withValues(alpha: 0.1),
+                color: primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.smart_toy_rounded, size: 36, color: primary),
@@ -228,8 +228,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
         text,
         style: AppTypography.caption1.copyWith(color: primary),
       ),
-      backgroundColor: primary.withValues(alpha: 0.08),
-      side: BorderSide(color: primary.withValues(alpha: 0.3), width: 0.5),
+      backgroundColor: primary.withOpacity(0.08),
+      side: BorderSide(color: primary.withOpacity(0.3), width: 0.5),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.chip),
       ),
@@ -310,7 +310,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                 height: 14,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: primary.withValues(alpha: 0.7),
+                  color: primary.withOpacity(0.7),
                 ),
               ),
               const SizedBox(width: 8),
@@ -448,7 +448,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
             const SizedBox(height: AppSpacing.md),
             AppCard(
               backgroundColor: AppColors.dangerContainer,
-              border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+              border: Border.all(color: AppColors.danger.withOpacity(0.3)),
               child: Row(
                 children: [
                   const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 20),
@@ -532,7 +532,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                     right: 8,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
+                        color: Colors.black.withOpacity(0.5),
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(

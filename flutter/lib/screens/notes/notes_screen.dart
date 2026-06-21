@@ -159,7 +159,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             const SizedBox(height: AppSpacing.md),
             AppCard(
               backgroundColor: AppColors.dangerContainer,
-              border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+              border: Border.all(color: AppColors.danger.withOpacity(0.3)),
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Row(
                 children: [
@@ -215,10 +215,10 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: isListening ? primary : primary.withValues(alpha: 0.1),
+                  color: isListening ? primary : primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                   boxShadow: isListening
-                      ? [BoxShadow(color: primary.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 4)]
+                      ? [BoxShadow(color: primary.withOpacity(0.3), blurRadius: 20, spreadRadius: 4)]
                       : null,
                 ),
                 child: Icon(
@@ -502,7 +502,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                 vertical: AppSpacing.sm + 2,
               ),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: isDark ? 0.18 : 0.08),
+                color: color.withOpacity(isDark ? 0.18 : 0.08),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(AppRadius.card),
                   topRight: Radius.circular(AppRadius.card),
