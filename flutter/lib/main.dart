@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+import 'core/utils/app_colors_resolver.dart';
 import 'core/widgets/app_components.dart';
 import 'providers/vet_provider.dart';
 import 'providers/ai_provider.dart';

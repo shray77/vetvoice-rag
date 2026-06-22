@@ -78,7 +78,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
   /// сохраняется в SharedPreferences.
   Future<void> _checkWalkthrough() async {
     final prefs = await SharedPreferences.getInstance();
-    final show = !prefs.getBool('dose_walkthrough_complete', false);
+    final show = !(prefs.getBool('dose_walkthrough_complete') ?? false);
     if (show && mounted) {
       setState(() => _walkthroughActive = true);
       _pulseController.repeat(reverse: true);
