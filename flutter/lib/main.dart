@@ -55,7 +55,7 @@ class VetEcoApp extends StatelessWidget {
             title: AppConstants.appName,
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
+            darkTheme: themeProvider.isNightMode ? AppTheme.nightTheme : AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
             home: const _AppStart(),
           );

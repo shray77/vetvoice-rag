@@ -301,6 +301,99 @@ class AppCurves {
 /// ─── Theme data ──────────────────────────────────────────────────────
 
 class AppTheme {
+  /// Night mode — amber accent + pure black bg, reduces eye strain at night.
+  static ThemeData get nightTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: const ColorScheme.dark(
+      primary: Color(0xFFFFB300),
+      onPrimary: Colors.black,
+      primaryContainer: Color(0xFF3E2723),
+      onPrimaryContainer: Color(0xFFFFCC80),
+      secondary: Color(0xFFFFB300),
+      onSecondary: Colors.black,
+      surface: Color(0xFF0A0A0A),
+      onSurface: Color(0xFFE0E0E0),
+      surfaceContainerHighest: Color(0xFF1A1A1A),
+      error: Color(0xFFEF9A9A),
+      onError: Colors.black,
+      outline: Color(0xFF2A2A2A),
+      outlineVariant: Color(0xFF333333),
+    ),
+    scaffoldBackgroundColor: Colors.black,
+    canvasColor: Colors.black,
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.black,
+      foregroundColor: Color(0xFFE0E0E0),
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      titleTextStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Color(0xFFE0E0E0), letterSpacing: -0.3),
+      systemOverlayStyle: SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.light, statusBarBrightness: Brightness.dark),
+    ),
+    cardTheme: CardThemeData(
+      color: const Color(0xFF0F0F0F),
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
+      surfaceTintColor: Colors.transparent,
+    ),
+    dividerTheme: const DividerThemeData(color: Color(0xFF1A1A1A), thickness: 0.5, space: 0.5),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF111111),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.medium), borderSide: BorderSide.none),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.medium), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.medium), borderSide: const BorderSide(color: Color(0xFFFFB300), width: 1.5)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      hintStyle: AppTypography.body.copyWith(color: const Color(0xFF555555)),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: const Color(0xFF0A0A0A),
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: const Color(0xFF3E2723),
+      indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.large)),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return AppTypography.caption2.copyWith(color: const Color(0xFFFFB300), fontWeight: FontWeight.w600);
+        }
+        return AppTypography.caption2.copyWith(color: const Color(0xFF555555));
+      }),
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return const IconThemeData(color: Color(0xFFFFB300), size: 24);
+        }
+        return const IconThemeData(color: Color(0xFF555555), size: 24);
+      }),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.all(const Color(0xFFFFB300)),
+        foregroundColor: WidgetStateProperty.all(Colors.black),
+        padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 24, vertical: 14)),
+        shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button))),
+        textStyle: WidgetStateProperty.all(AppTypography.callout),
+      ),
+    ),
+    textTheme: const TextTheme(
+      displayLarge: AppTypography.largeTitle,
+      displayMedium: AppTypography.title1,
+      displaySmall: AppTypography.title2,
+      headlineLarge: AppTypography.title2,
+      headlineMedium: AppTypography.title3,
+      headlineSmall: AppTypography.headline,
+      titleLarge: AppTypography.title3,
+      titleMedium: AppTypography.headline,
+      titleSmall: AppTypography.subheadline,
+      bodyLarge: AppTypography.body,
+      bodyMedium: AppTypography.bodyMedium,
+      bodySmall: AppTypography.footnote,
+      labelLarge: AppTypography.callout,
+      labelMedium: AppTypography.caption1,
+      labelSmall: AppTypography.caption2,
+    ),
+  );
+
   static ThemeData get lightTheme => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,

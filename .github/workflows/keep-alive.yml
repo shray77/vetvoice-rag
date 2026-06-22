@@ -1,0 +1,21 @@
+name: Keep HF Space Alive
+
+on:
+  schedule:
+    # Every 10 minutes — prevents Space from sleeping
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping HF Space
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -m 15 "https://shrayyyy-vetderm-ai.hf.space/")
+          echo "Space status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::warning::HF Space returned $STATUS, trying restart..."
+            curl -s -X POST "https://huggingface.co/api/spaces/shrayyyy/vetderm-ai/restart" \
+              -H "Authorization: Bearer ${{ secrets.HF_TOKEN }}" || true
+          fi

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../core/constants/app_constants.dart';
 import '../models/vet_record_model.dart';
@@ -46,7 +47,7 @@ class GlmAiService {
           'max_tokens': 2048,
           'thinking': {'type': 'disabled'},
         }),
-      );
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -56,11 +57,15 @@ class GlmAiService {
         }
       }
 
-      return 'Ошибка: ${response.statusCode} — ${response.body.substring(0, response.body.length > 300 ? 300 : response.body.length)}';
-    } on SocketException {
-      return 'Ошибка: нет подключения к интернету';
+      return 'Ошибка API: ${response.statusCode}';
+    } on TimeoutException {
+      return 'Ошибка: сервер не ответил за 30 сек. Проверьте VPN/соединение.';
+    } on SocketException catch (e) {
+      return 'Ошибка сети: ${e.message}. Возможно VPN блокирует запрос.';
+    } on HandshakeException {
+      return 'Ошибка SSL: проверьте VPN или сертификаты.';
     } catch (e) {
-      return 'Ошибка: $e';
+      return 'Ошибка: ${e.toString().substring(0, e.toString().length > 100 ? 100 : e.toString().length)}';
     }
   }
 
@@ -203,7 +208,7 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
           'max_tokens': 2048,
           'thinking': {'type': 'disabled'},
         }),
-      );
+      ).timeout(const Duration(seconds: 45));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -229,10 +234,14 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
       }
 
       throw Exception('Z AI вернул статус ${response.statusCode}');
-    } on SocketException {
-      throw Exception('Нет подключения к интернету');
+    } on TimeoutException {
+      throw Exception('Сервер не ответил за 30 сек. Возможно VPN.');
+    } on SocketException catch (e) {
+      throw Exception('Ошибка сети: ${e.message}. Возможно VPN.');
+    } on HandshakeException {
+      throw Exception('Ошибка SSL. Проверьте VPN.');
     } on FormatException catch (e) {
-      throw Exception('Ошибка парсинга JSON ответа: $e');
+      throw Exception('Ошибка парсинга JSON: $e');
     } catch (e) {
       throw Exception('Ошибка: $e');
     }
