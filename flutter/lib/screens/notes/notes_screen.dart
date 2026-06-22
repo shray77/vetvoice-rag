@@ -633,6 +633,9 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
   }
 
   Widget _buildRecordListTile(VetRecord record, NotesProvider provider) {
+    final textColor = AppColorsResolver.textPrimary(context);
+    final secondary = AppColorsResolver.textSecondary(context);
+    final tertiary = AppColorsResolver.textTertiary(context);
     final severityColor = record.diseaseSeverity == 'тяжёлая'
         ? AppColors.danger
         : record.diseaseSeverity == 'средняя'
@@ -640,7 +643,7 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             : AppColors.success;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Dismissible(
         key: ValueKey(record.id),
         direction: DismissDirection.endToStart,
@@ -660,62 +663,53 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
             provider.openRecord(record);
             _tabController.animateTo(0);
           },
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Row 1: Animal + weight + date (compact, single line)
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.pets_rounded, size: 16, color: AppColors.primary),
-                      const SizedBox(width: 6),
-                      Text(
-                        record.animalType.isNotEmpty ? record.animalType : 'Не указано',
-                        style: AppTypography.headline.copyWith(
-                          color: AppColorsResolver.textPrimary(context),
-                        ),
-                      ),
-                      if (record.animalWeight != null) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          '${record.animalWeight} кг',
-                          style: AppTypography.footnote.copyWith(
-                            color: AppColorsResolver.textSecondary(context),
-                          ),
-                        ),
-                      ],
-                    ],
+                  Icon(Icons.pets_rounded, size: 14, color: AppColorsResolver.primary(context)),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      record.animalType.isNotEmpty ? record.animalType : 'Не указано',
+                      style: AppTypography.bodyMedium.copyWith(color: textColor, fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  if (record.animalWeight != null) ...[
+                    const SizedBox(width: 4),
+                    Text(
+                      '${record.animalWeight} кг',
+                      style: AppTypography.caption1.copyWith(color: secondary),
+                    ),
+                  ],
+                  const Spacer(),
                   Text(
                     _fmtDate(record.createdAt),
-                    style: AppTypography.caption1.copyWith(
-                      color: AppColorsResolver.textTertiary(context),
-                    ),
+                    style: AppTypography.caption2.copyWith(color: tertiary),
                   ),
                 ],
               ),
+              // Row 2: Diagnosis (only if exists, compact)
               if (record.diagnosis != null) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Row(
                   children: [
                     if (record.diseaseSeverity != null)
                       Container(
-                        width: 8,
-                        height: 8,
-                        margin: const EdgeInsets.only(right: 6),
-                        decoration: BoxDecoration(
-                          color: severityColor,
-                          shape: BoxShape.circle,
-                        ),
+                        width: 6,
+                        height: 6,
+                        margin: const EdgeInsets.only(right: 5),
+                        decoration: BoxDecoration(color: severityColor, shape: BoxShape.circle),
                       ),
                     Expanded(
                       child: Text(
                         record.diagnosis!,
-                        style: AppTypography.callout.copyWith(
-                          color: AppColorsResolver.textSecondary(context),
-                        ),
+                        style: AppTypography.footnote.copyWith(color: secondary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -723,37 +717,30 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                   ],
                 ),
               ],
-              if (record.prescribedDrugs.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.medication_rounded, size: 14, color: AppColors.danger),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        '${record.prescribedDrugs.length} препарат(ов): '
-                        '${record.prescribedDrugs.map((d) => d.name).take(3).join(", ")}',
-                        style: AppTypography.caption1.copyWith(
-                          color: AppColorsResolver.textTertiary(context),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 6),
+              // Row 3: Drugs + status badge + progress (single line, compact)
+              const SizedBox(height: 4),
               Row(
                 children: [
                   _buildStatusBadge(record.status),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
+                  if (record.prescribedDrugs.isNotEmpty) ...[
+                    Icon(Icons.medication_rounded, size: 12, color: AppColors.danger),
+                    const SizedBox(width: 2),
+                    Flexible(
+                      child: Text(
+                        '${record.prescribedDrugs.length} преп.',
+                        style: AppTypography.caption2.copyWith(color: tertiary),
+                        maxLines: 1,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
                   Expanded(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(AppRadius.full),
                       child: LinearProgressIndicator(
                         value: record.completeness,
-                        minHeight: 3,
+                        minHeight: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(
                           record.completeness > 0.7 ? AppColors.success : AppColors.warning,
                         ),

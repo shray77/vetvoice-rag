@@ -2,8 +2,8 @@ name: Keep HF Space Alive
 
 on:
   schedule:
-    # Every 10 minutes — prevents Space from sleeping
-    - cron: '*/10 * * * *'
+    # Once a day at 03:00 UTC
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
 jobs:
