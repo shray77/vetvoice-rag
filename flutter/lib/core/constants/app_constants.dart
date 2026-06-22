@@ -1,47 +1,36 @@
 /// Z AI API configuration
-/// Используем Z AI gateway напрямую (НЕ локальный IP)
+/// Публичный endpoint api.z.ai доступен с любого устройства.
+/// internal-api.z.ai резолвится в private IP (172.25.x.x) —
+/// работает только изнутри сети Z.ai, недоступен с телефона.
+///
+/// Для прямых API вызовов нужен API key с https://z.ai/manage-apikey/apikey-list
+/// Если ключ не задан — fallback на HF Space (Gradio RAG).
 class ApiConfig {
-  // Z AI Gateway — проксирует запросы к GLM-4-Flash / GLM-4V
-  static const String baseUrl = 'https://internal-api.z.ai/v1';
-  static const String apiKey = 'Z.ai';
-  static const String token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMDA3MzE0M2QtYTUwYS00MGY5LTljMzItYjk4NDYyY2Q2OWJmIiwiY2hhdF9pZCI6ImNoYXQtNzkzN2VhNTQtMGQ2My00ZjIxLWI0YWEtYzJlMzYxODc1YzQyIiwicGxhdGZvcm0iOiJ6YWkifQ.Rmtru5GZmsbYNW2hEeZNdgxrVeBQzrbp7xp5A0KbUE4';
-  static const String chatId = 'chat-7937ea54-0d63-4f21-b4aa-c2e361875c42';
-  static const String userId = '0073143d-a50a-40f9-9c32-b98462cd69bf';
-
-  // Chat completions endpoint (Z AI)
+  // Публичный Z AI API (доступен с телефона)
+  static const String baseUrl = 'https://api.z.ai/api/paas/v4';
   static const String chatPath = '/chat/completions';
-  // Vision endpoint (Z AI — отдельный роут!)
-  static const String visionPath = '/chat/completions/vision';
+  static const String visionPath = '/chat/completions';
 
-  // Models
-  static const String glmModel = 'glm-4-flash';
+  // Models (OpenAI-compatible naming)
+  static const String glmModel = 'glm-4.5-flash';
   static const String glmVlmModel = 'glm-4.6v';
 
-  // VetEcosystem HF Space (RAG only — текстовый API, надёжный)
+  // HF Space (RAG backend — всегда доступен)
   static const String hfSpaceUrl = 'https://shrayyyy-vetderm-ai.hf.space';
-
-  // Gradio API path for RAG search (text-only, works reliably)
-  // Gradio 6.x uses /gradio_api/ prefix!
   static const String ragApiPath = '/gradio_api/call/rag_search';
-
-  // Local FastAPI server (preferred over HF Space when available).
-  // Run: `uvicorn src.api.app:app --host 0.0.0.0 --port 7860`
-  // Falls back to HF Space automatically if local server is unreachable.
-  static const String localApiUrl = 'http://10.0.2.2:7860';  // Android emulator → host
-  static const String localApiPath = '/v1/rag/search';
 
   // VetLearn URL
   static const String vetlearnUrl = 'https://t107t4hs5wm0-d.space-z.ai';
 
-  // PaliGemma HF Hub (legacy)
-  static const String paligemmaBaseModel = 'google/paligemma2-3b-mix-224';
-  static const String paligemmaLoraRepo = 'shrayyyy/paligemma2-vet-derm';
+  // API key — вводится пользователем в Settings.
+  // Получить: https://z.ai/manage-apikey/apikey-list
+  // Сохраняется в SharedPreferences ('zai_api_key').
+  // Если пустой — все AI запросы идут через HF Space fallback.
+  static const String apiKeyPrefsKey = 'zai_api_key';
 
-  // Легаси-алиасы для обратной совместимости
+  // Legacy (не используется, но оставлено для совместимости)
   @Deprecated('Use baseUrl instead')
   static const String glmBaseUrl = baseUrl;
-  @Deprecated('Use apiKey instead')
-  static const String glmApiKey = apiKey;
 }
 
 /// App-wide constants

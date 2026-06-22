@@ -2,44 +2,67 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/app_constants.dart';
 import '../models/vet_record_model.dart';
 
-/// Z AI Service — работает через Z AI gateway
-/// Chat: POST /chat/completions
-/// Vision: POST /chat/completions/vision
-/// Все запросы требуют заголовки: Authorization, X-Z-AI-From, X-Token, X-Chat-Id, X-User-Id
+/// Z AI Service — работает через публичный endpoint api.z.ai.
+///
+/// Нужен API key с https://z.ai/manage-apikey/apikey-list
+/// Сохраняется в SharedPreferences, вводится в Settings.
+///
+/// Если API key не задан — методы возвращают пустую строку,
+/// и AiProvider fallback на HF Space.
 class GlmAiService {
   static final GlmAiService _instance = GlmAiService._internal();
   factory GlmAiService() => _instance;
   GlmAiService._internal();
 
-  /// Общие заголовки для Z AI
-  Map<String, String> get _headers => {
-    'Authorization': 'Bearer ${ApiConfig.apiKey}',
+  String? _apiKey;
+  String? get apiKey => _apiKey;
+
+  Future<String?> _getApiKey() async {
+    if (_apiKey != null) return _apiKey;
+    final prefs = await SharedPreferences.getInstance();
+    _apiKey = prefs.getString(ApiConfig.apiKeyPrefsKey);
+    return _apiKey;
+  }
+
+  Future<void> setApiKey(String key) async {
+    _apiKey = key;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(ApiConfig.apiKeyPrefsKey, key);
+  }
+
+  Future<bool> hasApiKey() async {
+    final key = await _getApiKey();
+    return key != null && key.isNotEmpty;
+  }
+
+  Map<String, String> _headers(String apiKey) => {
+    'Authorization': 'Bearer $apiKey',
     'Content-Type': 'application/json',
-    'X-Z-AI-From': 'Z',
-    'X-Token': ApiConfig.token,
-    'X-Chat-Id': ApiConfig.chatId,
-    'X-User-Id': ApiConfig.userId,
   };
 
-  /// Отправить чат-запрос через Z AI gateway
+  /// Отправить чат-запрос через Z AI
   Future<String> chat({
     required String message,
     required String systemPrompt,
     List<Map<String, String>>? history,
   }) async {
+    final apiKey = await _getApiKey();
+    if (apiKey == null || apiKey.isEmpty) return '';
+
     try {
       final messages = <Map<String, dynamic>>[
-        {'role': 'assistant', 'content': systemPrompt},
+        {'role': 'system', 'content': systemPrompt},
         if (history != null) ...history,
         {'role': 'user', 'content': message},
       ];
 
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.chatPath}'),
-        headers: _headers,
+        headers: _headers(apiKey),
         body: jsonEncode({
           'model': ApiConfig.glmModel,
           'messages': messages,
@@ -59,59 +82,54 @@ class GlmAiService {
 
       return 'Ошибка API: ${response.statusCode}';
     } on TimeoutException {
-      return 'Ошибка: сервер не ответил за 30 сек. Проверьте VPN/соединение.';
+      return 'Ошибка: сервер не ответил за 30 сек.';
     } on SocketException catch (e) {
-      return 'Ошибка сети: ${e.message}. Возможно VPN блокирует запрос.';
+      return 'Ошибка сети: ${e.message}';
     } on HandshakeException {
-      return 'Ошибка SSL: проверьте VPN или сертификаты.';
+      return 'Ошибка SSL.';
     } catch (e) {
       return 'Ошибка: ${e.toString().substring(0, e.toString().length > 100 ? 100 : e.toString().length)}';
     }
   }
 
-  /// RAG-запрос с контекстом из ветеринарных статей
+  /// RAG-запрос с контекстом
   Future<String> askWithRag({
     required String question,
     String? ragContext,
   }) async {
-    final systemPrompt = '''Ты — ветеринарный AI-ассистент VetEcosystem. Отвечай на вопросы ветеринарных врачей на русском языке.
+    final systemPrompt = '''Ты — ветеринарный AI-ассистент VetEco. Отвечай на русском языке.
 
 Правила:
-1. Давай точные, научно обоснованные ответы
-2. Указывай дозировки в мг/кг с указанием пути введения
-3. Предупреждай о противопоказаниях и взаимодействиях
-4. Если не уверен — скажи об этом прямо
-5. Ссылайся на источники если есть контекст
+1. Точные, научно обоснованные ответы
+2. Дозировки в мг/кг с путём введения
+3. Предупреждай о противопоказаниях
+4. Если не уверен — скажи прямо
 
-${ragContext != null ? 'Контекст из ветеринарных статей:\n$ragContext' : ''}''';
+${ragContext != null ? 'Контекст из базы знаний:\n$ragContext' : ''}''';
 
     return chat(message: question, systemPrompt: systemPrompt);
   }
 
-  /// Анализ изображения через Z AI Vision endpoint
-  /// Использует /chat/completions/vision (отдельный роут Z AI)
+  /// Анализ изображения через Z AI Vision
   Future<String> analyzeImage({
     required String imageBase64,
     String? prompt,
   }) async {
+    final apiKey = await _getApiKey();
+    if (apiKey == null || apiKey.isEmpty) return 'Нет API key. Введите в настройках.';
+
     try {
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.visionPath}'),
-        headers: _headers,
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.chatPath}'),
+        headers: _headers(apiKey),
         body: jsonEncode({
           'model': ApiConfig.glmVlmModel,
           'messages': [
             {
               'role': 'user',
               'content': [
-                {
-                  'type': 'image_url',
-                  'image_url': {'url': 'data:image/jpeg;base64,$imageBase64'},
-                },
-                {
-                  'type': 'text',
-                  'text': prompt ?? 'Опиши что ты видишь на этом изображении с ветеринарной точки зрения. Какие патологии или состояния ты можешь определить?',
-                },
+                {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,$imageBase64'}},
+                {'type': 'text', 'text': prompt ?? 'Опиши изображение с ветеринарной точки зрения.'},
               ],
             },
           ],
@@ -119,7 +137,7 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
           'max_tokens': 1024,
           'thinking': {'type': 'disabled'},
         }),
-      );
+      ).timeout(const Duration(seconds: 60));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -129,79 +147,72 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
         }
       }
 
-      return 'VLM ошибка: ${response.statusCode} — ${response.body.substring(0, response.body.length > 300 ? 300 : response.body.length)}';
+      return 'VLM ошибка: ${response.statusCode}';
+    } on TimeoutException {
+      return 'Ошибка: сервер не ответил за 60 сек.';
+    } on SocketException catch (e) {
+      return 'Ошибка сети: ${e.message}';
+    } on HandshakeException {
+      return 'Ошибка SSL.';
     } catch (e) {
-      return 'VLM ошибка: $e';
+      return 'Ошибка: $e';
     }
   }
 
-  /// Парсинг ветеринарной диктовки в структурированную SOAP-запись
-  /// Надиктовал → AI разобрал → вернул JSON → VetRecord
+  /// Парсинг ветеринарной диктовки в SOAP JSON
   Future<VetRecord> parseVetRecord(String dictationText) async {
-    const systemPrompt = '''Ты — ветеринарный AI-ассистент, специализирующийся на структурировании клинических записей.
-Твоя задача — разобрать текст диктовки ветеринарного врача и извлечь из него структурированные данные в формате JSON.
-
-ВАЖНО: Ответь ТОЛЬКО валидным JSON, без Markdown-обёрток, без пояснений, без ```json блоков.
-Просто чистый JSON объект.
-
-Структура JSON для ответа:
-{
-  "animal_type": "вид животного (корова/собака/кошка/лошадь/овца/свинья/курица/кролик и т.д.)",
-  "animal_breed": "порода если указана, иначе null",
-  "animal_weight": вес_число_или_null,
-  "animal_age": возраст_число_или_null,
-  "animal_age_unit": "лет/месяцев/недель",
-  "animal_gender": "м/ж/кастрирован/null",
-  "animal_id": "кличка/номер/бирка или null",
-  "complaint": "жалоба владельца (Subjective)",
-  "anamnesis": "анамнез заболевания (Subjective)",
-  "temperature": температура_число_или_null,
-  "heart_rate": пульс_число_или_null,
-  "respiratory_rate": чдд_число_или_null,
-  "physical_exam": "данные объективного осмотра (Objective)",
-  "mucous_membranes": "состояние слизистых или null",
-  "lymph_nodes": "лимфоузлы или null",
-  "skin_coat": "кожа и шерсть или null",
-  "diagnosis": "основной диагноз (Assessment)",
-  "differential_dx": "дифференциальный диагноз или null",
-  "disease_severity": "лёгкая/средняя/тяжёлая/null",
-  "prescribed_drugs": [
-    {
-      "name": "название препарата",
-      "inn": "МНН или null",
-      "dose_per_kg": доза_мг_кг_или_null,
-      "total_dose": общая_доза_или_null,
-      "dose_unit": "мг/мл/таб",
-      "route": "путь введения (в/м/в/в/внутрь/п/к и т.д.)",
-      "frequency": "кратность (2 раза в день/сут и т.д.)",
-      "duration_days": дней_или_null,
-      "notes": "заметки по препарату или null"
+    final apiKey = await _getApiKey();
+    if (apiKey == null || apiKey.isEmpty) {
+      throw Exception('Нет API key. Введите в настройках.');
     }
-  ],
-  "procedures": "проведённые/планируемые процедуры",
-  "diet": "рекомендации по кормлению/содержанию",
-  "follow_up": "повторный приём/контроль",
-  "notes": "дополнительные заметки врача"
+
+    const systemPrompt = '''Ты — ветеринарный AI, структурирующий клинические записи.
+Ответь ТОЛЬКО валидным JSON (без markdown, без ```json).
+
+Структура:
+{
+  "animal_type": "вид",
+  "animal_breed": null,
+  "animal_weight": null,
+  "animal_age": null,
+  "animal_age_unit": "лет",
+  "animal_gender": null,
+  "animal_id": null,
+  "complaint": "жалоба",
+  "anamnesis": "анамнез",
+  "temperature": null,
+  "heart_rate": null,
+  "respiratory_rate": null,
+  "physical_exam": "осмотр",
+  "mucous_membranes": null,
+  "lymph_nodes": null,
+  "skin_coat": null,
+  "diagnosis": "диагноз",
+  "differential_dx": null,
+  "disease_severity": null,
+  "prescribed_drugs": [],
+  "procedures": null,
+  "diet": null,
+  "follow_up": null,
+  "notes": null
 }
 
-Правила извлечения:
-1. Если значение не упоминается в тексте — ставь null
-2. Дозировки извлекай точно, как сказал врач (мг/кг, путь, кратность)
-3. Температуру указывай в градусах Цельсия (число)
-4. Пульс и ЧДД — числа (уд/мин, дыханий/мин)
-5. Диагноз формулируй кратко, профессионально
-6. Если врач сказал "подозрение" или "вероятно" — укажи это в diagnosis
-7. Выделяй назначенные препараты в массив prescribed_drugs
-8. Все текстовые поля на русском языке''';
+Правила:
+1. null если не упомянуто
+2. Дозировки точно как сказал врач
+3. Температура в °C (число)
+4. Диагноз кратко
+5. Препараты в массив prescribed_drugs
+6. Текст на русском''';
 
     try {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.chatPath}'),
-        headers: _headers,
+        headers: _headers(apiKey),
         body: jsonEncode({
           'model': ApiConfig.glmModel,
           'messages': [
-            {'role': 'assistant', 'content': systemPrompt},
+            {'role': 'system', 'content': systemPrompt},
             {'role': 'user', 'content': dictationText},
           ],
           'temperature': 0.2,
@@ -216,16 +227,10 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
         if (choices != null && choices.isNotEmpty) {
           var content = choices[0]['message']['content'] as String? ?? '';
 
-          // Убрать Markdown-обёртки если AI их добавил
           content = content.trim();
-          if (content.startsWith('```json')) {
-            content = content.substring(7);
-          } else if (content.startsWith('```')) {
-            content = content.substring(3);
-          }
-          if (content.endsWith('```')) {
-            content = content.substring(0, content.length - 3);
-          }
+          if (content.startsWith('```json')) content = content.substring(7);
+          else if (content.startsWith('```')) content = content.substring(3);
+          if (content.endsWith('```')) content = content.substring(0, content.length - 3);
           content = content.trim();
 
           final jsonResult = jsonDecode(content) as Map<String, dynamic>;
@@ -235,11 +240,11 @@ ${ragContext != null ? 'Контекст из ветеринарных стат�
 
       throw Exception('Z AI вернул статус ${response.statusCode}');
     } on TimeoutException {
-      throw Exception('Сервер не ответил за 30 сек. Возможно VPN.');
+      throw Exception('Сервер не ответил за 45 сек.');
     } on SocketException catch (e) {
-      throw Exception('Ошибка сети: ${e.message}. Возможно VPN.');
+      throw Exception('Ошибка сети: ${e.message}');
     } on HandshakeException {
-      throw Exception('Ошибка SSL. Проверьте VPN.');
+      throw Exception('Ошибка SSL.');
     } on FormatException catch (e) {
       throw Exception('Ошибка парсинга JSON: $e');
     } catch (e) {

@@ -108,12 +108,19 @@ class NotesProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Проверяем есть ли API key
+      if (!await _aiService.hasApiKey()) {
+        _parseError = 'Нужен Z AI API key. Введите в Настройках → AI.';
+        _isParsing = false;
+        notifyListeners();
+        return;
+      }
       final record = await _aiService.parseVetRecord(_dictationText);
       _currentRecord = record;
       _isParsing = false;
       notifyListeners();
     } catch (e) {
-      _parseError = 'Ошибка парсинга: $e';
+      _parseError = '$e';
       _isParsing = false;
       notifyListeners();
     }

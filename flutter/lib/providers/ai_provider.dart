@@ -86,28 +86,29 @@ class AiProvider extends ChangeNotifier {
       String? answer;
       String source = '';
 
-      // 1) HF Space Gradio API — returns FINAL GLM answer (with RAG context).
-      answer = await _askRagViaHfSpace(content);
-      if (answer != null && answer.isNotEmpty) {
-        source = 'hf_space';
-        _saveToCache(content, answer);
+      // 0) If API key is set, try direct Z AI first (fastest).
+      if (await _aiService.hasApiKey()) {
+        answer = await _aiService.askWithRag(question: content, ragContext: null);
+        if (answer.isNotEmpty) {
+          source = 'direct_glm';
+          _saveToCache(content, answer);
+        }
       }
 
-      // 2) Fallback: direct GLM without RAG context.
+      // 1) Fallback: HF Space Gradio API (RAG with context).
       if (answer == null || answer.isEmpty) {
-        answer = await _aiService.askWithRag(
-          question: content,
-          ragContext: null,
-        );
-        source = 'direct_glm';
-        if (answer.isNotEmpty) _saveToCache(content, answer);
+        answer = await _askRagViaHfSpace(content);
+        if (answer != null && answer.isNotEmpty) {
+          source = 'hf_space';
+          _saveToCache(content, answer);
+        }
       }
 
-      // 3) Last resort: check offline cache.
+      // 2) Last resort: offline cache.
       if (answer == null || answer.isEmpty) {
         final cached = _getFromCache(content);
         if (cached != null) {
-          answer = '$cached\n\n⚠️ Ответ из офлайн-кэша (нет соединения с сервером).';
+          answer = '$cached\n\n⚠️ Ответ из офлайн-кэша.';
           source = 'cache';
         }
       }

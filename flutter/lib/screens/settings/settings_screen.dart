@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_colors_resolver.dart';
@@ -7,6 +8,7 @@ import '../../core/widgets/app_components.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/vet_provider.dart';
+import '../../services/glm_ai_service.dart';
 import '../reference/reference_screen.dart';
 
 /// Экран «Ещё» — Настройки + VetLearn + О приложении
@@ -18,12 +20,9 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String _glmModel = 'glm-4-flash';
-
   @override
   void initState() {
     super.initState();
-    _loadSettings();
   }
 
   Future<void> _loadSettings() async {
@@ -135,17 +134,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: 'AI',
               icon: Icons.smart_toy_outlined,
               children: [
+                _buildApiKeyTile(textColor, secondaryTextColor, surfaceColor, primaryColor),
                 _buildNavigationTile(
-                  title: 'Модель GLM',
-                  subtitle: _glmModel,
-                  onTap: () => _showModelPicker(primaryColor, surfaceColor, textColor),
+                  title: 'RAG поиск',
+                  subtitle: 'Через HF Space (работает без API key)',
+                  onTap: () {},
                 ),
                 _buildNavigationTile(
-                  title: 'RAG API',
-                  subtitle: '${ApiConfig.hfSpaceUrl}${ApiConfig.ragApiPath}',
-                  onTap: () {
-                    // TODO: Configure RAG endpoint
-                  },
+                  title: 'API endpoint',
+                  subtitle: ApiConfig.baseUrl,
+                  onTap: () {},
                 ),
               ],
             ),
@@ -383,6 +381,103 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Text(title, style: AppTypography.body.copyWith(color: textColor)),
           Text(value, style: AppTypography.body.copyWith(color: secondaryTextColor)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildApiKeyTile(Color textColor, Color secondary, Color surface, Color primary) {
+    return FutureBuilder<String?>(
+      future: SharedPreferences.getInstance().then((p) => p.getString(ApiConfig.apiKeyPrefsKey)),
+      builder: (context, snapshot) {
+        final hasKey = snapshot.data != null && snapshot.data!.isNotEmpty;
+        final maskedKey = hasKey ? '${snapshot.data!.substring(0, 6)}...${snapshot.data!.substring(snapshot.data!.length - 4)}' : '';
+        return InkWell(
+          onTap: () => _showApiKeyDialog(textColor, secondary, surface, primary),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.cardPadding, vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  hasKey ? Icons.key_rounded : Icons.key_off_rounded,
+                  size: 20,
+                  color: hasKey ? primary : secondary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Z AI API Key', style: AppTypography.body.copyWith(color: textColor)),
+                      Text(
+                        hasKey ? 'Активен: $maskedKey' : 'Не задан — AI через HF Space',
+                        style: AppTypography.footnote.copyWith(color: secondary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right_rounded, size: 18, color: secondary),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showApiKeyDialog(Color textColor, Color secondary, Color surface, Color primary) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surface,
+        title: Text('Z AI API Key', style: AppTypography.title3.copyWith(color: textColor)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Получите ключ на:',
+              style: AppTypography.footnote.copyWith(color: secondary),
+            ),
+            Text(
+              'z.ai/manage-apikey/apikey-list',
+              style: AppTypography.footnote.copyWith(color: primary, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'Вставьте API key...',
+                prefixIcon: Icon(Icons.key_rounded),
+              ),
+              obscureText: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final key = controller.text.trim();
+              if (key.isNotEmpty) {
+                await GlmAiService().setApiKey(key);
+                if (mounted) {
+                  setState(() {});
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('API key сохранён')),
+                  );
+                }
+              }
+            },
+            child: const Text('Сохранить'),
+          ),
         ],
       ),
     );
