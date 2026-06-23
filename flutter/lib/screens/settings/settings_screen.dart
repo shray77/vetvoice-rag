@@ -506,43 +506,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
-  void _showModelPicker(Color primaryColor, Color surfaceColor, Color textColor) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: surfaceColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Text(
-                'Выберите модель',
-                style: AppTypography.headline.copyWith(color: textColor),
-              ),
-            ),
-            ...['glm-4-flash', 'glm-4', 'glm-4v-flash'].map(
-              (model) => ListTile(
-                title: Text(model),
-                trailing: _glmModel == model
-                    ? Icon(Icons.check, color: primaryColor)
-                    : null,
-                onTap: () {
-                  setState(() => _glmModel = model);
-                  Navigator.pop(context);
-                },
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Встроенный VetLearn экран

@@ -117,7 +117,7 @@ class AiProvider extends ChangeNotifier {
 
       _messages.add(ChatMessage(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        content: answer,
+        content: answer ?? 'Не удалось получить ответ.',
         isUser: false,
         timestamp: DateTime.now(),
         sources: source == 'hf_space'
