@@ -1,16 +1,35 @@
-gradio>=4.44.0
-fastapi
-uvicorn[standard]
-python-multipart
-requests
-Pillow
-scikit-learn
-faiss-cpu
-huggingface_hub
-numpy
-pyyaml
-pydantic
-# Paper harvester dependencies
-PyMuPDF
-pdfplumber
-lxml
+# --- Core API ---------------------------------------------------------------
+# httpx is imported by src/api/app.py (Z AI gateway proxy) — was missing before.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+httpx==0.28.1
+python-multipart==0.0.20
+
+# --- Config / validation ----------------------------------------------------
+pydantic==2.10.4
+pydantic-settings==2.7.0
+pyyaml==6.0.2
+
+# --- RAG --------------------------------------------------------------------
+# numpy / scikit-learn / faiss are pinned together: the FAISS index and the
+# pickled TfidfVectorizer are version-sensitive artifacts.
+numpy==1.26.4
+scikit-learn==1.5.2
+faiss-cpu==1.9.0.post1
+huggingface_hub==0.27.0
+
+# --- UI (Gradio) ------------------------------------------------------------
+gradio==4.44.1
+
+# --- Misc -------------------------------------------------------------------
+requests==2.32.3
+Pillow==11.0.0
+
+# --- Paper harvester dependencies -------------------------------------------
+PyMuPDF==1.25.1
+pdfplumber==0.11.4
+lxml==5.3.0
+
+# --- Tests ------------------------------------------------------------------
+pytest==8.3.4
+pytest-cov==6.0.0

@@ -4,14 +4,17 @@ Loads knowledge base from local `knowledge_base/` directory first.
 Falls back to Hugging Face Hub download if local files are missing.
 """
 
-import os
 import json
+import os
 import pickle
 import re
 from pathlib import Path
-from typing import List, Dict, Optional
-from sklearn.preprocessing import normalize
+from typing import Dict, List, Optional
+
 import faiss
+from sklearn.preprocessing import normalize
+
+from src.settings import get_settings
 
 # ============================================================
 # Russian → English medical term translation for RAG retrieval
@@ -227,14 +230,19 @@ class VetDermRAG:
 
     def __init__(
         self,
-        repo_id: str = "shrayyyy/vet-derm-rag",
+        repo_id: Optional[str] = None,
         local_dir: Optional[str] = None,
-        hf_dir: str = "/tmp/vet_rag",
+        hf_dir: Optional[str] = None,
     ):
-        self.repo_id = repo_id
-        # Prefer constructor arg, then env, then default local path
-        self.local_dir = local_dir or os.environ.get("VETVOICE_KB_DIR") or self._DEFAULT_LOCAL_DIR
-        self.hf_dir = hf_dir
+        cfg = get_settings()
+        self.repo_id = repo_id or cfg.rag_repo_id
+        # Приоритет: аргумент → VETVOICE_KB_DIR → config.yaml → <repo>/knowledge_base
+        self.local_dir = (
+            local_dir
+            or os.environ.get("VETVOICE_KB_DIR")
+            or (cfg.rag_local_dir if cfg.rag_local_dir else cfg.effective_local_dir)
+        )
+        self.hf_dir = hf_dir or cfg.rag_hf_dir
         self.index = None
         self.vectorizer = None
         self.documents: List[Dict] = []
@@ -274,12 +282,9 @@ class VetDermRAG:
             )
 
         os.makedirs(self.hf_dir, exist_ok=True)
-        token = os.environ.get("HF_TOKEN", "")
-        if not token:
-            raise RuntimeError(
-                f"No local KB at {self.local_dir} and no HF_TOKEN set. "
-                "Run: python3 scripts/build_rag.py"
-            )
+        # Репозиторий базы знаний публичный — токен не обязателен.
+        # Он нужен только если репо сделают приватным.
+        token = get_settings().hf_token or os.environ.get("HF_TOKEN") or None
 
         index_path = hf_hub_download(
             repo_id=self.repo_id, filename=files["index"],
@@ -301,7 +306,12 @@ class VetDermRAG:
             self.documents = json.load(f)
         print(f"[RAG] Loaded: {self.index.ntotal} vectors, {len(self.documents)} docs (HF Hub)")
 
-    def retrieve(self, query: str, top_k: int = 5, min_score: float = 0.02) -> List[Dict]:
+    def retrieve(
+        self,
+        query: str,
+        top_k: Optional[int] = None,
+        min_score: Optional[float] = None,
+    ) -> List[Dict]:
         """Retrieve relevant knowledge chunks for a query.
 
         Hybrid retrieval:
@@ -313,6 +323,10 @@ class VetDermRAG:
         """
         if not self.index or not self.vectorizer:
             return []
+
+        cfg = get_settings()
+        top_k = top_k if top_k is not None else cfg.rag_top_k
+        min_score = min_score if min_score is not None else cfg.rag_min_score
 
         search_query = translate_ru_to_en_query(query)
         query_vec = self.vectorizer.transform([search_query]).toarray().astype('float32')
@@ -361,8 +375,12 @@ class VetDermRAG:
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:top_k]
 
-    def format_context(self, results: List[Dict], max_chars: int = 5000) -> str:
+    def format_context(
+        self, results: List[Dict], max_chars: Optional[int] = None
+    ) -> str:
         """Format retrieved chunks into context string for LLM"""
+        cfg = get_settings()
+        max_chars = max_chars if max_chars is not None else cfg.rag_max_context_chars
         context_parts = []
         total_chars = 0
         for i, r in enumerate(results):
@@ -409,3 +427,7 @@ class VetDermRAG:
             context_parts.append(part)
             total_chars += len(part)
         return "\n".join(context_parts)
+
+    def is_ready(self) -> bool:
+        """Whether the index and vectorizer are loaded and usable."""
+        return self.index is not None and self.vectorizer is not None

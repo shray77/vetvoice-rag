@@ -1,9 +1,5 @@
 """Tests for RAG retriever"""
 
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-
 from src.rag.retriever import translate_ru_to_en_query, RU_EN_TERMS
 
 

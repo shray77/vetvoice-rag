@@ -15,6 +15,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Sync Flutter assets
+        # pubspec.yaml references assets/data/ + assets/data/advanced/, which are
+        # git-ignored inside flutter/ (see .gitignore). Copy them from the repo's
+        # assets/data before `flutter pub get` so the build doesn't fail.
+        run: |
+          mkdir -p flutter/assets/data
+          cp -r assets/data/. flutter/assets/data/
+          echo "Synced $(ls -1 flutter/assets/data | wc -l) top-level asset entries"
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:

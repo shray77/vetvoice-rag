@@ -4,234 +4,21 @@ Tabs: VLM (GLM-4V) | RAG Search | Dictation → SOAP | Dose Calculator
 """
 
 import gradio as gr
-import os
 import json
-import pickle
-import re
-import base64
-import io
-from typing import List, Dict, Optional
 from PIL import Image
-import numpy as np
-import requests
 
 
 # ============================================================
 # RAG COMPONENTS
 # ============================================================
-
-RU_EN_TERMS = {
-    "чешет": "pruritus itchy scratching", "зуд": "pruritus itchy",
-    "чесаться": "pruritus itchy scratching", "красная": "erythema red inflamed",
-    "красное": "erythema red", "воспалённая": "inflamed inflammation",
-    "воспаление": "inflammation", "выпадает шерсть": "alopecia hair loss",
-    "выпадение шерсти": "alopecia hair loss", "лысеет": "alopecia hair loss bald",
-    "лысины": "alopecia bald patches", "перхоть": "scale scaling seborrhea dandruff",
-    "корки": "crust crusted", "прыщики": "papule pustule pustules pimples",
-    "гнойнички": "pustule pyoderma bacterial", "пятна": "patch macule",
-    "ранки": "erosion ulcer wound", "язвочки": "ulcer erosion",
-    "шишка": "nodule tumor mass", "опухоль": "tumor neoplasm mass",
-    "запах": "odor smell malodor", "плохой запах": "malodor smell odor",
-    "жирная кожа": "seborrhea oleosa greasy skin", "сухая кожа": "seborrhea sicca dry skin",
-    "тёмная кожа": "hyperpigmentation dark skin", "пигментация": "hyperpigmentation pigmentation",
-    "лапы": "paws feet interdigital", "морда": "face facial",
-    "уши": "ears otitis ear", "живот": "ventrum abdomen belly inguinal",
-    "спина": "dorsum back", "грудь": "chest axillae",
-    "подмышки": "axillae armpit", "паха": "inguinal groin",
-    "нос": "nose nasal planum", "глаза": "eyes periocular",
-    "хвост": "tail", "анус": "perianal anal",
-    "французский бульдог": "French Bulldog brachycephalic",
-    "бульдог": "Bulldog brachycephalic", "мопс": "Pug brachycephalic",
-    "лабрадор": "Labrador Retriever", "овчарка": "German Shepherd",
-    "немецкая овчарка": "German Shepherd", "терьер": "Terrier West Highland",
-    "вест хайленд": "West Highland White Terrier", "шарпей": "Shar-Pei",
-    "пудель": "Poodle", "спаниель": "Cocker Spaniel",
-    "чихуахуа": "Chihuahua", "корги": "Corgi", "хаски": "Husky",
-    "шпиц": "Spitz", "йорк": "Yorkshire Terrier",
-    "йоркширский терьер": "Yorkshire Terrier", "такса": "Dachshund",
-    "доберман": "Doberman Pinscher", "ретривер": "Golden Retriever",
-    "голден ретривер": "Golden Retriever", "чау-чау": "Chow Chow",
-    "акита": "Akita", "ротвейлер": "Rottweiler", "бассет": "Basset Hound",
-    "бигль": "Beagle", "аллергия": "allergy atopic dermatitis allergic",
-    "атопический дерматит": "atopic dermatitis atopy",
-    "демодекоз": "demodicosis Demodex mange",
-    "чесотка": "sarcoptic mange scabies",
-    "лишай": "dermatophytosis ringworm fungal",
-    "стригущий лишай": "dermatophytosis ringworm",
-    "малассезия": "Malassezia yeast",
-    "дрожжевая инфекция": "Malassezia yeast infection",
-    "пиодермия": "pyoderma bacterial skin infection",
-    "фолликулит": "folliculitis", "себорея": "seborrhea",
-    "гипотиреоз": "hypothyroidism thyroid",
-    "гиперадренокортицизм": "hyperadrenocorticism Cushing",
-    "кушинг": "Cushing hyperadrenocorticism",
-    "пемфигус": "pemphigus autoimmune",
-    "аутоиммунное": "autoimmune pemphigus SLE",
-    "отит": "otitis externa ear infection",
-    "горячая точка": "hot spot acute moist dermatitis",
-    "экзема": "eczema dermatitis",
-    "интертриго": "intertrigo skin fold dermatitis",
-    "облысение": "alopecia hair loss",
-    "облизывает лапы": "lick paw atopic dermatitis",
-    "вылизывает": "lick acral lick granuloma",
-    "мокнет": "moist weeping exudative",
-    "кровоточит": "bleeding hemorrhagic ulcer",
-    "собака": "dog canine", "щенок": "puppy young dog",
-    "кот": "cat feline", "кошка": "cat feline",
-    "маленький": "young small", "старый": "old geriatric senior",
-}
-
-
-def translate_ru_to_en_query(text: str) -> str:
-    text_lower = text.lower()
-    en_terms = []
-    sorted_terms = sorted(RU_EN_TERMS.items(), key=lambda x: len(x[0]), reverse=True)
-    for ru_term, en_translation in sorted_terms:
-        if ru_term in text_lower:
-            en_terms.append(en_translation)
-    en_words = re.findall(r'[a-zA-Z]+', text)
-    parts = [text]
-    if en_terms:
-        parts.append(" ".join(en_terms))
-    if en_words:
-        parts.append(" ".join(en_words))
-    return " ".join(parts)
-
-
-class VetDermRAG:
-    def __init__(self):
-        self.index = None
-        self.vectorizer = None
-        self.documents = []
-        self._load()
-
-    def _load(self):
-        import faiss
-        from huggingface_hub import hf_hub_download
-        from sklearn.preprocessing import normalize
-
-        REPO_ID = "shrayyyy/vet-derm-rag"
-        token = os.environ.get("HF_TOKEN", "")
-        local_dir = "/tmp/vet_rag"
-        os.makedirs(local_dir, exist_ok=True)
-
-        try:
-            index_path = hf_hub_download(repo_id=REPO_ID, filename="vet_derm_faiss.index", token=token, local_dir=local_dir)
-            vec_path = hf_hub_download(repo_id=REPO_ID, filename="vet_derm_vectorizer.pkl", token=token, local_dir=local_dir)
-            doc_path = hf_hub_download(repo_id=REPO_ID, filename="vet_derm_retrieval_store.json", token=token, local_dir=local_dir)
-
-            self.index = faiss.read_index(index_path)
-            with open(vec_path, 'rb') as f:
-                self.vectorizer = pickle.load(f)
-            with open(doc_path, 'r', encoding='utf-8') as f:
-                self.documents = json.load(f)
-            self.normalize = normalize
-            print(f"RAG loaded: {self.index.ntotal} vectors, {len(self.documents)} docs")
-        except Exception as e:
-            print(f"RAG load failed: {e}. RAG features will be unavailable.")
-            self.index = None
-
-    def is_ready(self) -> bool:
-        return self.index is not None
-
-    def retrieve(self, query: str, top_k: int = 5) -> List[Dict]:
-        if not self.is_ready():
-            return []
-        search_query = translate_ru_to_en_query(query)
-        query_vec = self.vectorizer.transform([search_query]).toarray().astype('float32')
-        query_vec = self.normalize(query_vec, norm='l2')
-        distances, indices = self.index.search(query_vec, top_k)
-        results = []
-        for dist, idx in zip(distances[0], indices[0]):
-            if idx < len(self.documents) and dist > 0.01:
-                doc = self.documents[idx].copy()
-                doc["score"] = float(dist)
-                results.append(doc)
-        return results
-
-    def format_context(self, results: List[Dict], max_chars: int = 5000) -> str:
-        context_parts = []
-        total_chars = 0
-        for i, r in enumerate(results):
-            source = r.get("source", "Unknown")
-            conditions = r.get("conditions", [])
-            content = r.get("content", "")
-            score = r.get("score", 0)
-            part = f"[Source {i+1}: {source} | Conditions: {', '.join(conditions) if conditions else 'general'} | Relevance: {score:.2f}]\n{content}\n"
-            if total_chars + len(part) > max_chars:
-                remaining = max_chars - total_chars
-                if remaining > 100:
-                    part = part[:remaining] + "..."
-                    context_parts.append(part)
-                break
-            context_parts.append(part)
-            total_chars += len(part)
-        return "\n".join(context_parts)
-
+# Single source of truth: src/rag/retriever.py (shared with the FastAPI backend).
+from src.rag.retriever import VetDermRAG
 
 # ============================================================
 # GLM API CLIENT
+
 # ============================================================
-class GLMClient:
-    def __init__(self):
-        self.api_key = os.environ.get("GLM_API_KEY", os.environ.get("OPENAI_API_KEY", ""))
-        self.base_url = os.environ.get("GLM_BASE_URL", "https://open.bigmodel.cn/api/paas/v4")
-        self.vlm_model = os.environ.get("VLM_MODEL", "glm-4.6v")
-        self.llm_model = os.environ.get("LLM_MODEL", "glm-4-flash")
-
-    def _call_api(self, payload: dict, timeout: int = 90) -> dict:
-        headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
-        response = requests.post(f"{self.base_url}/chat/completions", json=payload, headers=headers, timeout=timeout)
-        if response.status_code != 200:
-            raise Exception(f"API error {response.status_code}: {response.text[:300]}")
-        return response.json()
-
-    def image_to_base64(self, image: Image.Image) -> str:
-        buffered = io.BytesIO()
-        image.save(buffered, format="JPEG", quality=85)
-        return base64.b64encode(buffered.getvalue()).decode("utf-8")
-
-    def analyze_image(self, image: Image.Image, prompt: str = None) -> str:
-        b64 = self.image_to_base64(image)
-        if prompt is None:
-            prompt = """You are a veterinary dermatologist examining a photo of an animal's skin condition. Describe in detail:
-1. Species and breed (if identifiable)
-2. PRIMARY skin lesions (papules, pustules, nodules, macules, plaques, wheals, vesicles, bullae, tumors)
-3. SECONDARY skin lesions (scales, crusts, excoriations, erosions, ulcers, lichenification, hyperpigmentation, alopecia, comedones)
-4. Distribution pattern (focal, multifocal, generalized, symmetric, asymmetric)
-5. Body regions affected
-6. Evidence of pruritus
-7. Severity (mild, moderate, severe)
-Use proper veterinary dermatological terminology."""
-
-        payload = {
-            "model": self.vlm_model,
-            "messages": [{
-                "role": "user",
-                "content": [
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
-                    {"type": "text", "text": prompt}
-                ]
-            }],
-            "max_tokens": 800,
-            "temperature": 0.3
-        }
-        result = self._call_api(payload)
-        return result["choices"][0]["message"]["content"]
-
-    def generate_text(self, system_prompt: str, user_message: str, max_tokens: int = 2000, temperature: float = 0.4) -> str:
-        payload = {
-            "model": self.llm_model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ],
-            "max_tokens": max_tokens,
-            "temperature": temperature
-        }
-        result = self._call_api(payload)
-        return result["choices"][0]["message"]["content"]
-
+from src.vlm.client import GLMClient
 
 # ============================================================
 # SYSTEM PROMPTS
@@ -382,33 +169,62 @@ print("VetEcosystem ready!")
 def vlm_analyze(image: Image.Image, mode: str) -> str:
     if image is None:
         return "Загрузите изображение"
-    if not glm.api_key:
+    if not glm.configured:
         return "Ошибка: GLM_API_KEY не задан. Установите переменную окружения."
 
     image = image.convert("RGB")
 
+    # ── Шаг 1: VLM описывает видимые поражения (без RAG) ──────────────
+    lesion_prompt = (
+        "Опиши ветеринарно-дерматологическими терминами, что видно на фото кожи животного: "
+        "морфология первичных и вторичных элементов, локализация, распространённость, "
+        "признаки зуда, предполагаемый вид/порода. Будь максимально конкретным — "
+        "это пойдёт в поиск по базе знаний."
+    )
+    try:
+        description = glm.analyze_image(image, lesion_prompt)
+    except Exception as e:
+        return f"Ошибка анализа изображения: {e}"
+
+    # ── Шаг 2: ретрив из RAG ПО ОПИСАНИЮ фото, а не по хардкоду ──────
+    rag_context = ""
+    if rag.is_ready():
+        # Ключевые слова режима уточняют, что именно искать в базе.
+        mode_hint = {
+            "Диагноз": "дифференциальный диагноз причины лечение",
+            "Описание": "",
+            "Тяжесть": "тяжесть прогноз",
+            "Лечение": "терапия дозировка препараты",
+        }.get(mode, "")
+        query = f"{description}\n{mode_hint}".strip()
+        results = rag.retrieve(query, top_k=5)
+        if results:
+            rag_context = rag.format_context(results, max_chars=3000)
+
+    # ── Шаг 3: синтез финального ответа с RAG-контекстом ─────────────
     prompts = {
         "Диагноз": VLM_DIAGNOSIS_PROMPT,
         "Описание": "Describe all visible skin lesions in detail: morphology, distribution, body regions. Use veterinary terminology.",
         "Тяжесть": "Assess the severity of the visible condition: mild, moderate, or severe. Explain your reasoning.",
         "Лечение": "Based on the visible skin condition, suggest a treatment approach with specific drug names, dosages (mg/kg), route, and duration.",
     }
-
     prompt = prompts.get(mode, VLM_DIAGNOSIS_PROMPT)
-
-    # Если есть RAG — дополняем контекстом
-    rag_context = ""
-    if rag.is_ready():
-        rag_results = rag.retrieve("dermatology skin condition", top_k=3)
-        if rag_results:
-            rag_context = rag.format_context(rag_results, max_chars=2000)
-            prompt += f"\n\n## RAG Context (evidence-based):\n{rag_context}"
+    synthesis = (
+        f"{prompt}\n\n"
+        f"## Что видно на фото (описание VLM):\n{description}\n"
+    )
+    if rag_context:
+        synthesis += (
+            f"\n## Контекст из базы знаний (доказательная база):\n{rag_context}\n"
+            f"Опирайся на контекст из базы знаний, где это уместно, и указывай источники.\n"
+        )
 
     try:
-        result = glm.analyze_image(image, prompt)
+        result = glm.generate_text(RAG_SYSTEM_PROMPT, synthesis, temperature=0.3)
         return result + "\n\n---\n*⚠️ AI-ассистированный анализ. Не заменяет консультацию ветеринара.*"
     except Exception as e:
-        return f"Ошибка анализа: {e}"
+        # Фолбэк: хотя бы вернём описание, если синтез не удался.
+        return description + f"\n\n(⚠️ Не удалось сгенерировать ответ: {e})"
 
 
 # ============================================================
@@ -425,7 +241,7 @@ def rag_search(query: str) -> str:
         return "Ничего не найдено. Попробуйте другой запрос."
 
     # Если есть GLM — генерируем ответ с контекстом
-    if glm.api_key:
+    if glm.configured:
         rag_context = rag.format_context(results)
         user_msg = f"## Контекст из ветеринарной базы знаний:\n{rag_context}\n\n## Вопрос:\n{query}\n\nОтветь на вопрос, используя предоставленный контекст. Укажи источники."
         try:
@@ -453,7 +269,7 @@ def dictation_parse(text: str) -> str:
     if not text.strip():
         return "Надиктуйте или введите текст записи"
 
-    if not glm.api_key:
+    if not glm.configured:
         return "Ошибка: GLM_API_KEY не задан"
 
     try:
@@ -588,7 +404,7 @@ def dose_calculate(drug_name: str, weight_kg: float, species: str) -> str:
 
     if not drug_info:
         # Если не нашли в базе — спросим GLM
-        if glm.api_key:
+        if glm.configured:
             try:
                 prompt = f"Рассчитай дозировку препарата '{drug_name}' для {species} весом {weight_kg} кг. Укажи: дозу мг/кг, общую дозу, путь введения, кратность, длительность. Формат: JSON с полями dose_mg_kg, total_dose_mg, route, frequency, duration_days, notes"
                 result = glm.generate_text(

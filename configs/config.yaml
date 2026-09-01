@@ -1,12 +1,20 @@
 # VetVoice RAG Configuration
 # --------------------------
+# ЕДИНЫЙ источник конфигурации. Файл реально читается (src/settings.py),
+# это не декорация.
+#
+# Приоритет: env VETVOICE_* → .env → этот файл → дефолты в src/settings.py.
+# Примеры: VETVOICE_ZAI_BASE_URL, VETVOICE_LLM_MODEL, VETVOICE_API_KEYS,
+#          VETVOICE_RAG_TOP_K, VETVOICE_KB_DIR.
+#
 # Knowledge base is built locally (scripts/build_rag.py) and loaded from
-# `knowledge_base/` next to this repo. HF Hub is only used as a fallback
-# when HF_TOKEN is set and local files are missing.
+# `knowledge_base/` next to this repo. HF Hub is used as a fallback when
+# local files are missing — репозиторий публичный, токен не обязателен.
 
 api:
   host: "0.0.0.0"
   port: 7860
+  # "*" допустимо для локальной разработки. В проде перечисли конкретные origins.
   cors_origins: ["*"]
 
 rag:
@@ -20,14 +28,15 @@ rag:
   # Minimum similarity score (cosine, 0..1) for a chunk to be returned.
   min_score: 0.01
 
-# Z AI SDK — chatId and token are read dynamically from /etc/.z-ai-config
-# at every request to avoid TTL expiration. Override via env if needed.
+# Публичный endpoint Z AI.
+# internal-api.z.ai резолвится в приватный IP (172.25.x.x) и недоступен
+# ни с телефона, ни с HF Spaces, ни из Docker — не использовать.
 zai:
   config_path: "/etc/.z-ai-config"
-  base_url: "https://internal-api.z.ai/v1"
+  base_url: "https://api.z.ai/api/paas/v4"
   models:
-    vlm: "glm-4v-flash"
-    llm: "glm-4-flash"
+    vlm: "glm-4.6v"
+    llm: "glm-4.5-flash"
 
 logging:
   level: "INFO"

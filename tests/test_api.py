@@ -1,49 +1,39 @@
-"""Tests for FastAPI endpoints"""
+"""Tests for FastAPI endpoints (offline — no network, no RAG download)."""
 
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from fastapi.testclient import TestClient
 
-from src.models.schemas import AnalysisRequest, AnalysisResponse, HealthResponse
+from src.api.app import create_app
 
 
-def test_analysis_request():
-    req = AnalysisRequest(description="itchy dog", breed="Labrador", age="5 years")
-    assert req.description == "itchy dog"
-    assert req.breed == "Labrador"
-    print("✅ AnalysisRequest works")
+def test_root_endpoint():
+    client = TestClient(create_app())
+    r = client.get("/")
+    assert r.status_code == 200
+    assert r.json()["name"] == "VetVoice RAG API"
 
 
-def test_analysis_request_defaults():
-    req = AnalysisRequest()
-    assert req.description == ""
-    assert req.breed == ""
-    assert req.age == ""
-    print("✅ AnalysisRequest defaults work")
+def test_health_root():
+    client = TestClient(create_app())
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.json()["status"] == "ok"
 
 
-def test_analysis_response():
-    resp = AnalysisResponse(
-        vlm_analysis="Papules on ventrum",
-        diagnosis="Atopic dermatitis - 75%",
-        conditions=["atopic dermatitis", "pyoderma"],
+def test_health_v1_open_mode():
+    # No VETVOICE_API_KEYS -> open mode, auth_enabled False
+    client = TestClient(create_app())
+    r = client.get("/v1/health")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "ok"
+    assert body["auth_enabled"] is False
+
+
+def test_guardrail_rejects_unknown_model():
+    client = TestClient(create_app())
+    r = client.post(
+        "/v1/chat/completions",
+        json={"model": "gpt-4", "messages": [{"role": "user", "content": "hi"}]},
     )
-    assert len(resp.conditions) == 2
-    assert "disclaimer" in resp.disclaimer.lower() or "veterinar" in resp.disclaimer.lower()
-    print("✅ AnalysisResponse works")
-
-
-def test_health_response():
-    health = HealthResponse(rag_loaded=True)
-    assert health.status == "ok"
-    assert health.rag_loaded is True
-    assert health.version == "1.0.0"
-    print("✅ HealthResponse works")
-
-
-if __name__ == "__main__":
-    test_analysis_request()
-    test_analysis_request_defaults()
-    test_analysis_response()
-    test_health_response()
-    print("\n🎉 All API model tests passed!")
+    assert r.status_code == 400
+    assert "not allowed" in r.json()["detail"]

@@ -11,58 +11,73 @@ Routes:
 Z AI credentials are re-read from /etc/.z-ai-config on every request —
 this solves the chatId TTL problem (credentials refresh automatically
 when the IM session rotates them).
+
+Конфигурация — только через src/settings.py (env VETVOICE_* / .env /
+configs/config.yaml). Хардкода URL и моделей здесь нет.
 """
 
 from __future__ import annotations
 
 import json
-import os
+import logging
+import secrets
+import threading
 import time
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.security import APIKeyHeader
+from pydantic import BaseModel, Field
 
+from src.settings import Settings, get_settings
+
+logger = logging.getLogger("vetvoice.api")
 
 # ─── Z AI config: re-read on every request ─────────────────────────────
+# Кэш защищён локом: FastAPI обслуживает запросы конкурентно, а словарь
+# один на процесс.
 
-ZAI_CONFIG_PATH = os.environ.get("ZAI_CONFIG_PATH", "/etc/.z-ai-config")
-ZAI_BASE_URL_FALLBACK = os.environ.get("ZAI_BASE_URL", "https://internal-api.z.ai/v1")
-
-# Cache config for 30s — avoids re-reading file on every single request,
-# but still picks up TTL-rotated credentials quickly.
+_config_lock = threading.Lock()
 _config_cache: Dict[str, Any] = {"data": None, "ts": 0.0}
 _CONFIG_TTL_SEC = 30.0
 
+UPSTREAM_TIMEOUT_SEC = 90
+VISION_TIMEOUT_SEC = 120
+MAX_RAG_TOP_K = 20
+
 
 def _load_zai_config() -> Dict[str, str]:
-    """Read Z AI config from /etc/.z-ai-config with 30s cache."""
+    """Read Z AI config from /etc/.z-ai-config with 30s cache (thread-safe)."""
+    cfg = get_settings()
+    path = cfg.zai_config_path
+
     now = time.time()
-    if _config_cache["data"] and (now - _config_cache["ts"]) < _CONFIG_TTL_SEC:
-        return _config_cache["data"]
+    with _config_lock:
+        if _config_cache["data"] and (now - _config_cache["ts"]) < _CONFIG_TTL_SEC:
+            return dict(_config_cache["data"])
 
-    cfg: Dict[str, str] = {
-        "baseUrl": ZAI_BASE_URL_FALLBACK,
-        "apiKey": "Z.ai",
-        "chatId": os.environ.get("ZAI_CHAT_ID", ""),
-        "token": os.environ.get("ZAI_TOKEN", ""),
-        "userId": os.environ.get("ZAI_USER_ID", ""),
-    }
+        fresh: Dict[str, str] = {
+            "baseUrl": cfg.zai_base_url,
+            "apiKey": cfg.glm_api_key or "Z.ai",
+            "chatId": "",
+            "token": "",
+            "userId": "",
+        }
 
-    try:
-        with open(ZAI_CONFIG_PATH, "r", encoding="utf-8") as f:
-            file_cfg = json.load(f)
-        cfg.update({k: v for k, v in file_cfg.items() if isinstance(v, str)})
-    except FileNotFoundError:
-        print(f"[warn] {ZAI_CONFIG_PATH} not found, using env defaults")
-    except Exception as e:
-        print(f"[warn] Failed to parse {ZAI_CONFIG_PATH}: {e}")
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                file_cfg = json.load(f)
+            fresh.update({k: v for k, v in file_cfg.items() if isinstance(v, str)})
+        except FileNotFoundError:
+            logger.debug("Z AI config %s not found, using settings defaults", path)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Failed to parse %s: %s", path, e)
 
-    _config_cache["data"] = cfg
-    _config_cache["ts"] = now
-    return cfg
+        _config_cache["data"] = fresh
+        _config_cache["ts"] = now
+        return dict(fresh)
 
 
 def _zai_headers() -> Dict[str, str]:
@@ -73,30 +88,36 @@ def _zai_headers() -> Dict[str, str]:
         "Authorization": f"Bearer {cfg.get('apiKey', 'Z.ai')}",
         "X-Z-AI-From": "Z",
     }
-    if cfg.get("chatId"):
-        h["X-Chat-Id"] = cfg["chatId"]
-    if cfg.get("userId"):
-        h["X-User-Id"] = cfg["userId"]
-    if cfg.get("token"):
-        h["X-Token"] = cfg["token"]
+    for header, key in (
+        ("X-Chat-Id", "chatId"),
+        ("X-User-Id", "userId"),
+        ("X-Token", "token"),
+    ):
+        value = cfg.get(key)
+        if value:
+            h[header] = value
     return h
 
 
 def _zai_base_url() -> str:
-    return _load_zai_config().get("baseUrl", ZAI_BASE_URL_FALLBACK)
+    return _load_zai_config().get("baseUrl") or get_settings().zai_base_url
 
 
 # ─── RAG: lazy-loaded singleton ────────────────────────────────────────
 
 _rag_instance = None
+_rag_lock = threading.Lock()
 
 
-def _get_rag():
+def get_rag():
     """Lazy-load the RAG retriever. Singleton — first call loads the index."""
     global _rag_instance
     if _rag_instance is None:
-        from src.rag.retriever import VetDermRAG
-        _rag_instance = VetDermRAG()
+        with _rag_lock:
+            if _rag_instance is None:
+                from src.rag.retriever import VetDermRAG
+
+                _rag_instance = VetDermRAG()
     return _rag_instance
 
 
@@ -108,11 +129,14 @@ SYSTEM_PROMPT_VET = (
     "Используй предоставленный контекст из базы знаний. "
     "Если в контексте нет точного ответа, скажи об этом и дай общую рекомендацию. "
     "Всегда указывай дозировки, способы введения, периоды ожидания и противопоказания. "
-    "При подозрении на зооноз или особо опасное заболевание — рекомендуй обратиться к ветврачу."
+    "При подозрении на зооноз или особо опасное заболевание — рекомендуй обратиться к ветврачу. "
+    "Каждый ответ с дозировкой заканчивай дисклеймером: это ИИ-ассистированный расчёт, "
+    "перед применением нужна консультация ветеринарного врача."
 )
 
 
 # ─── Pydantic schemas ──────────────────────────────────────────────────
+
 
 class Message(BaseModel):
     role: str
@@ -120,7 +144,7 @@ class Message(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    model: str = "glm-4-flash"
+    model: Optional[str] = None
     messages: List[Message]
     temperature: float = 0.7
     max_tokens: int = 2048
@@ -130,54 +154,136 @@ class ChatRequest(BaseModel):
 
 
 class RAGRequest(BaseModel):
-    query: str
-    top_k: int = 5
+    query: str = Field(min_length=1, max_length=2000)
+    top_k: int = Field(default=5, ge=1, le=MAX_RAG_TOP_K)
+
+
+# ─── Auth & rate limiting ──────────────────────────────────────────────
+
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def require_api_key(api_key: Optional[str] = Depends(_api_key_header)) -> None:
+    """Если VETVOICE_API_KEYS задан — требуем совпадение. Иначе открытый режим."""
+    cfg = get_settings()
+    if not cfg.auth_enabled:
+        return
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing X-API-Key header"
+        )
+    if not any(secrets.compare_digest(api_key, known) for known in cfg.api_keys):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key"
+        )
+
+
+def _rate_limit_value() -> str:
+    return f"{get_settings().rate_limit_per_minute}/minute"
+
+
+def _apply_guardrails(body: Dict[str, Any]) -> None:
+    """Whitelist моделей и потолок max_tokens — чтобы прокси не сжигал квоту."""
+    cfg = get_settings()
+    allowed = cfg.allowed_model_names()
+    model = body.get("model")
+    if model and model not in allowed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Model '{model}' is not allowed. Allowed: {sorted(allowed)}",
+        )
+    if not model:
+        body["model"] = cfg.llm_model
+
+    try:
+        max_tokens = int(body.get("max_tokens", cfg.max_tokens_limit))
+    except (TypeError, ValueError):
+        max_tokens = cfg.max_tokens_limit
+    body["max_tokens"] = max(1, min(max_tokens, cfg.max_tokens_limit))
+
+
+def _proxy_response(resp: httpx.Response) -> Response:
+    """Пробрасывает статус upstream.
+
+    Без этого upstream 401/429 возвращался клиенту с HTTP 200, и клиент
+    показывал текст ошибки как ответ ассистента.
+    """
+    try:
+        payload = resp.json()
+    except ValueError:
+        payload = {"error": "upstream returned non-JSON", "detail": resp.text[:500]}
+
+    if resp.status_code == 200:
+        return payload
+
+    if resp.status_code == 429:
+        raise HTTPException(status_code=429, detail="Upstream rate limit exceeded")
+    if 400 <= resp.status_code < 500:
+        raise HTTPException(status_code=resp.status_code, detail=payload)
+    raise HTTPException(status_code=502, detail=f"Upstream error {resp.status_code}")
 
 
 # ─── App factory ───────────────────────────────────────────────────────
 
-def create_app() -> FastAPI:
-    app = FastAPI(title="VetVoice RAG API", version="2.0.0")
+
+def create_app(settings: Optional[Settings] = None) -> FastAPI:
+    cfg = settings or get_settings()
+
+    app = FastAPI(title="VetVoice RAG API", version="2.1.0")
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cfg.cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
+    if not cfg.auth_enabled:
+        logger.warning(
+            "VETVOICE_API_KEYS is empty — API работает в ОТКРЫТОМ режиме. "
+            "Любой может дергать /v1/chat/completions и тратить квоту. "
+            "Задайте VETVOICE_API_KEYS перед деплоем в интернет."
+        )
+
     # ─── Routes ─────────────────────────────────────────────────────────
+
+    @app.get("/health")
+    async def health_root():
+        """Алиас для docker-compose healthcheck и keep-alive."""
+        return {"status": "ok"}
 
     @app.get("/v1/health")
     async def health():
-        cfg = _load_zai_config()
+        zai = _load_zai_config()
         return {
             "status": "ok",
-            "version": "2.0.0",
-            "zai_configured": bool(cfg.get("chatId") and cfg.get("token")),
-            "zai_base_url": cfg.get("baseUrl"),
-            "zai_chat_id_prefix": cfg.get("chatId", "")[:20] + "..." if cfg.get("chatId") else None,
-            "config_path": ZAI_CONFIG_PATH,
+            "version": "2.1.0",
+            "auth_enabled": cfg.auth_enabled,
+            "zai_configured": bool(zai.get("token")),
+            "zai_base_url": zai.get("baseUrl"),
         }
 
     @app.get("/v1/rag/stats")
-    async def rag_stats():
+    async def rag_stats(_: None = Depends(require_api_key)):
         try:
-            rag = _get_rag()
+            rag = get_rag()
             return {
                 "loaded": True,
                 "n_vectors": rag.index.ntotal if rag.index else 0,
                 "n_documents": len(rag.documents),
-                "local_dir": rag.local_dir,
             }
-        except Exception as e:
-            return {"loaded": False, "error": str(e)}
+        except Exception as e:  # noqa: BLE001
+            # Детали только в лог: путь до ФС клиенту знать не нужно.
+            logger.exception("RAG stats failed")
+            return {"loaded": False, "error": "knowledge base unavailable"}
 
     @app.post("/v1/rag/search")
-    async def rag_search(req: RAGRequest):
+    async def rag_search(
+        req: RAGRequest, _: None = Depends(require_api_key)
+    ):
         """Direct local RAG retrieval — no HF Space hop."""
         try:
-            rag = _get_rag()
+            rag = get_rag()
             results = rag.retrieve(req.query, top_k=req.top_k)
             context = rag.format_context(results)
             return {
@@ -197,98 +303,124 @@ def create_app() -> FastAPI:
                 ],
                 "context": context,
             }
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"RAG error: {e}")
+        except Exception as e:  # noqa: BLE001
+            logger.exception("RAG search failed")
+            raise HTTPException(
+                status_code=500, detail="RAG error: knowledge base unavailable"
+            ) from e
+
+    def _augment_with_rag(body: Dict[str, Any], top_k: int) -> None:
+        """Дополняет последнее user-сообщение RAG-контекстом (in-place)."""
+        messages = body.get("messages", [])
+        if not messages:
+            return
+
+        last_user_idx = None
+        for i in range(len(messages) - 1, -1, -1):
+            if messages[i].get("role") == "user":
+                last_user_idx = i
+                break
+        if last_user_idx is None:
+            return
+
+        last_msg = messages[last_user_idx]
+        user_text = (
+            last_msg["content"]
+            if isinstance(last_msg["content"], str)
+            else json.dumps(last_msg["content"], ensure_ascii=False)
+        )
+
+        try:
+            rag = get_rag()
+            results = rag.retrieve(user_text, top_k=top_k)
+        except Exception as e:  # noqa: BLE001
+            # RAG недоступен — отвечаем без контекста, но не роняем запрос.
+            logger.warning("RAG augmentation failed: %s", e)
+            return
+
+        if not results:
+            return
+
+        context = rag.format_context(results)
+        messages[last_user_idx] = {
+            "role": "user",
+            "content": (
+                f"Контекст из базы знаний VetVoice:\n{context}\n\n"
+                f"Вопрос пользователя: {user_text}\n\n"
+                f"Ответь на вопрос, опираясь на контекст. "
+                f"Если контекст не релевантен — отвечай по общим знаниям."
+            ),
+        }
+
+        # Системный промпт — ролью system, а не assistant.
+        if not any(m.get("role") == "system" for m in messages):
+            messages.insert(0, {"role": "system", "content": SYSTEM_PROMPT_VET})
+
+        body["messages"] = messages
 
     @app.post("/v1/chat/completions")
-    async def chat_completions(req: ChatRequest):
+    async def chat_completions(
+        req: ChatRequest,
+        request: Request,
+        _: None = Depends(require_api_key),
+    ):
         """Text chat via Z AI, with optional RAG context prepended."""
-        body = req.model_dump()
+        _check_rate_limit(request)
+        body = req.model_dump(exclude_none=True)
         body.setdefault("thinking", {"type": "disabled"})
 
-        messages = body.get("messages", [])
+        if req.use_rag:
+            _augment_with_rag(body, min(req.rag_top_k, MAX_RAG_TOP_K))
 
-        # If RAG enabled and there's at least one user message, augment the last user msg
-        if req.use_rag and messages:
-            last_user_idx = None
-            for i in range(len(messages) - 1, -1, -1):
-                if messages[i].get("role") == "user":
-                    last_user_idx = i
-                    break
-            if last_user_idx is not None:
-                last_msg = messages[last_user_idx]
-                user_text = (
-                    last_msg["content"]
-                    if isinstance(last_msg["content"], str)
-                    else json.dumps(last_msg["content"], ensure_ascii=False)
-                )
-                try:
-                    rag = _get_rag()
-                    results = rag.retrieve(user_text, top_k=req.rag_top_k)
-                    if results:
-                        context = rag.format_context(results)
-                        augmented = (
-                            f"Контекст из базы знаний VetVoice:\n{context}\n\n"
-                            f"Вопрос пользователя: {user_text}\n\n"
-                            f"Ответь на вопрос, опираясь на контекст. "
-                            f"Если контекст не релевантен — отвечай по общим знаниям."
-                        )
-                        # Replace last user message with augmented version
-                        messages[last_user_idx] = {
-                            "role": "user",
-                            "content": augmented,
-                        }
-                        # Prepend system prompt if no system message
-                        if not any(m.get("role") in ("system", "assistant")
-                                   for m in messages[:1]):
-                            messages.insert(0, {
-                                "role": "assistant",
-                                "content": SYSTEM_PROMPT_VET,
-                            })
-                        body["messages"] = messages
-                except Exception as e:
-                    print(f"[warn] RAG augmentation failed: {e}")
+        _apply_guardrails(body)
 
-        base = _zai_base_url()
+        base = _zai_base_url().rstrip("/")
         headers = _zai_headers()
 
         try:
-            async with httpx.AsyncClient(timeout=90) as client:
+            async with httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT_SEC) as client:
                 resp = await client.post(
-                    f"{base}/chat/completions",
-                    headers=headers,
-                    json=body,
+                    f"{base}/chat/completions", headers=headers, json=body
                 )
-                return resp.json()
+                return _proxy_response(resp)
         except httpx.RequestError as e:
-            raise HTTPException(status_code=502, detail=f"Z AI request failed: {e}")
+            raise HTTPException(
+                status_code=502, detail="Z AI request failed"
+            ) from e
 
     @app.post("/v1/chat/completions/vision")
-    async def vision_completions(req: ChatRequest):
+    async def vision_completions(
+        req: ChatRequest,
+        request: Request,
+        _: None = Depends(require_api_key),
+    ):
         """Image analysis via Z AI VLM endpoint."""
-        body = req.model_dump()
+        _check_rate_limit(request)
+        body = req.model_dump(exclude_none=True)
         body.setdefault("thinking", {"type": "disabled"})
+        _apply_guardrails(body)
 
-        base = _zai_base_url()
+        base = _zai_base_url().rstrip("/")
         headers = _zai_headers()
 
         try:
-            async with httpx.AsyncClient(timeout=120) as client:
+            async with httpx.AsyncClient(timeout=VISION_TIMEOUT_SEC) as client:
                 resp = await client.post(
-                    f"{base}/chat/completions/vision",
-                    headers=headers,
-                    json=body,
+                    f"{base}/chat/completions/vision", headers=headers, json=body
                 )
-                return resp.json()
+                return _proxy_response(resp)
         except httpx.RequestError as e:
-            raise HTTPException(status_code=502, detail=f"Z AI vision request failed: {e}")
+            raise HTTPException(
+                status_code=502, detail="Z AI vision request failed"
+            ) from e
 
     @app.get("/")
     async def root():
         return {
             "name": "VetVoice RAG API",
-            "version": "2.0.0",
+            "version": "2.1.0",
             "endpoints": [
+                "GET  /health",
                 "GET  /v1/health",
                 "GET  /v1/rag/stats",
                 "POST /v1/rag/search",
@@ -298,6 +430,40 @@ def create_app() -> FastAPI:
         }
 
     return app
+
+
+# ─── Rate limiting ─────────────────────────────────────────────────────
+# Простой in-memory счётчик на процесс. Для одного инстанса (HF Space,
+# docker-compose) этого достаточно; для нескольких реплик нужен Redis.
+
+_rate_state: Dict[str, List[float]] = {}
+_rate_lock = threading.Lock()
+
+
+def _check_rate_limit(request: Request) -> None:
+    cfg = get_settings()
+    limit = cfg.rate_limit_per_minute
+    if limit <= 0:
+        return
+
+    if cfg.auth_enabled:
+        key = request.headers.get("X-API-Key", "")
+    else:
+        client = request.client
+        key = client.host if client else "unknown"
+
+    now = time.time()
+    window = 60.0
+    with _rate_lock:
+        hits = [t for t in _rate_state.get(key, []) if now - t < window]
+        if len(hits) >= limit:
+            _rate_state[key] = hits
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded: {limit} requests/minute",
+            )
+        hits.append(now)
+        _rate_state[key] = hits
 
 
 # For `uvicorn src.api.app:app` style invocation
