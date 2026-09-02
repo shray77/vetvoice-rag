@@ -22,9 +22,36 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  String _selectedChatModel = AppModels.defaultChatModel;
+  String _selectedVlmModel = AppModels.defaultVlmModel;
+
   @override
   void initState() {
     super.initState();
+    _loadSelectedModels();
+  }
+
+  Future<void> _loadSelectedModels() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _selectedChatModel =
+          prefs.getString(AppModels.selectedChatModelPrefsKey) ?? AppModels.defaultChatModel;
+      _selectedVlmModel =
+          prefs.getString(AppModels.selectedVlmModelPrefsKey) ?? AppModels.defaultVlmModel;
+    });
+  }
+
+  Future<void> _setSelectedChatModel(String id) async {
+    setState(() => _selectedChatModel = id);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppModels.selectedChatModelPrefsKey, id);
+  }
+
+  Future<void> _setSelectedVlmModel(String id) async {
+    setState(() => _selectedVlmModel = id);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppModels.selectedVlmModelPrefsKey, id);
   }
 
   Future<void> _loadSettings() async {
@@ -138,6 +165,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.smart_toy_outlined,
               children: [
                 _buildApiKeyTile(textColor, secondaryTextColor, surfaceColor, primaryColor),
+                _buildModelTile(
+                  'Модель чата (RAG)',
+                  AppModels.chatModels,
+                  _selectedChatModel,
+                  _setSelectedChatModel,
+                ),
+                _buildModelTile(
+                  'Модель VLM (зрение)',
+                  AppModels.visionModels,
+                  _selectedVlmModel,
+                  _setSelectedVlmModel,
+                ),
                 _buildInfoTile('RAG поиск', 'Через HF Space (работает без API key)'),
                 _buildNavigationTile(
                   title: 'API endpoint',
@@ -169,7 +208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildInfoTile('Антидотов', '${AppConstants.totalAntidotes}'),
                 _buildInfoTile('Экстренных протоколов', '${AppConstants.totalEmergencyProtocols}'),
                 _buildInfoTile('Записей побочных эфф.', '${AppConstants.totalSideEffectEntries}'),
-                _buildInfoTile('API', 'GLM-4.5-Flash + GLM-4.6V (Z AI)'),
+                _buildInfoTile('API', 'GLM (Z AI), выбирается в «AI»'),
                 _buildInfoTile('RAG KB', '12 024 чанков, FAISS TF-IDF'),
               ],
             ),
@@ -199,7 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'VetEco объединяет 4 модуля:\n'
                       '• Записи (голос → SOAP медкарта)\n'
                       '• Калькулятор дозировок (2401 препарат)\n'
-                      '• AI (GLM-4.5-Flash + RAG + VLM-4.6V)\n'
+                      '• AI (GLM чат + RAG + VLM зрение)\n'
                       '• VetLearn (обучающая платформа)\n\n'
                       'Zero Cost: GLM бесплатный тир, HF Spaces RAG',
                       style: AppTypography.footnote.copyWith(
@@ -334,6 +373,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModelTile(
+    String title,
+    List<ModelOption> models,
+    String selected,
+    Future<void> Function(String) onChanged,
+  ) {
+    final textColor = AppColorsResolver.textPrimary(context);
+    final secondaryTextColor = AppColorsResolver.textSecondary(context);
+    final primaryColor = AppColorsResolver.primary(context);
+    final option = models.firstWhere((m) => m.id == selected, orElse: () => models.first);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.cardPadding, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: AppTypography.body.copyWith(color: textColor)),
+                const SizedBox(height: 6),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: primaryColor.withValues(alpha: 0.25)),
+                    borderRadius: BorderRadius.circular(AppRadius.medium),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: DropdownButton<String>(
+                    value: option.id,
+                    isExpanded: true,
+                    underline: const SizedBox.shrink(),
+                    icon: Icon(Icons.expand_more_rounded, color: secondaryTextColor, size: 20),
+                    items: models
+                        .map(
+                          (m) => DropdownMenuItem<String>(
+                            value: m.id,
+                            child: Text(
+                              '${m.label}  ·  ${m.tier == 'free' ? 'бесплатно' : m.tier == 'plan' ? 'по подписке' : m.tier}  ·  ${m.contextWindow}',
+                              style: AppTypography.footnote.copyWith(color: textColor),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) onChanged(v);
+                    },
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  option.description,
+                  style: AppTypography.caption2.copyWith(color: secondaryTextColor),
+                ),
+              ],
+            ),
           ),
         ],
       ),

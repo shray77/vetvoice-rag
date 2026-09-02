@@ -502,11 +502,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  'GLM-4.6V — Vision Language Model с поддержкой RAG. '
+                  'GLM VLM (GLM-4.6V / GLM-5V-Turbo) — Vision Language Model с поддержкой RAG. '
                   'Анализирует фотографии кожных поражений, ушных инфекций, глазных '
                   'патологий. Результаты дополняются контекстом из базы ветеринарных '
                   'знаний (12 024 чанков). 3-tier fallback: локальный FastAPI → '
-                  'HF Space → прямой GLM-4.6V.',
+                  'HF Space → прямой VLM.',
                   style: AppTypography.footnote.copyWith(
                     color: AppColorsResolver.textSecondary(context),
                     height: 1.4,

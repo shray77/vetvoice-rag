@@ -81,6 +81,7 @@ class BackendRagService {
   }) async {
     try {
       final base = await _getBaseUrl();
+      final model = await AppModels.selectedChatModel();
       final messages = <Map<String, dynamic>>[
         {'role': 'system', 'content': systemPrompt},
         if (history != null) ...history,
@@ -91,7 +92,7 @@ class BackendRagService {
             Uri.parse('$base${ApiConfig.backendChatPath}'),
             headers: _headers(apiKey),
             body: jsonEncode({
-              'model': ApiConfig.glmModel,
+              'model': model,
               'messages': messages,
               'temperature': 0.3,
               'max_tokens': 2048,

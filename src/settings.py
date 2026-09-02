@@ -134,8 +134,21 @@ class Settings(BaseSettings):
     # но громко предупреждает в логе и отдаёт auth_enabled=false в /v1/health.
     api_keys: List[str] = Field(default_factory=list)
     rate_limit_per_minute: int = 30
-    # Пустой список = разрешены только llm_model/vlm_model из конфига.
-    allowed_models: List[str] = Field(default_factory=list)
+    # Whitelist разрешённых моделей (соответствует AppModels в Flutter-клиенте).
+    # По умолчанию — курируемый «рекомендованный» набор:
+    #   чат:  glm-4.5-flash (free), glm-4.7-flash (free, 203K)
+    #   VLM:  glm-4.6v (plan),       glm-5v-turbo (plan, новая)
+    # Если переопределить через env (ZAI_ALLOWED_MODELS, через запятую) —
+    # разрешены будут только перечисленные. Пустой список (default_factory=list)
+    # означал бы «только llm_model/vlm_model» — здесь сразу заполнен актуальным набором.
+    allowed_models: List[str] = Field(
+        default_factory=lambda: [
+            "glm-4.5-flash",
+            "glm-4.7-flash",
+            "glm-4.6v",
+            "glm-5v-turbo",
+        ]
+    )
     max_tokens_limit: int = 2048
 
     # ─── Прочее ─────────────────────────────────────────────────────────────

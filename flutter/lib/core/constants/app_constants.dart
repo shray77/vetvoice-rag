@@ -1,3 +1,5 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 /// Z AI API configuration
 /// Публичный endpoint api.z.ai доступен с любого устройства.
 /// internal-api.z.ai резолвится в private IP (172.25.x.x) —
@@ -12,6 +14,8 @@ class ApiConfig {
   static const String visionPath = '/chat/completions';
 
   // Models (OpenAI-compatible naming)
+  // ⚠️ Устарело: используйте AppModels.selectedChatModel() / selectedVlmModel().
+  // Константы оставлены как дефолтные id для обратной совместимости.
   static const String glmModel = 'glm-4.5-flash';
   static const String glmVlmModel = 'glm-4.6v';
 
@@ -43,6 +47,97 @@ class ApiConfig {
   // Legacy (не используется, но оставлено для совместимости)
   @Deprecated('Use baseUrl instead')
   static const String glmBaseUrl = baseUrl;
+}
+
+/// Описание одной выбираемой модели Z AI (GLM) для UI и запросов.
+class ModelOption {
+  final String id;
+  final String label;
+  final String modality; // 'chat' | 'vision'
+  final String tier; // 'free' | 'plan' | 'paid'
+  final String contextWindow;
+  final String description;
+
+  const ModelOption({
+    required this.id,
+    required this.label,
+    required this.modality,
+    required this.tier,
+    required this.contextWindow,
+    required this.description,
+  });
+}
+
+/// Реестр выбираемых моделей. Единый источник правды для UI-пикеров и
+/// для model, который шлётся в запросах. ids совпадают с тем, что разрешены
+/// на бэкенде (src/settings.py → allowed_models), иначе бэкенд вернёт 400.
+///
+/// Набор «Рекомендованный» (бесплатные чат-модели + актуальные VLM):
+///   чат:  glm-4.5-flash (free), glm-4.7-flash (free, 203K)
+///   VLM:  glm-4.6v (plan),       glm-5v-turbo (plan, новая)
+class AppModels {
+  static const String selectedChatModelPrefsKey = 'veteco_selected_chat_model';
+  static const String selectedVlmModelPrefsKey = 'veteco_selected_vlm_model';
+
+  // Дефолты = прежние «соло» модели (обратная совместимость).
+  static const String defaultChatModel = 'glm-4.5-flash';
+  static const String defaultVlmModel = 'glm-4.6v';
+
+  static const List<ModelOption> chatModels = [
+    ModelOption(
+      id: 'glm-4.5-flash',
+      label: 'GLM-4.5-Flash',
+      modality: 'chat',
+      tier: 'free',
+      contextWindow: '128K',
+      description: 'Бесплатно. Текущая модель чата/RAG.',
+    ),
+    ModelOption(
+      id: 'glm-4.7-flash',
+      label: 'GLM-4.7-Flash',
+      modality: 'chat',
+      tier: 'free',
+      contextWindow: '203K',
+      description: 'Бесплатно. Новее, больше контекста.',
+    ),
+  ];
+
+  static const List<ModelOption> visionModels = [
+    ModelOption(
+      id: 'glm-4.6v',
+      label: 'GLM-4.6V',
+      modality: 'vision',
+      tier: 'plan',
+      contextWindow: '—',
+      description: 'Текущая VLM-модель (зрение).',
+    ),
+    ModelOption(
+      id: 'glm-5v-turbo',
+      label: 'GLM-5V-Turbo',
+      modality: 'vision',
+      tier: 'plan',
+      contextWindow: '—',
+      description: 'Новая VLM: анализ фото, OCR, визуальный QA.',
+    ),
+  ];
+
+  /// id выбранной чат-модели (из SharedPreferences, иначе дефолт).
+  static Future<String> selectedChatModel() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(selectedChatModelPrefsKey) ?? defaultChatModel;
+  }
+
+  /// id выбранной VLM-модели (из SharedPreferences, иначе дефолт).
+  static Future<String> selectedVlmModel() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(selectedVlmModelPrefsKey) ?? defaultVlmModel;
+  }
+
+  static ModelOption chatModelById(String id) =>
+      chatModels.firstWhere((m) => m.id == id, orElse: () => chatModels.first);
+
+  static ModelOption vlmModelById(String id) =>
+      visionModels.firstWhere((m) => m.id == id, orElse: () => visionModels.first);
 }
 
 /// App-wide constants

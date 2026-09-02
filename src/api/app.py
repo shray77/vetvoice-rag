@@ -176,8 +176,12 @@ def _rate_limit_value() -> str:
     return f"{get_settings().rate_limit_per_minute}/minute"
 
 
-def _apply_guardrails(body: Dict[str, Any]) -> None:
-    """Whitelist моделей и потолок max_tokens — чтобы прокси не сжигал квоту."""
+def _apply_guardrails(body: Dict[str, Any], is_vision: bool = False) -> None:
+    """Whitelist моделей и потолок max_tokens — чтобы прокси не сжигал квоту.
+
+    is_vision=True — это эндпоинт VLM: если model не задан, дефолтим в
+    cfg.vlm_model (vision-модель), а не в текстовый cfg.llm_model.
+    """
     cfg = get_settings()
     allowed = cfg.allowed_model_names()
     model = body.get("model")
@@ -187,7 +191,7 @@ def _apply_guardrails(body: Dict[str, Any]) -> None:
             detail=f"Model '{model}' is not allowed. Allowed: {sorted(allowed)}",
         )
     if not model:
-        body["model"] = cfg.llm_model
+        body["model"] = cfg.vlm_model if is_vision else cfg.llm_model
 
     try:
         max_tokens = int(body.get("max_tokens", cfg.max_tokens_limit))
@@ -408,7 +412,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         _check_rate_limit(request)
         body = req.model_dump(exclude_none=True)
         body.setdefault("thinking", {"type": "disabled"})
-        _apply_guardrails(body)
+        _apply_guardrails(body, is_vision=True)
 
         base = _zai_base_url().rstrip("/")
         headers = _zai_headers()

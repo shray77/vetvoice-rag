@@ -64,7 +64,7 @@ class GlmAiService {
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.chatPath}'),
         headers: _headers(apiKey),
         body: jsonEncode({
-          'model': ApiConfig.glmModel,
+          'model': await AppModels.selectedChatModel(),
           'messages': messages,
           'temperature': 0.7,
           'max_tokens': 2048,
@@ -123,7 +123,7 @@ ${ragContext != null ? 'Контекст из базы знаний:\n$ragContex
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.chatPath}'),
         headers: _headers(apiKey),
         body: jsonEncode({
-          'model': ApiConfig.glmVlmModel,
+          'model': await AppModels.selectedVlmModel(),
           'messages': [
             {
               'role': 'user',
@@ -210,7 +210,7 @@ ${ragContext != null ? 'Контекст из базы знаний:\n$ragContex
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.chatPath}'),
         headers: _headers(apiKey),
         body: jsonEncode({
-          'model': ApiConfig.glmModel,
+          'model': await AppModels.selectedChatModel(),
           'messages': [
             {'role': 'system', 'content': systemPrompt},
             {'role': 'user', 'content': dictationText},
