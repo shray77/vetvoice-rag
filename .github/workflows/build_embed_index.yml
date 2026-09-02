@@ -1,0 +1,101 @@
+name: Build Embedding Index
+
+# Builds the dense (embeddings) FAISS index for the hybrid RAG retriever.
+# Runs on GitHub-hosted runners (fast CPUs) so we don't burn the dev's machine.
+# Uploads vet_derm_embed.faiss + vet_derm_embed_meta.json to HF Hub (shrayyyy/vet-derm-rag).
+
+on:
+  workflow_dispatch:
+    inputs:
+      sample:
+        description: 'Build on a balanced sample (faster, for A/B) or full index'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - sample
+  push:
+    paths:
+      - 'assets/data/**'
+      - 'src/rag/embed_retriever.py'
+      - 'scripts/build_rag.py'
+
+env:
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps (embeddings build only)
+        run: |
+          pip install --quiet numpy faiss-cpu onnxruntime tokenizers \
+            huggingface_hub pyyaml pydantic pydantic-settings
+
+      - name: Download embedding model + existing KB from HF
+        run: |
+          python -c "
+          from huggingface_hub import hf_hub_download
+          import os
+          # model
+          for f in ['model_optimized.onnx','tokenizer.json','config.json','tokenizer_config.json','special_tokens_map.json']:
+              try:
+                  hf_hub_download('shrayyyy/vet-derm-rag', f'embed_model/{f}', token=os.environ['HF_TOKEN'], local_dir='.embed_model')
+                  print('model file:', f)
+              except Exception as e:
+                  print('skip', f, e)
+          # existing KB chunks (so we re-embed the canonical store if present)
+          try:
+              hf_hub_download('shrayyyy/vet-derm-rag', 'vet_derm_retrieval_store.json', token=os.environ['HF_TOKEN'], local_dir='knowledge_base')
+              print('KB store downloaded')
+          except Exception as e:
+              print('no KB store, will build from assets/data:', e)
+          "
+
+      - name: Build embedding index
+        env:
+          VETVOICE_EMBED_MODEL_DIR: ".embed_model/embed_model"
+        run: |
+          if [ "${{ github.event.inputs.sample || 'full' }}" = "sample" ]; then
+            # build on balanced sample (see embed_retriever __main__ CAPS)
+            python -m src.rag.embed_retriever
+          else
+            # full index from local assets/data
+            python -c "
+            import sys; sys.path.insert(0,'.')
+            from scripts.build_rag import collect_local_chunks
+            from src.rag.embed_retriever import EmbedRetriever
+            er = EmbedRetriever()
+            er.build_index(collect_local_chunks())
+            "
+          fi
+
+      - name: Upload index to HF Hub
+        run: |
+          python -c "
+          from huggingface_hub import HfApi
+          import os
+          api = HfApi(token=os.environ['HF_TOKEN'])
+          for f in ['vet_derm_embed.faiss','vet_derm_embed_meta.json']:
+              p = f'knowledge_base/{f}'
+              if os.path.exists(p):
+                  api.upload_file(path_or_fileobj=p, path_in_repo=f, repo_id='shrayyyy/vet-derm-rag', repo_type='model')
+                  print('uploaded', f)
+              else:
+                  print('missing', f)
+          "
+
+      - name: Report
+        run: |
+          python -c "
+          import faiss, json
+          idx = faiss.read_index('knowledge_base/vet_derm_embed.faiss')
+          print(f'Embed index: {idx.ntotal} vectors, {idx.d} dims')
+          "

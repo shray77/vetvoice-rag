@@ -1,24 +1,28 @@
 """
-VetEcosystem — Full-featured veterinary AI backend
+VetVoice — Veterinary AI assistant (Gradio UI)
 Tabs: VLM (GLM-4V) | RAG Search | Dictation → SOAP | Dose Calculator
 """
+
+import logging
 
 import gradio as gr
 import json
 from PIL import Image
+
+logger = logging.getLogger("vetvoice.ui")
 
 
 # ============================================================
 # RAG COMPONENTS
 # ============================================================
 # Single source of truth: src/rag/retriever.py (shared with the FastAPI backend).
-from src.rag.retriever import VetDermRAG
+from src.rag.retriever import VetDermRAG  # noqa: E402
 
 # ============================================================
 # GLM API CLIENT
 
 # ============================================================
-from src.vlm.client import GLMClient
+from src.vlm.client import GLMClient  # noqa: E402
 
 # ============================================================
 # SYSTEM PROMPTS
@@ -121,31 +125,58 @@ DICTATION_SYSTEM_PROMPT = """Ты — ветеринарный AI-ассисте
 COMMON_DRUGS = {
     "амоксициллин": {"dose_mg_kg": 10, "route": "внутрь", "frequency": "2 раза/день", "duration": 7, "unit": "мг/кг"},
     "амоксиклав": {"dose_mg_kg": 12.5, "route": "внутрь", "frequency": "2 раза/день", "duration": 7, "unit": "мг/кг"},
-    "энрофлоксацин": {"dose_mg_kg": 5, "route": "внутрь/п/к", "frequency": "1 раз/день", "duration": 5, "unit": "мг/кг"},
+    "энрофлоксацин": {
+        "dose_mg_kg": 5, "route": "внутрь/п/к", "frequency": "1 раз/день", "duration": 5, "unit": "мг/кг",
+    },
     "марбофлоксацин": {"dose_mg_kg": 2, "route": "внутрь", "frequency": "1 раз/день", "duration": 5, "unit": "мг/кг"},
     "цефазолин": {"dose_mg_kg": 22, "route": "в/м/в/в", "frequency": "2-3 раза/день", "duration": 7, "unit": "мг/кг"},
     "цефовеицин": {"dose_mg_kg": 8, "route": "п/к", "frequency": "1 раз/14 дней", "duration": 14, "unit": "мг/кг"},
     "доксициклин": {"dose_mg_kg": 5, "route": "внутрь", "frequency": "2 раза/день", "duration": 14, "unit": "мг/кг"},
     "метронидазол": {"dose_mg_kg": 10, "route": "внутрь", "frequency": "2 раза/день", "duration": 7, "unit": "мг/кг"},
-    "преднизолон": {"dose_mg_kg": 0.5, "route": "внутрь", "frequency": "1 раз/день", "duration": "схема", "unit": "мг/кг"},
-    "метилпреднизолон": {"dose_mg_kg": 1, "route": "в/м", "frequency": "показания", "duration": "схема", "unit": "мг/кг"},
-    "преднизон": {"dose_mg_kg": 0.5, "route": "внутрь", "frequency": "1-2 раза/день", "duration": "схема", "unit": "мг/кг"},
-    "апоквел (оклацитиниб)": {"dose_mg_kg": 0.4, "route": "внутрь", "frequency": "2 раза/день→1 раз", "duration": "длительно", "unit": "мг/кг"},
-    "циклоспорин": {"dose_mg_kg": 5, "route": "внутрь", "frequency": "1 раз/день", "duration": "длительно", "unit": "мг/кг"},
+    "преднизолон": {
+        "dose_mg_kg": 0.5, "route": "внутрь", "frequency": "1 раз/день", "duration": "схема", "unit": "мг/кг",
+    },
+    "метилпреднизолон": {
+        "dose_mg_kg": 1, "route": "в/м", "frequency": "показания", "duration": "схема", "unit": "мг/кг",
+    },
+    "преднизон": {
+        "dose_mg_kg": 0.5, "route": "внутрь", "frequency": "1-2 раза/день", "duration": "схема", "unit": "мг/кг",
+    },
+    "апоквел (оклацитиниб)": {
+        "dose_mg_kg": 0.4, "route": "внутрь", "frequency": "2 раза/день→1 раз",
+        "duration": "длительно", "unit": "мг/кг",
+    },
+    "циклоспорин": {
+        "dose_mg_kg": 5, "route": "внутрь", "frequency": "1 раз/день", "duration": "длительно", "unit": "мг/кг",
+    },
     "итраконазол": {"dose_mg_kg": 5, "route": "внутрь", "frequency": "1-2 раза/день", "duration": 21, "unit": "мг/кг"},
     "кетоконазол": {"dose_mg_kg": 5, "route": "внутрь", "frequency": "1 раз/день", "duration": 21, "unit": "мг/кг"},
     "флуконазол": {"dose_mg_kg": 5, "route": "внутрь", "frequency": "1 раз/день", "duration": 21, "unit": "мг/кг"},
     "селамектин": {"dose_mg_kg": 6, "route": "топически", "frequency": "1 раз/месяц", "duration": "1", "unit": "мг/кг"},
-    "моксидектин": {"dose_mg_kg": 0.2, "route": "топически/внутрь", "frequency": "1 раз/месяц", "duration": "1", "unit": "мг/кг"},
+    "моксидектин": {
+        "dose_mg_kg": 0.2, "route": "топически/внутрь", "frequency": "1 раз/месяц", "duration": "1", "unit": "мг/кг",
+    },
     "ивермектин": {"dose_mg_kg": 0.3, "route": "п/к", "frequency": "1 раз/неделю", "duration": "4", "unit": "мг/кг"},
-    "милбемицин": {"dose_mg_kg": 0.5, "route": "внутрь", "frequency": "1 раз/день", "duration": "длительно", "unit": "мг/кг"},
-    "цетиризин": {"dose_mg_kg": 1, "route": "внутрь", "frequency": "1-2 раза/день", "duration": "симптоматически", "unit": "мг/кг"},
-    "хлорфенирамин": {"dose_mg_kg": 0.5, "route": "внутрь", "frequency": "2 раза/день", "duration": "симптоматически", "unit": "мг/кг"},
+    "милбемицин": {
+        "dose_mg_kg": 0.5, "route": "внутрь", "frequency": "1 раз/день", "duration": "длительно", "unit": "мг/кг",
+    },
+    "цетиризин": {
+        "dose_mg_kg": 1, "route": "внутрь", "frequency": "1-2 раза/день",
+        "duration": "симптоматически", "unit": "мг/кг",
+    },
+    "хлорфенирамин": {
+        "dose_mg_kg": 0.5, "route": "внутрь", "frequency": "2 раза/день",
+        "duration": "симптоматически", "unit": "мг/кг",
+    },
     "омепразол": {"dose_mg_kg": 1, "route": "внутрь", "frequency": "1 раз/день", "duration": "14", "unit": "мг/кг"},
     "карпрофен": {"dose_mg_kg": 2.2, "route": "внутрь/п/к", "frequency": "1 раз/день", "duration": 5, "unit": "мг/кг"},
     "мелоксикам": {"dose_mg_kg": 0.1, "route": "внутрь", "frequency": "1 раз/день", "duration": 5, "unit": "мг/кг"},
-    "травматин": {"dose_mg_kg": 0.1, "route": "п/к/в/м", "frequency": "1-2 раза/день", "duration": "5-7", "unit": "мл/кг"},
-    "лидокаин": {"dose_mg_kg": 2, "route": "местно/инфильтрация", "frequency": "по показаниям", "duration": "1", "unit": "мг/кг"},
+    "травматин": {
+        "dose_mg_kg": 0.1, "route": "п/к/в/м", "frequency": "1-2 раза/день", "duration": "5-7", "unit": "мл/кг",
+    },
+    "лидокаин": {
+        "dose_mg_kg": 2, "route": "местно/инфильтрация", "frequency": "по показаниям", "duration": "1", "unit": "мг/кг",
+    },
 }
 
 SPECIES_WEIGHT_DEFAULTS = {
@@ -204,9 +235,18 @@ def vlm_analyze(image: Image.Image, mode: str) -> str:
     # ── Шаг 3: синтез финального ответа с RAG-контекстом ─────────────
     prompts = {
         "Диагноз": VLM_DIAGNOSIS_PROMPT,
-        "Описание": "Describe all visible skin lesions in detail: morphology, distribution, body regions. Use veterinary terminology.",
-        "Тяжесть": "Assess the severity of the visible condition: mild, moderate, or severe. Explain your reasoning.",
-        "Лечение": "Based on the visible skin condition, suggest a treatment approach with specific drug names, dosages (mg/kg), route, and duration.",
+        "Описание": (
+            "Describe all visible skin lesions in detail: morphology, distribution, "
+            "body regions. Use veterinary terminology."
+        ),
+        "Тяжесть": (
+            "Assess the severity of the visible condition: mild, moderate, or severe. "
+            "Explain your reasoning."
+        ),
+        "Лечение": (
+            "Based on the visible skin condition, suggest a treatment approach with "
+            "specific drug names, dosages (mg/kg), route, and duration."
+        ),
     }
     prompt = prompts.get(mode, VLM_DIAGNOSIS_PROMPT)
     synthesis = (
@@ -243,12 +283,17 @@ def rag_search(query: str) -> str:
     # Если есть GLM — генерируем ответ с контекстом
     if glm.configured:
         rag_context = rag.format_context(results)
-        user_msg = f"## Контекст из ветеринарной базы знаний:\n{rag_context}\n\n## Вопрос:\n{query}\n\nОтветь на вопрос, используя предоставленный контекст. Укажи источники."
+        user_msg = (
+            f"## Контекст из ветеринарной базы знаний:\n{rag_context}\n\n"
+            f"## Вопрос:\n{query}\n\n"
+            f"Ответь на вопрос, используя предоставленный контекст. Укажи источники."
+        )
         try:
             answer = glm.generate_text(RAG_SYSTEM_PROMPT, user_msg, temperature=0.3)
             return answer
-        except Exception as e:
-            pass  # Fallback к простому выводу результатов
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("RAG answer generation failed, showing raw results: %s", exc)
+            # Fallback к простому выводу результатов
 
     # Fallback — просто показываем найденные чанки
     output_parts = []
@@ -257,7 +302,11 @@ def rag_search(query: str) -> str:
         conditions = r.get("conditions", [])
         content = r.get("content", "")
         score = r.get("score", 0)
-        output_parts.append(f"### [{i+1}] {source} (релевантность: {score:.2f})\n**Заболевания:** {', '.join(conditions) if conditions else 'общее'}\n\n{content}\n")
+        output_parts.append(
+            f"### [{i+1}] {source} (релевантность: {score:.2f})\n"
+            f"**Заболевания:** {', '.join(conditions) if conditions else 'общее'}\n\n"
+            f"{content}\n"
+        )
 
     return "\n---\n".join(output_parts)
 
@@ -406,7 +455,12 @@ def dose_calculate(drug_name: str, weight_kg: float, species: str) -> str:
         # Если не нашли в базе — спросим GLM
         if glm.configured:
             try:
-                prompt = f"Рассчитай дозировку препарата '{drug_name}' для {species} весом {weight_kg} кг. Укажи: дозу мг/кг, общую дозу, путь введения, кратность, длительность. Формат: JSON с полями dose_mg_kg, total_dose_mg, route, frequency, duration_days, notes"
+                prompt = (
+                    f"Рассчитай дозировку препарата '{drug_name}' для {species} "
+                    f"весом {weight_kg} кг. Укажи: дозу мг/кг, общую дозу, путь "
+                    f"введения, кратность, длительность. Формат: JSON с полями "
+                    f"dose_mg_kg, total_dose_mg, route, frequency, duration_days, notes"
+                )
                 result = glm.generate_text(
                     "Ты ветеринарный фармацевт. Отвечай ТОЛЬКО JSON без markdown.",
                     prompt, temperature=0.2, max_tokens=300
@@ -447,7 +501,10 @@ def dose_calculate(drug_name: str, weight_kg: float, species: str) -> str:
     if "кетоконазол" in drug_key and species.lower() in ["кошка", "cat"]:
         warnings.append("⚠️ **Кетоконазол:** Кошки более чувствительны к гепатотоксичности.")
     if "карпрофен" in drug_key and species.lower() in ["кошка", "cat"]:
-        warnings.append("⚠️ **Карпрофен:** У кошек ограниченное применение. Разовая доза или мелоксикам предпочтительнее.")
+        warnings.append(
+            "⚠️ **Карпрофен:** У кошек ограниченное применение. "
+            "Разовая доза или мелоксикам предпочтительнее."
+        )
     if "доксициклин" in drug_key:
         warnings.append("⚠️ **Доксициклин:** Давать с водой/едой. Риск эзофагита у кошек.")
 
@@ -472,17 +529,36 @@ def dose_calculate(drug_name: str, weight_kg: float, species: str) -> str:
 # ============================================================
 # GRADIO UI
 # ============================================================
+DISCLAIMER_HTML = """
+<div style="background:#fff8e6;border-left:4px solid #f0a500;padding:12px 16px;
+            border-radius:8px;margin:8px 0 16px;font-size:14px;color:#5b4a00;">
+  <strong>⚠️ Важно:</strong> сервис даёт AI-ассистированный анализ и <b>не заменяет
+  консультацию ветеринара</b>. Все дозировки — ознакомительные, подтверждайте у
+  лицензированного специалиста.
+</div>
+"""
+
 with gr.Blocks(
-    title="VetEcosystem — Ветеринарный AI",
-    theme=gr.themes.Soft(primary_hue="emerald", secondary_hue="blue"),
+    title="VetVoice — Ветеринарный AI",
+    theme=gr.themes.Soft(
+        primary_hue="emerald",
+        secondary_hue="blue",
+        font=["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        text_size="md",
+        radius="lg",
+    ),
 ) as demo:
 
     gr.HTML("""
-    <div style="text-align: center; padding: 16px 0;">
-        <h1>🐾 VetEcosystem</h1>
-        <p style="font-size: 16px; color: #666;">Ветеринарный AI-ассистент: VLM + RAG + Диктовка + Дозировки</p>
+    <div style="text-align:center;padding:20px 0 4px;">
+      <h1 style="margin:0;font-weight:700;letter-spacing:-0.5px;">VetVoice</h1>
+      <p style="font-size:15px;color:#6b7280;margin:6px 0 0;">
+        Ветеринарный AI-ассистент — анализ фото, база знаний, медкарты, дозировки
+      </p>
     </div>
     """)
+
+    gr.HTML(DISCLAIMER_HTML)
 
     with gr.Tabs():
         # === TAB 1: VLM ===
@@ -500,7 +576,13 @@ with gr.Blocks(
                     vlm_output = gr.Markdown(
                         value="*Загрузите фото и нажмите «Анализировать»*",
                     )
-            vlm_btn.click(fn=vlm_analyze, inputs=[vlm_image, vlm_mode], outputs=vlm_output)
+            vlm_btn.click(
+                fn=vlm_analyze,
+                inputs=[vlm_image, vlm_mode],
+                outputs=vlm_output,
+                show_progress="full",
+            ).then(fn=lambda: gr.update(interactive=True), inputs=None, outputs=vlm_btn)
+            vlm_btn.click(fn=lambda: gr.update(interactive=False), inputs=None, outputs=vlm_btn)
 
         # === TAB 2: RAG Search ===
         with gr.Tab("📚 RAG База знаний"):
@@ -508,7 +590,11 @@ with gr.Blocks(
                 with gr.Column(scale=1):
                     rag_query = gr.Textbox(
                         label="Поисковый запрос",
-                        placeholder="напр. атопический дерматит у собак лечение\nили: demodicosis puppy treatment\nили: зуд у французского бульдога",
+                        placeholder=(
+                            "напр. атопический дерматит у собак лечение\n"
+                            "или: demodicosis puppy treatment\n"
+                            "или: зуд у французского бульдога"
+                        ),
                         lines=3,
                     )
                     rag_btn = gr.Button("🔎 Искать", variant="primary")
@@ -519,7 +605,13 @@ with gr.Blocks(
                     )
                 with gr.Column(scale=2):
                     rag_output = gr.Markdown(value="*Введите запрос и нажмите «Искать»*")
-            rag_btn.click(fn=rag_search, inputs=rag_query, outputs=rag_output)
+            rag_btn.click(
+                fn=rag_search,
+                inputs=rag_query,
+                outputs=rag_output,
+                show_progress="full",
+            ).then(fn=lambda: gr.update(interactive=True), inputs=None, outputs=rag_btn)
+            rag_btn.click(fn=lambda: gr.update(interactive=False), inputs=None, outputs=rag_btn)
 
         # === TAB 3: Dictation → SOAP ===
         with gr.Tab("🎙️ Диктовка → Медкарта"):
@@ -527,13 +619,27 @@ with gr.Blocks(
                 with gr.Column(scale=1):
                     dict_text = gr.Textbox(
                         label="Текст диктовки / записи",
-                        placeholder="Надиктуйте или введите описание приёма.\n\nПример:\nСобака, французский бульдог, 3 года, 12 кг. Жалоба: чешется 2 недели, покраснение на животе и подмышках. На осмотре: эритема вентрально, папулы, экскориации. Диагноз: атопический дерматит. Назначено: апоквел 0.4 мг/кг 2 раза в день 2 недели, затем 1 раз, хлоргексидин шампунь 2 раза в неделю.",
+                        placeholder=(
+                            "Надиктуйте или введите описание приёма.\n\n"
+                            "Пример:\nСобака, французский бульдог, 3 года, 12 кг. "
+                            "Жалоба: чешется 2 недели, покраснение на животе и подмышках. "
+                            "На осмотре: эритема вентрально, папулы, экскориации. "
+                            "Диагноз: атопический дерматит. Назначено: апоквел 0.4 мг/кг "
+                            "2 раза в день 2 недели, затем 1 раз, хлоргексидин шампунь "
+                            "2 раза в неделю."
+                        ),
                         lines=10,
                     )
                     dict_btn = gr.Button("📋 Разобрать в SOAP", variant="primary", size="lg")
                 with gr.Column(scale=1):
                     dict_output = gr.Markdown(value="*Надиктуйте или введите текст, затем нажмите «Разобрать в SOAP»*")
-            dict_btn.click(fn=dictation_parse, inputs=dict_text, outputs=dict_output)
+            dict_btn.click(
+                fn=dictation_parse,
+                inputs=dict_text,
+                outputs=dict_output,
+                show_progress="full",
+            ).then(fn=lambda: gr.update(interactive=True), inputs=None, outputs=dict_btn)
+            dict_btn.click(fn=lambda: gr.update(interactive=False), inputs=None, outputs=dict_btn)
 
         # === TAB 4: Dose Calculator ===
         with gr.Tab("💊 Калькулятор дозировок"):
@@ -559,13 +665,18 @@ with gr.Blocks(
                     dose_btn = gr.Button("💊 Рассчитать дозу", variant="primary", size="lg")
                 with gr.Column(scale=1):
                     dose_output = gr.Markdown(value="*Выберите препарат, укажите вес и нажмите «Рассчитать дозу»*")
-            dose_btn.click(fn=dose_calculate, inputs=[dose_drug, dose_weight, dose_species], outputs=dose_output)
+            dose_btn.click(
+                fn=dose_calculate,
+                inputs=[dose_drug, dose_weight, dose_species],
+                outputs=dose_output,
+                show_progress="full",
+            ).then(fn=lambda: gr.update(interactive=True), inputs=None, outputs=dose_btn)
+            dose_btn.click(fn=lambda: gr.update(interactive=False), inputs=None, outputs=dose_btn)
 
     # Footer
     gr.HTML("""
-    <div style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-top: 16px;">
-        <strong>⚠️ Важно:</strong> Данный сервис предоставляет AI-ассистированный анализ и не заменяет консультацию ветеринара.
-        Все дозировки ознакомительные — подтверждайте у лицензированного специалиста.
+    <div style="text-align:center;color:#9ca3af;font-size:13px;padding:18px 0 6px;">
+      VetVoice · AI-ассистированный инструмент · не является медицинской услугой
     </div>
     """)
 

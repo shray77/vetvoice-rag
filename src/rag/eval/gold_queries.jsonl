@@ -1,0 +1,60 @@
+{"query": "собака чешется, красные пятна на животе, что это", "expected_chunk_type": "disease", "expected_conditions": ["атопический дерматит"]}
+{"query": "у кота лишай на ушах, чем лечить", "expected_chunk_type": "disease", "expected_conditions": ["дерматофития"]}
+{"query": "французский бульдог постоянно лижет лапы", "expected_chunk_type": "disease", "expected_conditions": ["атопический дерматит"]}
+{"query": "щенок весь в корках и гное, пиодермия", "expected_chunk_type": "disease", "expected_conditions": ["пиодермия"]}
+{"query": "у коровы чешутся уши и выпадает шерсть", "expected_chunk_type": "disease", "expected_conditions": ["чесотка"]}
+{"query": "у овцы шерсть выпадает клочьями, зуд", "expected_chunk_type": "disease", "expected_conditions": ["чесотка"]}
+{"query": "демодекоз у собаки симптомы", "expected_chunk_type": "disease", "expected_conditions": ["демодекоз"]}
+{"query": "у собаки малассезия на коже, дрожжевая инфекция", "expected_chunk_type": "disease", "expected_conditions": ["малассезия"]}
+{"query": "атопия у собаки чем кормить и лечить", "expected_chunk_type": "disease", "expected_conditions": ["атопический дерматит"]}
+{"query": "кушинг у собаки кожа потемнела", "expected_chunk_type": "disease", "expected_conditions": ["кушинг"]}
+{"query": "гипотиреоз у собаки алопеция", "expected_chunk_type": "disease", "expected_conditions": ["гипотиреоз"]}
+{"query": "пемфигус у собаки пузыри на коже", "expected_chunk_type": "disease", "expected_conditions": ["пемфигус"]}
+{"query": "у собаки отит и кожа чешется, взаимосвязь", "expected_chunk_type": "disease", "expected_conditions": ["отит"]}
+{"query": "горячая точка у собаки мокнет", "expected_chunk_type": "disease", "expected_conditions": ["горячая точка"]}
+{"query": "экзема у кошки чем мазать", "expected_chunk_type": "disease", "expected_conditions": ["экзема"]}
+{"query": "интертриго у собаки в складках кожи", "expected_chunk_type": "disease", "expected_conditions": ["интертриго"]}
+{"query": "собака лижет лапы до язв", "expected_chunk_type": "disease", "expected_conditions": ["атопический дерматит"]}
+{"query": "у щенка перхоть и сухая кожа", "expected_chunk_type": "disease", "expected_conditions": ["себорея"]}
+{"query": "бигль аллергия на корм, зуд", "expected_chunk_type": "disease", "expected_conditions": ["аллергия"]}
+{"query": "ямка на носу у собаки, носовое зеркало", "expected_chunk_type": "disease", "expected_conditions": ["аллергия"]}
+{"query": "дозировка энрофлоксацина собаке 20 кг", "expected_chunk_type": "drug_calculator", "expected_conditions": ["энрофлоксацин"]}
+{"query": "сколько давать амоксициллин кошке при пиодермии", "expected_chunk_type": "drug_calculator", "expected_conditions": ["амоксициллин"]}
+{"query": "доксициклин доза собаке при демодекозе", "expected_chunk_type": "drug_calculator", "expected_conditions": ["доксициклин"]}
+{"query": "маропитант кошке от рвоты дозировка", "expected_chunk_type": "drug_calculator", "expected_conditions": ["маропитант"]}
+{"query": "ивермектин доза собаке против паразитов", "expected_chunk_type": "drug_calculator", "expected_conditions": ["ивермектин"]}
+{"query": "мелоксикам собаке после операции сколько", "expected_chunk_type": "drug_calculator", "expected_conditions": ["мелоксикам"]}
+{"query": "преднизолон кошке при аллергии доза", "expected_chunk_type": "drug_calculator", "expected_conditions": ["преднизолон"]}
+{"query": "кетопрофен корове дозировка внутримышечно", "expected_chunk_type": "drug_calculator", "expected_conditions": ["кетопрофен"]}
+{"query": "цефтиофур телятам схема лечения", "expected_chunk_type": "drug_calculator", "expected_conditions": ["цефтиофур"]}
+{"query": "флорфеникол свиньям доза", "expected_chunk_type": "drug_calculator", "expected_conditions": ["флорфеникол"]}
+{"query": "метронидазол собаке при диарее", "expected_chunk_type": "drug_calculator", "expected_conditions": ["метронидазол"]}
+{"query": "празиквантел кошке от глистов", "expected_chunk_type": "drug_calculator", "expected_conditions": ["празиквантел"]}
+{"query": "фебантел щенку дозировка", "expected_chunk_type": "drug_calculator", "expected_conditions": ["фебантел"]}
+{"query": "протокол лечения атопического дерматита у собаки", "expected_chunk_type": "treatment_protocol", "expected_conditions": ["атопический дерматит"]}
+{"query": "чем лечить пиодермию у собаки по протоколу", "expected_chunk_type": "treatment_protocol", "expected_conditions": ["пиодермия"]}
+{"query": "схема лечения демодекоза французского бульдога", "expected_chunk_type": "treatment_protocol", "expected_conditions": ["демодекоз"]}
+{"query": "лечение отита у собаки протокол", "expected_chunk_type": "treatment_protocol", "expected_conditions": ["отит"]}
+{"query": "терапия дерматофитии у кошки", "expected_chunk_type": "treatment_protocol", "expected_conditions": ["дерматофития"]}
+{"query": "что давать корове при чесотке протокол", "expected_chunk_type": "treatment_protocol", "expected_conditions": ["чесотка"]}
+{"query": "энрофлоксацин и амоксициллин можно вместе", "expected_chunk_type": "drug_interaction", "expected_conditions": ["энрофлоксацин", "амоксициллин"]}
+{"query": "ивермектин с какими препаратами нельзя сочетать", "expected_chunk_type": "drug_interaction", "expected_conditions": ["ивермектин"]}
+{"query": "взаимодействие кетопрофена и других нпвс", "expected_chunk_type": "drug_interaction", "expected_conditions": ["кетопрофен"]}
+{"query": "побочные эффекты преднизолона у собак", "expected_chunk_type": "side_effect", "expected_conditions": ["преднизолон"]}
+{"query": "побочки мелоксикама у кошек", "expected_chunk_type": "side_effect", "expected_conditions": ["мелоксикам"]}
+{"query": "чем снять отравление ивермектином антидот", "expected_chunk_type": "antidote", "expected_conditions": ["ивермектин"]}
+{"query": "антидот при отравлении кетамином", "expected_chunk_type": "antidote", "expected_conditions": ["кетамин"]}
+{"query": "коррекция дозы при почечной недостаточности", "expected_chunk_type": "dose_adjustment", "expected_conditions": []}
+{"query": "снижение дозы при печеночной недостаточности", "expected_chunk_type": "dose_adjustment", "expected_conditions": []}
+{"query": "формула жидкостной терапии для собаки", "expected_chunk_type": "fluid_therapy", "expected_conditions": []}
+{"query": "период ожидания энрофлоксацина для мяса коровы", "expected_chunk_type": "withdrawal", "expected_conditions": ["энрофлоксацин"]}
+{"query": "срок выбраковки молока после цефтиофура", "expected_chunk_type": "withdrawal", "expected_conditions": ["цефтиофур"]}
+{"query": "эталонная доза амоксициллина собаке", "expected_chunk_type": "verified_dosage", "expected_conditions": ["амоксициллин"]}
+{"query": "проверенная дозировка доксициклина кошке", "expected_chunk_type": "verified_dosage", "expected_conditions": ["доксициклин"]}
+{"query": "экстренный протокол при анафилаксии у собаки", "expected_chunk_type": "emergency_protocol", "expected_conditions": []}
+{"query": "первая помощь при отравлении собаки", "expected_chunk_type": "emergency_protocol", "expected_conditions": []}
+{"query": "у шарпея складки на морде воспалены", "expected_chunk_type": "disease", "expected_conditions": ["интертриго"]}
+{"query": "у таксы аллергия весной чихает и чешется", "expected_chunk_type": "disease", "expected_conditions": ["аллергия"]}
+{"query": "лабрадор ест траву и чешется, пищевая аллергия", "expected_chunk_type": "disease", "expected_conditions": ["аллергия"]}
+{"query": "у кота акне на подбородке", "expected_chunk_type": "disease", "expected_conditions": []}
+{"query": "спаниель с ушами воспалёнными и зудом", "expected_chunk_type": "disease", "expected_conditions": ["отит"]}

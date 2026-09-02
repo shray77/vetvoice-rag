@@ -163,10 +163,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
 
   String _sourceLabel(String s) {
     switch (s) {
-      case 'local':      return 'локальный RAG';
-      case 'hf_space':   return 'HF Space RAG';
-      case 'direct_glm': return 'прямой GLM (без RAG)';
-      default:           return s;
+      case 'backend_rag': return 'VetVoice RAG';
+      case 'local':       return 'локальный RAG';
+      case 'hf_space':    return 'HF Space RAG';
+      case 'direct_glm':  return 'прямой GLM (без RAG)';
+      case 'cache':       return 'офлайн-кэш';
+      default:            return s;
     }
   }
 

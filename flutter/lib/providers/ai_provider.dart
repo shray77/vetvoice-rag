@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/app_constants.dart';
+import '../core/theme/app_theme.dart';
 import '../models/drug_models.dart';
 import '../services/glm_ai_service.dart';
+import '../services/backend_rag_service.dart';
 
 /// Провайдер AI-ассистента с RAG.
 ///
@@ -19,6 +20,7 @@ import '../services/glm_ai_service.dart';
 /// публичный URL — добавим обратно как primary.
 class AiProvider extends ChangeNotifier {
   final GlmAiService _aiService = GlmAiService();
+  final BackendRagService _backend = BackendRagService();
 
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
@@ -35,6 +37,16 @@ class AiProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String get error => _error;
   String get lastSource => _lastSource;
+
+  static const String _ragSystemPrompt = '''Ты — ветеринарный AI-ассистент VetEco. Отвечай на русском языке, профессионально, но понятно.
+
+Правила:
+1. Давай точные, научно обоснованные ответы.
+2. Указывай дозировки в мг/кг с путём введения.
+3. Предупреждай о противопоказаниях и взаимодействиях.
+4. Если не уверен — говори прямо.
+5. Опирайся на предоставленный RAG-контекст и указывай источники.
+6. Каждый ответ с дозировкой завершай дисклеймером: это AI-ассистированный расчёт, подтвердите у ветеринара.''';
 
   AiProvider() {
     _loadCache();
@@ -86,20 +98,25 @@ class AiProvider extends ChangeNotifier {
       String? answer;
       String source = '';
 
-      // 0) If API key is set, try direct Z AI first (fastest).
+      // 0) Primary: VetVoice FastAPI backend (RAG-контекст на стороне сервера).
       if (await _aiService.hasApiKey()) {
-        answer = await _aiService.askWithRag(question: content, ragContext: null);
-        if (answer.isNotEmpty) {
-          source = 'direct_glm';
+        final apiKey = await _aiService._getApiKey();
+        answer = await _backend.chatWithRag(
+          message: content,
+          systemPrompt: _ragSystemPrompt,
+          apiKey: apiKey,
+        );
+        if (answer != null && answer.isNotEmpty) {
+          source = 'backend_rag';
           _saveToCache(content, answer);
         }
       }
 
-      // 1) Fallback: HF Space Gradio API (RAG with context).
+      // 1) Fallback: прямой GLM через Z.AI (без RAG-контекста).
       if (answer == null || answer.isEmpty) {
-        answer = await _askRagViaHfSpace(content);
+        answer = await _aiService.askWithRag(question: content, ragContext: null);
         if (answer != null && answer.isNotEmpty) {
-          source = 'hf_space';
+          source = 'direct_glm';
           _saveToCache(content, answer);
         }
       }
@@ -133,111 +150,14 @@ class AiProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Запрос к HF Space Gradio API.
+  /// Запрос к RAG через VetVoice FastAPI backend.
   ///
-  /// Space вызывает rag_search(query), который:
-  ///   1. retrieve(query, top_k=5) → 5 чанков из векторной базы
-  ///   2. format_context(results) → строка с metadata и content
-  ///   3. GLM.generate_text(RAG_SYSTEM_PROMPT, user_msg_with_context) → финальный ответ
-  ///   4. Возвращает этот финальный ответ.
-  ///
-  /// Поэтому НЕ нужно вызывать GLM ещё раз — просто возвращаем результат.
-  Future<String?> _askRagViaHfSpace(String query) async {
-    try {
-      // Шаг 1: Отправить запрос
-      final response = await http.post(
-        Uri.parse('${ApiConfig.hfSpaceUrl}${ApiConfig.ragApiPath}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'data': [query]}),
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode != 200) {
-        debugPrint('RAG API POST failed: ${response.statusCode} ${response.body.substring(0, 200)}');
-        return null;
-      }
-
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final eventId = data['event_id'] as String?;
-      if (eventId == null) {
-        debugPrint('RAG API: no event_id in response');
-        return null;
-      }
-
-      // Шаг 2: Получить результат (polling до 90 секунд)
-      String? result;
-      for (int attempt = 0; attempt < 6; attempt++) {
-        await Future.delayed(const Duration(seconds: 5));
-        final resultResponse = await http.get(
-          Uri.parse('${ApiConfig.hfSpaceUrl}${ApiConfig.ragApiPath}/$eventId'),
-        ).timeout(const Duration(seconds: 30));
-
-        if (resultResponse.statusCode != 200) {
-          debugPrint('RAG API GET failed (attempt $attempt): ${resultResponse.statusCode}');
-          continue;
-        }
-
-        // Шаг 3: Парсим SSE
-        final body = resultResponse.body;
-        final dataMatch = RegExp(r'data:\s*(.+?)(?:\n|$)').firstMatch(body);
-        if (dataMatch == null) {
-          // SSE ещё не готов, ждём и пробуем снова
-          continue;
-        }
-
-        final raw = dataMatch.group(1)!.trim();
-        if (raw == '[true]') continue; // Gradio иногда шлёт heartbeat
-
-        try {
-          final resultData = jsonDecode(raw) as List<dynamic>;
-          if (resultData.isNotEmpty) {
-            result = resultData[0] as String?;
-            if (result != null && result.isNotEmpty) break;
-          }
-        } catch (_) {
-          continue;
-        }
-      }
-
-      if (result == null || result.isEmpty) {
-        debugPrint('RAG API: empty result after 6 attempts');
-        return null;
-      }
-
-      // HF Space rag_search() возвращает ОДИН ИЗ ДВУХ вариантов:
-      //
-      // 1. Если GLM_API_KEY задан на Space: финальный ответ GLM (чистый текст)
-      // 2. Если GLM_API_KEY НЕ задан: markdown-список найденных чанков с
-      //    метаданными вида:
-      //      ### [1] drugs_registry.json (релевантность: 0.28)
-      //      **Заболевания:** энрофлоксацин
-      //      <content text>
-      //      ---
-      //      ### [2] ...
-      //
-      // В случае (2) мы извлекаем только содержимое чанков (content),
-      // отбрасывая метаданные и разделители. Затем отправляем этот
-      // очищенный контекст в GLM для генерации финального ответа.
-      result = _cleanRagResult(result);
-
-      // Если результат — это markdown-список чанков (case 2), отправим
-      // их в GLM как контекст для финального ответа.
-      if (result.startsWith('=== RAG CHUNKS ===')) {
-        final chunks = result.substring('=== RAG CHUNKS ==='.length).trim();
-        if (chunks.isEmpty) return null;
-        debugPrint('RAG: got raw chunks, sending to GLM as context');
-        final glmAnswer = await _aiService.askWithRag(
-          question: query,
-          ragContext: chunks,
-        );
-        return glmAnswer;
-      }
-
-      return result;
-    } catch (e) {
-      debugPrint('RAG HF Space error: $e');
-      return null;
-    }
-  }
+  /// DEPRECATED: ранее использовался хрупкий Gradio HF Space API
+  /// (event_id + SSE-поллинг). Теперь RAG-поиск идёт через
+  /// [BackendRagService] (см. sendMessage). Этот метод оставлен пустым
+  /// для обратной совместимости и будет удалён в следующем рефакторе.
+  @Deprecated('Use BackendRagService instead')
+  Future<String?> _askRagViaHfSpace(String query) async => null;
 
   /// Очистить историю чата
   void clearChat() {
@@ -245,55 +165,5 @@ class AiProvider extends ChangeNotifier {
     _error = '';
     _lastSource = '';
     notifyListeners();
-  }
-
-  /// Парсит результат HF Space rag_search().
-  ///
-  /// Если результат — markdown-список чанков (case 2, когда GLM не настроен
-  /// на Space), извлекает только содержимое (content) каждого чанка,
-  /// отбрасывая метаданные:
-  ///   - `### [N] source.json (релевантность: X.XX)`
-  ///   - `**Заболевания:** ...`
-  ///   - `---` разделители
-  ///
-  /// Возвращает строку с префиксом `=== RAG CHUNKS ===` если это были
-  /// сырые чанки, иначе возвращает исходную строку без изменений.
-  String _cleanRagResult(String input) {
-    final trimmed = input.trim();
-
-    // Если начинается с "### [" — это markdown-список чанков
-    if (!trimmed.startsWith('### [')) {
-      return trimmed;
-    }
-
-    // Разбиваем по разделителю "---"
-    final sections = trimmed.split(RegExp(r'\n---\n'));
-    final chunks = <String>[];
-
-    for (final section in sections) {
-      final lines = section.trim().split('\n');
-      final contentLines = <String>[];
-      var skipMeta = true;
-
-      for (final line in lines) {
-        final t = line.trim();
-        if (t.isEmpty) continue;
-
-        // Пропускаем заголовки метаданных
-        if (skipMeta) {
-          if (t.startsWith('### [')) continue;       // ### [1] source.json (релевантность: ...)
-          if (t.startsWith('**Заболевания:**')) continue;  // **Заболевания:** ...
-          skipMeta = false; // следующие строки — content
-        }
-        contentLines.add(line);
-      }
-
-      if (contentLines.isNotEmpty) {
-        chunks.add(contentLines.join('\n').trim());
-      }
-    }
-
-    if (chunks.isEmpty) return trimmed;
-    return '=== RAG CHUNKS ===\n${chunks.join('\n\n---\n\n')}';
   }
 }

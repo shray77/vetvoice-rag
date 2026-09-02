@@ -272,7 +272,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 "n_vectors": rag.index.ntotal if rag.index else 0,
                 "n_documents": len(rag.documents),
             }
-        except Exception as e:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
             # Детали только в лог: путь до ФС клиенту знать не нужно.
             logger.exception("RAG stats failed")
             return {"loaded": False, "error": "knowledge base unavailable"}

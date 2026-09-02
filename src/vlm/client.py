@@ -22,7 +22,8 @@ Provide a detailed, structured description:
 
 1. **Species & Breed** (if identifiable from the image)
 2. **Primary Lesions**: papules, pustules, nodules, macules, plaques, wheals, vesicles, bullae, tumors
-3. **Secondary Lesions**: scales, crusts, excoriations, erosions, ulcers, lichenification, hyperpigmentation, alopecia, comedones
+3. **Secondary Lesions**: scales, crusts, excoriations, erosions, ulcers,
+   lichenification, hyperpigmentation, alopecia, comedones
 4. **Distribution**: focal / multifocal / generalized / symmetric / asymmetric
 5. **Body Regions**: face, ears, ventrum, axillae, inguinal, paws, dorsum, tail, perianal
 6. **Pruritus Signs**: excoriations, self-trauma, lichenification, salivary staining

@@ -19,6 +19,16 @@ class ApiConfig {
   static const String hfSpaceUrl = 'https://shrayyyy-vetderm-ai.hf.space';
   static const String ragApiPath = '/gradio_api/call/rag_search';
 
+  // ─── VetVoice FastAPI backend (primary RAG source) ──────────────────
+  // Публичный URL задаётся в Settings (см. backendBaseUrlPrefsKey).
+  // Если пусто — используем публичный HF Space Gradio API как fallback.
+  static const String backendBaseUrlPrefsKey = 'vetvoice_backend_base_url';
+  static const String backendChatPath = '/v1/chat/completions';
+  static const String backendVisionPath = '/v1/chat/completions/vision';
+  static const String backendRagSearchPath = '/v1/rag/search';
+  // Дефолтный публичный бэкенд (переопределяется в Settings).
+  static const String defaultBackendBaseUrl = 'https://shrayyyy-vetderm-ai.hf.space';
+
   // VetLearn URL
   static const String vetlearnUrl = 'https://t107t4hs5wm0-d.space-z.ai';
 

@@ -1,14 +1,15 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import '../core/constants/app_constants.dart';
+import '../core/theme/app_theme.dart';
 import '../services/glm_ai_service.dart';
+import '../services/backend_rag_service.dart';
 
 /// Провайдер VLM (Vision Language Model) диагностики
 /// Стратегия: GLM-4V напрямую + опциональный RAG контекст из HF Space
 /// Это надёжнее чем Gradio API с файлами (который даёт 400 на изображениях)
 class VlmProvider extends ChangeNotifier {
   final GlmAiService _aiService = GlmAiService();
+  final BackendRagService _backend = BackendRagService();
 
   // Изображение
   String? _imageBase64;
@@ -99,61 +100,20 @@ class VlmProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Получить RAG контекст из HF Space (текстовый запрос — надёжный)
+  /// Получить RAG контекст из VetVoice FastAPI backend.
+  /// Надёжнее хрупкого Gradio HF Space API (event_id + SSE-поллинг).
   Future<String?> _fetchRagContext() async {
-    try {
-      // Шаг 1: Отправить запрос к RAG
-      final response = await http.post(
-        Uri.parse('${ApiConfig.hfSpaceUrl}${ApiConfig.ragApiPath}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'data': ['dermatology skin condition diagnosis'],
-        }),
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode != 200) {
-        debugPrint('RAG API step 1 failed: ${response.statusCode}');
-        return null;
-      }
-
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final eventId = data['event_id'] as String?;
-      if (eventId == null) {
-        debugPrint('RAG API: no event_id');
-        return null;
-      }
-
-      // Шаг 2: Получить результат по event_id
-      final resultResponse = await http.get(
-        Uri.parse('${ApiConfig.hfSpaceUrl}${ApiConfig.ragApiPath}/$eventId'),
-      ).timeout(const Duration(seconds: 60));
-
-      if (resultResponse.statusCode != 200) {
-        debugPrint('RAG API step 2 failed: ${resultResponse.statusCode}');
-        return null;
-      }
-
-      // Шаг 3: Парсим SSE ответ
-      final body = resultResponse.body;
-      final dataMatch = RegExp(r'data:\s*(.+)').firstMatch(body);
-      if (dataMatch == null) {
-        debugPrint('RAG API: no data in SSE response');
-        return null;
-      }
-
-      final resultData = jsonDecode(dataMatch.group(1)!) as List<dynamic>;
-      if (resultData.isEmpty) return null;
-
-      final ragText = resultData[0] as String;
-      if (ragText.isNotEmpty && ragText.length > 20) {
-        // Обрезаем контекст чтобы не превысить лимит токенов
-        return ragText.length > 3000 ? ragText.substring(0, 3000) : ragText;
-      }
-      return null;
-    } catch (e) {
-      debugPrint('RAG context fetch error: $e');
-      return null;
+    HapticHelper.light();
+    final apiKey = await _aiService._getApiKey();
+    // Для VLM берём релевантный контекст по ключевым терминам дерматологии.
+    final context = await _backend.fetchRagContext(
+      'дерматология кожа диагноз лечение поражения',
+      apiKey: apiKey,
+    );
+    if (context != null && context.length > 3000) {
+      return context.substring(0, 3000);
     }
+    return context;
   }
 
   /// Построить промпт с учётом режима и RAG контекста
