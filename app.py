@@ -17,6 +17,7 @@ logger = logging.getLogger("vetvoice.ui")
 # ============================================================
 # Single source of truth: src/rag/retriever.py (shared with the FastAPI backend).
 from src.rag.retriever import VetDermRAG, ru_localize  # noqa: E402
+from src.rag.search import get_rag, retrieve  # noqa: E402
 
 # ============================================================
 # GLM API CLIENT
@@ -193,7 +194,7 @@ SPECIES_WEIGHT_DEFAULTS = {
 # INIT
 # ============================================================
 print("Initializing VetEcosystem backend...")
-rag = VetDermRAG()
+rag = get_rag()
 glm = GLMClient()
 print("VetEcosystem ready!")
 
@@ -232,7 +233,7 @@ def vlm_analyze(image: Image.Image, mode: str) -> str:
             "Лечение": "терапия дозировка препараты",
         }.get(mode, "")
         query = f"{description}\n{mode_hint}".strip()
-        results = rag.retrieve(query, top_k=5)
+        results = retrieve(query, top_k=5)
         if results:
             rag_context = rag.format_context(results, max_chars=3000)
 
@@ -280,7 +281,7 @@ def rag_search(query: str) -> str:
     if not rag.is_ready():
         return "RAG база знаний недоступна. Проверьте HF_TOKEN и доступ к shrayyyy/vet-derm-rag"
 
-    results = rag.retrieve(query, top_k=5)
+    results = retrieve(query, top_k=5)
     if not results:
         return "Ничего не найдено. Попробуйте другой запрос."
 

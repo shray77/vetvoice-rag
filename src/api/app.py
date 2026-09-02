@@ -32,6 +32,7 @@ from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
 from src.rag.retriever import ru_localize
+from src.rag.search import retrieve, get_rag as _search_get_rag
 from src.settings import Settings, get_settings
 
 logger = logging.getLogger("vetvoice.api")
@@ -104,22 +105,12 @@ def _zai_base_url() -> str:
     return _load_zai_config().get("baseUrl") or get_settings().zai_base_url
 
 
-# ─── RAG: lazy-loaded singleton ────────────────────────────────────────
-
-_rag_instance = None
-_rag_lock = threading.Lock()
-
+# ─── RAG: lazy-loaded singleton (delegates to src.rag.search) ──────────
 
 def get_rag():
-    """Lazy-load the RAG retriever. Singleton — first call loads the index."""
-    global _rag_instance
-    if _rag_instance is None:
-        with _rag_lock:
-            if _rag_instance is None:
-                from src.rag.retriever import VetDermRAG
-
-                _rag_instance = VetDermRAG()
-    return _rag_instance
+    """Lazy-load the RAG retriever. Delegates to the shared singleton in
+    src.rag.search so the TF-IDF index is loaded only once per process."""
+    return _search_get_rag()
 
 
 # ─── System prompt for RAG-augmented chat ──────────────────────────────
@@ -303,7 +294,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         """Direct local RAG retrieval — no HF Space hop."""
         try:
             rag = get_rag()
-            results = rag.retrieve(req.query, top_k=req.top_k)
+            results = retrieve(req.query, top_k=req.top_k)
             context = rag.format_context(results)
             return {
                 "query": req.query,
@@ -351,7 +342,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
 
         try:
             rag = get_rag()
-            results = rag.retrieve(user_text, top_k=top_k)
+            results = retrieve(user_text, top_k=top_k)
         except Exception as e:  # noqa: BLE001
             # RAG недоступен — отвечаем без контекста, но не роняем запрос.
             logger.warning("RAG augmentation failed: %s", e)

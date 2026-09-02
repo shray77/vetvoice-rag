@@ -43,6 +43,8 @@ class YamlSettingsSource(PydanticBaseSettingsSource):
         ("rag", "hf_dir"): "rag_hf_dir",
         ("rag", "repo_id"): "rag_repo_id",
         ("rag", "top_k"): "rag_top_k",
+        ("rag", "mode"): "rag_mode",
+        ("rag", "hybrid_alpha"): "rag_hybrid_alpha",
         ("rag", "max_context_chars"): "rag_max_context_chars",
         ("rag", "min_score"): "rag_min_score",
         ("zai", "config_path"): "zai_config_path",
@@ -107,6 +109,12 @@ class Settings(BaseSettings):
     rag_hf_dir: str = "/tmp/vet_rag"
     rag_repo_id: str = "shrayyyy/vet-derm-rag"
     rag_top_k: int = 5
+    # Режим ретривера: "tfidf" (только TF-IDF), "hybrid" (TF-IDF + embeddings через
+    # RRF, рекомендуемый дефолт), "embedding" (только dense). TF-IDF всегда —
+    # фолбэк, если эмбеддинг-индекс/модель недоступны.
+    rag_mode: str = "hybrid"
+    # Вес TF-IDF в RRF-гибриде (alpha): score = alpha*rrf(tfidf) + (1-alpha)*rrf(emb).
+    rag_hybrid_alpha: float = 0.5
     rag_max_context_chars: int = 5000
     rag_min_score: float = 0.01
     # Репозиторий базы знаний публичный — токен нужен только для приватных.
