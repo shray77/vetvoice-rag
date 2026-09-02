@@ -36,7 +36,7 @@ jobs:
 
       - name: Install deps (embeddings build only)
         run: |
-          pip install --quiet numpy faiss-cpu onnxruntime tokenizers \
+          pip install --quiet numpy faiss-cpu onnxruntime tokenizers scikit-learn \
             huggingface_hub pyyaml pydantic pydantic-settings
 
       - name: Download embedding model + existing KB from HF
