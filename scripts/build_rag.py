@@ -193,6 +193,41 @@ def _diseases_chunks() -> List[Dict[str, Any]]:
     return chunks
 
 
+def _general_medicine_chunks() -> List[Dict[str, Any]]:
+    """General (non-dermatology) veterinary medicine — same schema as diseases.json.
+
+    Drives the expansion of RAG beyond dermatology into internal medicine,
+    surgery, obstetrics, toxicology, etc. See assets/data/general_medicine.json.
+    """
+    data = _load_json("general_medicine.json")
+    if not data:
+        return []
+    chunks: List[Dict[str, Any]] = []
+    for d in data.get("diseases", []):
+        name = _u(d.get("name"))
+        code = _u(d.get("code"))
+        system = _u(d.get("system"))
+        animals = d.get("animals", []) or []
+        category = _u(d.get("category"))
+        desc = _u(d.get("description"))
+        content = (
+            f"Заболевание (общая ветеринария): {name} (код: {code}). "
+            f"Система: {system}. Категория: {category}. "
+            f"Вид животных: {', '.join(animals)}. "
+            f"Описание: {desc}."
+        )
+        c = _make_chunk(
+            content=content,
+            source="general_medicine.json",
+            conditions=[name, code, system],
+            chunk_type="disease",
+            extra={"disease_name": name, "disease_code": code, "system": system, "animals": animals},
+        )
+        if c:
+            chunks.append(c)
+    return chunks
+
+
 def _drugs_chunks() -> List[Dict[str, Any]]:
     chunks: List[Dict[str, Any]] = []
     # drugs.json — main registry
@@ -856,6 +891,7 @@ def collect_local_chunks() -> List[Dict[str, Any]]:
     chunks: List[Dict[str, Any]] = []
     collectors = [
         ("diseases", _diseases_chunks),
+        ("general_medicine", _general_medicine_chunks),
         ("drugs", _drugs_chunks),
         ("protocols", _protocols_chunks),
         ("interactions", _interactions_chunks),
@@ -907,6 +943,7 @@ def harvest_papers() -> List[Dict[str, Any]]:
     try:
         from paper_harvester import harvest_papers as hp, process_papers_to_rag  # type: ignore
         queries = [
+            # Dermatology (existing)
             "canine atopic dermatitis treatment",
             "veterinary dermatology diagnosis",
             "feline dermatophytosis",
@@ -915,6 +952,17 @@ def harvest_papers() -> List[Dict[str, Any]]:
             "canine pemphigus foliaceus",
             "veterinary dermatology immunotherapy",
             "canine pruritus diagnostic algorithm",
+            # General / internal medicine (expansion)
+            "canine parvovirus enteritis treatment",
+            "feline panleukopenia management",
+            "bovine ketosis treatment",
+            "bovine milk fever hypocalcemia",
+            "equine colic management",
+            "canine dystocia management",
+            "bovine endometritis treatment",
+            "veterinary toxicology ibuprofen poisoning dog",
+            "small animal gastrointestinal pharmacology",
+            "veterinary anesthesia protocols",
         ]
         papers = hp("all", queries, max_per_query=5)
         print(f"  Harvested {len(papers)} papers")
@@ -972,7 +1020,17 @@ def build_index(chunks: List[Dict[str, Any]]) -> None:
     index = faiss.IndexFlatIP(tfidf.shape[1])
     index.add(tfidf)
 
-    faiss.write_index(index, str(OUTPUT_DIR / "vet_derm_faiss.index"))
+    # faiss (swig) on Windows cannot open paths containing non-ASCII chars
+    # (e.g. Cyrillic "Администратор"). Write to an ASCII temp path, then move.
+    import shutil
+    faiss_path = OUTPUT_DIR / "vet_derm_faiss.index"
+    tmp_faiss = Path("D:/tmp_vet_rag_faiss.index")
+    try:
+        faiss.write_index(index, str(tmp_faiss))
+        shutil.move(str(tmp_faiss), str(faiss_path))
+    finally:
+        if tmp_faiss.exists():
+            tmp_faiss.unlink(missing_ok=True)
     with open(OUTPUT_DIR / "vet_derm_vectorizer.pkl", "wb") as f:
         pickle.dump(vectorizer, f)
 

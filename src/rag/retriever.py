@@ -181,7 +181,121 @@ EN_RU_DRUG_TERMS = {
     "interaction": "взаимодействие",
     "antidote": "антидот",
     "poisoning": "отравление",
+    # Extra high-frequency INNs likely to leak from JSON context
+    "penicillin": "пенициллин",
+    "amplicillin": "ампициллин",
+    "ampicillin": "ампициллин",
+    "cephalexin": "цефалексин",
+    "cefazolin": "цефазолин",
+    "clindamycin": "клиндамицин",
+    "lincomycin": "линкомицин",
+    "neomycin": "неомицин",
+    "polymyxin": "полимиксин",
+    "fipronil": "фипронил",
+    "imidacloprid": "имидаклоприд",
+    "permethrin": "перметрин",
+    "pyrethrin": "пиретрин",
+    "afoxolaner": "афоксоланер",
+    "fluralaner": "флураланер",
+    "lotilaner": "лотиланер",
+    "praziquantel": "празиквантел",
+    "levamisole": "левамизол",
+    "clorsulon": "клорсулон",
+    "toltrazuril": "толтразурил",
+    "diclazuril": "диклазурил",
+    "ponazuril": "поназурил",
+    "marbofloxacin": "марбофлоксацин",
+    "pradofloxacin": "прадофлоксацин",
+    "gatifloxacin": "гатифлоксацин",
+    "ciprofloxacin": "ципрофлоксацин",
+    "enrofloxacin": "энрофлоксацин",
+    "levofloxacin": "левофлоксацин",
+    "azithromycin": "азитромицин",
+    "clarithromycin": "кларитромицин",
+    "erythromycin": "эритромицин",
+    "metoclopramide": "метоклопрамид",
+    "ondansetron": "ондансетрон",
+    "maropitant": "маропитант",
+    "butorphanol": "буторфанол",
+    "buprenorphine": "бупренорфин",
+    "tramadol": "трамадол",
+    "gabapentin": "габапентин",
+    "phenobarbital": "фенобарбитал",
+    "levetiracetam": "леветирацетам",
+    "insulin": "инсулин",
+    "glargine": "гларгин",
+    "detomidine": "детомидин",
+    "romifidine": "ромифидин",
+    "medetomidine": "медетомидин",
+    "acepromazine": "ацепромазин",
+    "midazolam": "мидазолам",
+    "butorphanol": "буторфанол",
+    "phenylephrine": "фенилэфрин",
+    "epinephrine": "адреналин",
+    "adrenaline": "адреналин",
+    "norepinephrine": "норадреналин",
+    "salbutamol": "сальбутамол",
+    "aminophylline": "аминофиллин",
+    "theophylline": "теофиллин",
+    "heparin": "гепарин",
+    "warfarin": "варфарин",
+    "clopidogrel": "клопидогрел",
+    "omeprazole": "омепразол",
+    "ranitidine": "ранитидин",
+    "famotidine": "фамотидин",
+    "metronidazole": "метронидазол",
+    "sulfasalazine": "сульфасалазин",
+    "cholestyramine": "холестирамин",
+    "ursodeoxycholic": "урсодезоксихолевая кислота",
+    "ursodiol": "урсодезоксихолевая кислота",
+    "methimazole": "метимазол",
+    "levothyroxine": "левотироксин",
+    "trilostane": "трилостан",
+    "mitotane": "митотан",
+    "desoxycorticosterone": "дезоксикортикостерон",
+    "spironolactone": "спиронолактон",
+    "furosemide": "фуросемид",
+    "benazepril": "беназеприл",
+    "enalapril": "энапалил",
+    "pimobendan": "пимобендан",
+    "atenolol": "атенолол",
+    "diltiazem": "дилтиазем",
+    "amlodipine": "амлодипин",
+    "lidocaine": "лидокаин",
+    "procainamide": "прокаинамид",
+    "sotalol": "соталол",
+    "doxycycline": "доксициклин",
+    "tetracycline": "тетрациклин",
+    "oxytetracycline": "окситетрациклин",
+    "chloramphenicol": "хлорамфеникол",
+    "gentamicin": "гентамицин",
+    "amikacin": "амикацин",
+    "tobramycin": "тобрамицин",
+    "streptomycin": "стрептомицин",
+    "enrofloxacin": "энрофлоксацин",
+    "marbofloxacin": "марбофлоксацин",
 }
+
+# Reverse map for localizing LLM output: English/Latin term -> Russian.
+# Used by ru_localize() to strip English drug/disease names that leak from RAG
+# context (JSON `conditions`/`INN` fields) into the model's Russian answer.
+_RU_LOCALIZE_MAP = {k.lower(): v for k, v in EN_RU_DRUG_TERMS.items()}
+
+
+def ru_localize(text: str) -> str:
+    """Replace Latin/English drug & disease names in LLM output with Russian.
+
+    Targeted fix for the RAG leak where GLM copied raw EN INN names (e.g.
+    ``prednisolone``, ``enrofloxacin``) from the retrieved context into its
+    Russian-language answer. Only known terms from EN_RU_DRUG_TERMS are touched,
+    so ordinary Russian text is left untouched.
+    """
+    if not text:
+        return text
+    for en, ru in sorted(_RU_LOCALIZE_MAP.items(), key=lambda x: -len(x[0])):
+        # Whole-word, case-insensitive. Handles phrases like "atopic dermatitis".
+        text = re.sub(rf"(?i)\b{re.escape(en)}\b", ru, text)
+    return text
 
 
 def translate_ru_to_en_query(text: str) -> str:
@@ -263,7 +377,21 @@ class VetDermRAG:
         }
         if all(p.exists() for p in local_paths.values()):
             print(f"[RAG] Loading from local: {self.local_dir}")
-            self.index = faiss.read_index(str(local_paths["index"]))
+            # faiss (swig) on Windows cannot open paths with non-ASCII chars
+            # (e.g. Cyrillic "Администратор"). Copy to an ASCII temp path first.
+            idx_read = local_paths["index"]
+            tmp = None
+            if os.name == "nt":
+                try:
+                    import shutil as _shutil
+                    tmp = Path("D:/tmp_vet_rag_read.faiss")
+                    _shutil.copy2(idx_read, tmp)
+                    idx_read = tmp
+                except Exception as e:  # noqa: BLE001
+                    print(f"[RAG] warn: ASCII-tmp copy failed ({e}), trying direct")
+            self.index = faiss.read_index(str(idx_read))
+            if tmp is not None and tmp.exists():
+                tmp.unlink(missing_ok=True)
             with open(local_paths["vectorizer"], "rb") as f:
                 self.vectorizer = pickle.load(f)
             with open(local_paths["documents"], "r", encoding="utf-8") as f:
@@ -385,8 +513,9 @@ class VetDermRAG:
         total_chars = 0
         for i, r in enumerate(results):
             source = r.get("source", "Unknown")
-            conditions = r.get("conditions", [])
-            content = r.get("content", "")
+            # Localize so the LLM sees Russian terms (not raw Latin INNs from JSON)
+            conditions = [ru_localize(c) for c in (r.get("conditions") or [])]
+            content = ru_localize(r.get("content", ""))
             score = r.get("score", 0)
             chunk_type = r.get("chunk_type", "general")
 

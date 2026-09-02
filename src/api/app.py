@@ -31,6 +31,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
+from src.rag.retriever import ru_localize
 from src.settings import Settings, get_settings
 
 logger = logging.getLogger("vetvoice.api")
@@ -130,6 +131,8 @@ SYSTEM_PROMPT_VET = (
     "Если в контексте нет точного ответа, скажи об этом и дай общую рекомендацию. "
     "Всегда указывай дозировки, способы введения, периоды ожидания и противопоказания. "
     "При подозрении на зооноз или особо опасное заболевание — рекомендуй обратиться к ветврачу. "
+    "Отвечай СТРОГО на русском; латинские/английские названия препаратов и болезней из "
+    "контекста переводи на русский (торговое название или русское МНН). "
     "Каждый ответ с дозировкой заканчивай дисклеймером: это ИИ-ассистированный расчёт, "
     "перед применением нужна консультация ветеринарного врача."
 )
@@ -213,8 +216,24 @@ def _proxy_response(resp: httpx.Response) -> Response:
     except ValueError:
         payload = {"error": "upstream returned non-JSON", "detail": resp.text[:500]}
 
+
+def _localize_payload(payload: Any) -> Any:
+    """Replace Latin/English drug & disease names in the upstream answer with
+    Russian. Fixes the RAG leak where GLM echoed raw INN names from context."""
+    if isinstance(payload, dict):
+        for choice in payload.get("choices", []) or []:
+            if not isinstance(choice, dict):
+                continue
+            msg = choice.get("message")
+            if isinstance(msg, dict) and isinstance(msg.get("content"), str):
+                msg["content"] = ru_localize(msg["content"])
+            delta = choice.get("delta")
+            if isinstance(delta, dict) and isinstance(delta.get("content"), str):
+                delta["content"] = ru_localize(delta["content"])
+    return payload
+
     if resp.status_code == 200:
-        return payload
+        return _localize_payload(payload)
 
     if resp.status_code == 429:
         raise HTTPException(status_code=429, detail="Upstream rate limit exceeded")

@@ -16,7 +16,7 @@ logger = logging.getLogger("vetvoice.ui")
 # RAG COMPONENTS
 # ============================================================
 # Single source of truth: src/rag/retriever.py (shared with the FastAPI backend).
-from src.rag.retriever import VetDermRAG  # noqa: E402
+from src.rag.retriever import VetDermRAG, ru_localize  # noqa: E402
 
 # ============================================================
 # GLM API CLIENT
@@ -28,13 +28,13 @@ from src.vlm.client import GLMClient  # noqa: E402
 # SYSTEM PROMPTS
 # ============================================================
 
-VLM_DIAGNOSIS_PROMPT = """You are VetVoice, an expert veterinary dermatologist AI. Analyze the image and provide:
+VLM_DIAGNOSIS_PROMPT = """You are VetVoice, an expert veterinary clinician AI (covering dermatology, internal medicine, surgery, reproduction and emergency). Analyze the image and provide:
 
 ### First Analysis
 - **Patient:** species, breed (if identifiable)
-- **Lesion type:** primary + secondary lesions
-- **Localization:** body regions
-- **Pruritus:** present/absent, severity
+- **Lesion / abnormality type:** primary + secondary findings
+- **Localization:** body regions / systems involved
+- **Key clinical signs:** e.g. pruritus, pain, swelling, discharge
 
 ### Differential Diagnosis (by probability)
 1. **[Diagnosis]** — probability [%] — reasoning
@@ -46,7 +46,7 @@ VLM_DIAGNOSIS_PROMPT = """You are VetVoice, an expert veterinary dermatologist A
 
 ### Treatment Recommendations
 **Systemic therapy:** drug, dosage, route, duration
-**Topical therapy:** drug, frequency, duration
+**Topical / supportive therapy:** drug, frequency, duration
 **Monitoring:** what to check
 
 Respond in the SAME language the user writes in.
@@ -61,7 +61,11 @@ RAG_SYSTEM_PROMPT = """Ты — ветеринарный AI-ассистент V
 3. Предупреждай о противопоказаниях и взаимодействиях
 4. Если не уверен — скажи об этом прямо
 5. Ссылайся на источники из контекста
-6. Структурируй ответ с заголовками"""
+6. Структурируй ответ с заголовками
+7. ВАЖНО: отвечай СТРОГО на русском. Никаких латинских/английских названий
+   препаратов и болезней из контекста не повторяй — переводи их на русский
+   (торговое название или русское МНН). Например: prednisolone → преднизолон,
+   enrofloxacin → энрофлоксацин."""
 
 DICTATION_SYSTEM_PROMPT = """Ты — ветеринарный AI-ассистент, специализирующийся на структурировании клинических записей.
 Твоя задача — разобрать текст диктовки ветеринарного врача и извлечь из него структурированные данные в формате JSON.
@@ -260,7 +264,7 @@ def vlm_analyze(image: Image.Image, mode: str) -> str:
         )
 
     try:
-        result = glm.generate_text(RAG_SYSTEM_PROMPT, synthesis, temperature=0.3)
+        result = ru_localize(glm.generate_text(RAG_SYSTEM_PROMPT, synthesis, temperature=0.3))
         return result + "\n\n---\n*⚠️ AI-ассистированный анализ. Не заменяет консультацию ветеринара.*"
     except Exception as e:
         # Фолбэк: хотя бы вернём описание, если синтез не удался.
@@ -289,7 +293,7 @@ def rag_search(query: str) -> str:
             f"Ответь на вопрос, используя предоставленный контекст. Укажи источники."
         )
         try:
-            answer = glm.generate_text(RAG_SYSTEM_PROMPT, user_msg, temperature=0.3)
+            answer = ru_localize(glm.generate_text(RAG_SYSTEM_PROMPT, user_msg, temperature=0.3))
             return answer
         except Exception as exc:  # noqa: BLE001
             logger.warning("RAG answer generation failed, showing raw results: %s", exc)

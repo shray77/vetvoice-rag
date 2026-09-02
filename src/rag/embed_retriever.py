@@ -163,7 +163,20 @@ class EmbedRetriever:
         meta_path = self.local_dir / "vet_derm_embed_meta.json"
         if idx_path.exists() and meta_path.exists():
             print(f"[Embed] Loading cached index from {self.local_dir}")
-            self.index = faiss.read_index(str(idx_path))
+            # faiss (swig) on Windows cannot open paths with non-ASCII chars
+            # (e.g. Cyrillic 'Администратор'). Copy to an ASCII temp path first.
+            read_path = idx_path
+            tmp = None
+            if os.name == "nt":
+                try:
+                    import tempfile, shutil
+                    tmp = Path("D:/tmp_embed_index.faiss")
+                    tmp.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(idx_path, tmp)
+                    read_path = tmp
+                except Exception as e:
+                    print(f"[Embed] warn: could not copy to ASCII tmp ({e}), trying direct")
+            self.index = faiss.read_index(str(read_path))
             self.documents = json.loads(meta_path.read_text(encoding="utf-8"))
             print(f"[Embed] Loaded: {self.index.ntotal} vectors")
             return
