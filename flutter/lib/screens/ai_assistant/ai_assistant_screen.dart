@@ -8,6 +8,7 @@ import '../../core/utils/app_colors_resolver.dart';
 import '../../core/widgets/app_components.dart';
 import '../../providers/ai_provider.dart';
 import '../../providers/vlm_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../models/drug_models.dart';
 
 /// Экран AI-хаба: Чат (RAG) + VLM (Зрение) с табами
@@ -24,15 +25,30 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
   final TextEditingController _chatController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _picker = ImagePicker();
+  NavigationProvider? _nav;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _nav = Provider.of<NavigationProvider>(context, listen: false);
+    _nav!.addListener(_onNavChanged);
+    // Если запрос на VLM пришёл ещё до построения экрана — сразу открываем.
+    if (_nav!.requestVlm) _consumeVlmRequest();
+  }
+
+  void _onNavChanged() {
+    if (_nav!.requestVlm) _consumeVlmRequest();
+  }
+
+  void _consumeVlmRequest() {
+    if (_tabController.length > 1) _tabController.animateTo(1);
+    _nav!.clearRequestVlm();
   }
 
   @override
   void dispose() {
+    _nav?.removeListener(_onNavChanged);
     _tabController.dispose();
     _chatController.dispose();
     _scrollController.dispose();
@@ -163,7 +179,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
 
   String _sourceLabel(String s) {
     switch (s) {
-      case 'backend_rag': return 'VetVoice RAG';
+      case 'backend_rag': return 'VetEco RAG';
       case 'local':       return 'локальный RAG';
       case 'hf_space':    return 'HF Space RAG';
       case 'direct_glm':  return 'прямой GLM (без RAG)';

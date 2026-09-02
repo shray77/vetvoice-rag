@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/app_constants.dart';
 
-/// VetVoice FastAPI backend client.
+/// VetEco FastAPI backend client.
 ///
 /// Единый источник правды для RAG: наш FastAPI (src/api/app.py) отдаёт
 /// чистые JSON-эндпоинты, в отличие от хрупкого Gradio HF Space API
@@ -19,7 +19,9 @@ class BackendRagService {
 
   Future<String> _getBaseUrl() async {
     final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(ApiConfig.backendBaseUrlPrefsKey);
+    // Читаем новый ключ, при отсутствии — старый (для обратной совместимости).
+    final saved = prefs.getString(ApiConfig.backendBaseUrlPrefsKey) ??
+        prefs.getString(ApiConfig.legacyBackendBaseUrlPrefsKey);
     return (saved != null && saved.trim().isNotEmpty)
         ? saved.trim().replaceAll(RegExp(r'/$'), '')
         : ApiConfig.defaultBackendBaseUrl;

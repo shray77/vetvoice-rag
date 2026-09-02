@@ -100,7 +100,7 @@ class VlmProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Получить RAG контекст из VetVoice FastAPI backend.
+  /// Получить RAG контекст из VetEco FastAPI backend.
   /// Надёжнее хрупкого Gradio HF Space API (event_id + SSE-поллинг).
   Future<String?> _fetchRagContext() async {
     HapticHelper.light();

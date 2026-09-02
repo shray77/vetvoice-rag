@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -8,6 +9,7 @@ import '../../core/widgets/app_components.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/vet_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../services/glm_ai_service.dart';
 import '../reference/reference_screen.dart';
 
@@ -78,7 +80,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title: 'VLM Диагностика',
                     subtitle: 'Быстрый доступ к анализу изображений',
                     onTap: () {
-                      // Switch to AI tab and then VLM sub-tab
+                      // Переключаемся на вкладку AI и открываем под-вкладку «Зрение VLM».
+                      Provider.of<NavigationProvider>(context, listen: false).goToAiVlm();
                     },
                   ),
                   const SizedBox(height: AppSpacing.sm),
@@ -135,15 +138,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.smart_toy_outlined,
               children: [
                 _buildApiKeyTile(textColor, secondaryTextColor, surfaceColor, primaryColor),
-                _buildNavigationTile(
-                  title: 'RAG поиск',
-                  subtitle: 'Через HF Space (работает без API key)',
-                  onTap: () {},
-                ),
+                _buildInfoTile('RAG поиск', 'Через HF Space (работает без API key)'),
                 _buildNavigationTile(
                   title: 'API endpoint',
                   subtitle: ApiConfig.baseUrl,
-                  onTap: () {},
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: ApiConfig.baseUrl));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('API endpoint скопирован')),
+                    );
+                  },
                 ),
               ],
             ),
@@ -165,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildInfoTile('Антидотов', '${AppConstants.totalAntidotes}'),
                 _buildInfoTile('Экстренных протоколов', '${AppConstants.totalEmergencyProtocols}'),
                 _buildInfoTile('Записей побочных эфф.', '${AppConstants.totalSideEffectEntries}'),
-                _buildInfoTile('API', 'GLM-4-Flash + GLM-4.6V (Z AI)'),
+                _buildInfoTile('API', 'GLM-4.5-Flash + GLM-4.6V (Z AI)'),
                 _buildInfoTile('RAG KB', '12 024 чанков, FAISS TF-IDF'),
               ],
             ),
@@ -195,7 +199,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'VetEco объединяет 4 модуля:\n'
                       '• Записи (голос → SOAP медкарта)\n'
                       '• Калькулятор дозировок (2401 препарат)\n'
-                      '• AI (GLM-4-Flash + RAG + VLM-4V)\n'
+                      '• AI (GLM-4.5-Flash + RAG + VLM-4.6V)\n'
                       '• VetLearn (обучающая платформа)\n\n'
                       'Zero Cost: GLM бесплатный тир, HF Spaces RAG',
                       style: AppTypography.footnote.copyWith(
@@ -519,6 +523,8 @@ class _VetLearnScreen extends StatefulWidget {
 class _VetLearnScreenState extends State<_VetLearnScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
+  bool _hasError = false;
+  String _errorMessage = '';
 
   @override
   void initState() {
@@ -527,16 +533,18 @@ class _VetLearnScreenState extends State<_VetLearnScreen> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (_) => setState(() => _isLoading = true),
+          onPageStarted: (_) => setState(() {
+            _isLoading = true;
+            _hasError = false;
+          }),
           onPageFinished: (_) => setState(() => _isLoading = false),
           onWebResourceError: (error) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Ошибка загрузки: ${error.description}'),
-                  backgroundColor: AppColors.error,
-                ),
-              );
+              setState(() {
+                _isLoading = false;
+                _hasError = true;
+                _errorMessage = error.description;
+              });
             }
           },
         ),
@@ -544,8 +552,18 @@ class _VetLearnScreenState extends State<_VetLearnScreen> {
       ..loadRequest(Uri.parse(ApiConfig.vetlearnUrl));
   }
 
+  Future<void> _reload() async {
+    setState(() {
+      _hasError = false;
+      _isLoading = true;
+    });
+    await _controller.reload();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final textColor = AppColorsResolver.textPrimary(context);
+    final secondary = AppColorsResolver.textSecondary(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('VetLearn'),
@@ -556,6 +574,36 @@ class _VetLearnScreenState extends State<_VetLearnScreen> {
           if (_isLoading)
             const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+          if (_hasError)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.error),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      'Не удалось загрузить VetLearn',
+                      style: AppTypography.title3.copyWith(color: textColor),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      _errorMessage.isNotEmpty ? _errorMessage : 'Проверьте подключение к сети.',
+                      style: AppTypography.footnote.copyWith(color: secondary),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    FilledButton.icon(
+                      onPressed: _reload,
+                      icon: const Icon(Icons.refresh_rounded),
+                      label: const Text('Повторить'),
+                    ),
+                  ],
+                ),
+              ),
             ),
         ],
       ),

@@ -98,7 +98,7 @@ class AiProvider extends ChangeNotifier {
       String? answer;
       String source = '';
 
-      // 0) Primary: VetVoice FastAPI backend (RAG-контекст на стороне сервера).
+      // 0) Primary: VetEco FastAPI backend (RAG-контекст на стороне сервера).
       if (await _aiService.hasApiKey()) {
         final apiKey = await _aiService._getApiKey();
         answer = await _backend.chatWithRag(
@@ -150,7 +150,7 @@ class AiProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Запрос к RAG через VetVoice FastAPI backend.
+  /// Запрос к RAG через VetEco FastAPI backend.
   ///
   /// DEPRECATED: ранее использовался хрупкий Gradio HF Space API
   /// (event_id + SSE-поллинг). Теперь RAG-поиск идёт через

@@ -11,6 +11,7 @@ import 'providers/ai_provider.dart';
 import 'providers/vlm_provider.dart';
 import 'providers/notes_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/navigation_provider.dart';
 import 'screens/notes/notes_screen.dart';
 import 'screens/dose_calc/dose_calc_screen.dart';
 import 'screens/ai_assistant/ai_assistant_screen.dart';
@@ -48,6 +49,7 @@ class VetEcoApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AiProvider()),
         ChangeNotifierProvider(create: (_) => VlmProvider()),
         ChangeNotifierProvider(create: (_) => NotesProvider()..initialize()),
+        ChangeNotifierProvider(create: (_) => NavigationProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
@@ -114,11 +116,7 @@ class MainNavigation extends StatefulWidget {
   State<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation>
-    with SingleTickerProviderStateMixin {
-  int _currentIndex = 0;
-  late final AnimationController _controller;
-
+class _MainNavigationState extends State<MainNavigation> {
   static const List<Widget> _screens = [
     NotesScreen(),        // 0 — Записи (главный экран)
     DoseCalcScreen(),     // 1 — Калькулятор дозировок
@@ -127,34 +125,14 @@ class _MainNavigationState extends State<MainNavigation>
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: AppDurations.medium,
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onTabChanged(int index) {
-    if (index == _currentIndex) return;
-    HapticHelper.selection();
-    setState(() => _currentIndex = index);
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final nav = context.watch<NavigationProvider>();
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        index: nav.currentIndex,
         children: _screens,
       ),
       bottomNavigationBar: Container(
@@ -167,8 +145,8 @@ class _MainNavigationState extends State<MainNavigation>
           ),
         ),
         child: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: _onTabChanged,
+          selectedIndex: nav.currentIndex,
+          onDestinationSelected: nav.setIndex,
           backgroundColor: isDark ? AppColors.darkSurface : AppColors.surface,
           height: 64,
           animationDuration: AppDurations.medium,
