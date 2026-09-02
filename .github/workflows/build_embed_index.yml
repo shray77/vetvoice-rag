@@ -42,15 +42,12 @@ jobs:
       - name: Download embedding model + existing KB from HF
         run: |
           python -c "
-          from huggingface_hub import hf_hub_download
+          from huggingface_hub import snapshot_download, hf_hub_download
           import os
-          # model
-          for f in ['model_optimized.onnx','tokenizer.json','config.json','tokenizer_config.json','special_tokens_map.json']:
-              try:
-                  hf_hub_download('shrayyyy/vet-derm-rag', f'embed_model/{f}', token=os.environ['HF_TOKEN'], local_dir='.embed_model')
-                  print('model file:', f)
-              except Exception as e:
-                  print('skip', f, e)
+          # model (full snapshot of embed_model/ folder, includes LFS onnx)
+          snap = snapshot_download('shrayyyy/vet-derm-rag', repo_type='model',
+                                  allow_patterns='embed_model/*', token=os.environ['HF_TOKEN'])
+          print('model snapshot at', snap)
           # existing KB chunks (so we re-embed the canonical store if present)
           try:
               hf_hub_download('shrayyyy/vet-derm-rag', 'vet_derm_retrieval_store.json', token=os.environ['HF_TOKEN'], local_dir='knowledge_base')
@@ -62,20 +59,9 @@ jobs:
       - name: Build embedding index
         env:
           VETVOICE_EMBED_MODEL_DIR: ".embed_model/embed_model"
+          BUILD_FULL: "1"
         run: |
-          if [ "${{ github.event.inputs.sample || 'full' }}" = "sample" ]; then
-            # build on balanced sample (see embed_retriever __main__ CAPS)
-            python -m src.rag.embed_retriever
-          else
-            # full index from local assets/data
-            python -c "
-            import sys; sys.path.insert(0,'.')
-            from scripts.build_rag import collect_local_chunks
-            from src.rag.embed_retriever import EmbedRetriever
-            er = EmbedRetriever()
-            er.build_index(collect_local_chunks())
-            "
-          fi
+          python -m src.rag.embed_retriever
 
       - name: Upload index to HF Hub
         run: |

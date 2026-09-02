@@ -252,36 +252,37 @@ if __name__ == "__main__":
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
     from scripts.build_rag import collect_local_chunks
 
-    # A/B prototype: build on a balanced SAMPLE (this CPU is slow ~230s/1k chunks).
-    # Full 13k index is built on CI / faster machine for production.
-    # Strategy: keep all non-redundant types, cap the huge 'drugs' source, drop
-    # 'dosage_database' (redundant with drugs_calc/registry) for the prototype.
-    CAPS = {
-        "drugs.json": 200,
-        "drugs_calc.json": 200,
-        "drugs_registry.json": 200,
-        "treatment_protocols.json": 200,
-        "non_contagious_protocols.json": 100,
-        "diseases.json": 200,
-        "non_contagious_diseases.json": 100,
-    }
-    DROP_SOURCES = {"dosage_database.json"}
-
+    # Build mode:
+    #   BUILD_FULL=1  -> full 13k index (CI / fast machine)
+    #   otherwise     -> balanced SAMPLE (~1.5k) for local A/B (slow CPU ~230s/1k)
     all_chunks = collect_local_chunks()
-    sampled = []
-    from collections import defaultdict
-    counts = defaultdict(int)
-    for c in all_chunks:
-        src = c.get("source", "")
-        if src in DROP_SOURCES:
-            continue
-        base = src
-        cap = CAPS.get(base, 0)
-        if cap and counts[base] >= cap:
-            continue
-        sampled.append(c)
-        counts[base] += 1
+    if os.environ.get("BUILD_FULL") == "1":
+        print(f"\nBuilding FULL index on {len(all_chunks)} chunks")
+        sampled = all_chunks
+    else:
+        CAPS = {
+            "drugs.json": 200,
+            "drugs_calc.json": 200,
+            "drugs_registry.json": 200,
+            "treatment_protocols.json": 200,
+            "non_contagious_protocols.json": 100,
+            "diseases.json": 200,
+            "non_contagious_diseases.json": 100,
+        }
+        DROP_SOURCES = {"dosage_database.json"}
+        sampled = []
+        from collections import defaultdict
+        counts = defaultdict(int)
+        for c in all_chunks:
+            src = c.get("source", "")
+            if src in DROP_SOURCES:
+                continue
+            cap = CAPS.get(src, 0)
+            if cap and counts[src] >= cap:
+                continue
+            sampled.append(c)
+            counts[src] += 1
+        print(f"\nSampled {len(sampled)} chunks for A/B (from {len(all_chunks)} total)")
 
-    print(f"\nSampled {len(sampled)} chunks for A/B (from {len(all_chunks)} total)")
     er = EmbedRetriever()
     er.build_index(sampled)
