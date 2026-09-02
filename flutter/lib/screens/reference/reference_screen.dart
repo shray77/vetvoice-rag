@@ -277,11 +277,7 @@ class _ProtocolsTab extends StatelessWidget {
                         for (final tier in p.sortedTiers) ...[
                           Text(
                             _tierLabel(tier.key),
-                            style: AppTypography.headline.copyWith(
-                              color: textColor,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: AppTypography.sectionTitle,
                           ),
                           const SizedBox(height: 4),
                           for (final drug in tier.value.drugs) ...[
@@ -368,7 +364,7 @@ class _DrugLine extends StatelessWidget {
         children: [
           Text(
             drug.name + (drug.inn.isNotEmpty ? ' (${drug.inn})' : ''),
-            style: AppTypography.body.copyWith(color: textColor, fontWeight: FontWeight.w600, fontSize: 13),
+            style: AppTypography.body.copyWith(color: textColor, fontWeight: FontWeight.w600),
           ),
           if (drug.dose.isNotEmpty || drug.route.isNotEmpty || drug.frequency.isNotEmpty)
             Text(
@@ -378,12 +374,12 @@ class _DrugLine extends StatelessWidget {
                 if (drug.frequency.isNotEmpty) 'Кратность: ${drug.frequency}',
                 if (drug.duration.isNotEmpty) 'Длительность: ${drug.duration}',
               ].join(' • '),
-              style: AppTypography.caption.copyWith(color: secondary, fontSize: 11),
+              style: AppTypography.caption2.copyWith(color: secondary),
             ),
           if (drug.waitingPeriod.isNotEmpty)
             Text(
               'Период ожидания: ${drug.waitingPeriod}',
-              style: AppTypography.caption.copyWith(color: AppColors.systemOrange, fontSize: 11),
+              style: AppTypography.caption2.copyWith(color: AppColors.systemOrange),
             ),
         ],
       ),
@@ -572,7 +568,7 @@ class _SideEffectLine extends StatelessWidget {
         children: [
           Text(
             item.effect,
-            style: AppTypography.body.copyWith(color: textColor, fontWeight: FontWeight.w600, fontSize: 13),
+            style: AppTypography.body.copyWith(color: textColor, fontWeight: FontWeight.w600),
           ),
           if (item.age.isNotEmpty || item.dose.isNotEmpty || item.condition.isNotEmpty || item.frequency.isNotEmpty)
             Padding(
@@ -584,7 +580,7 @@ class _SideEffectLine extends StatelessWidget {
                   if (item.condition.isNotEmpty) 'Условие: ${item.condition}',
                   if (item.frequency.isNotEmpty) 'Частота: ${item.frequency}',
                 ].join(' • '),
-                style: AppTypography.caption.copyWith(color: secondary, fontSize: 11),
+                style: AppTypography.caption2.copyWith(color: secondary),
               ),
             ),
           if (item.action.isNotEmpty)
@@ -592,7 +588,7 @@ class _SideEffectLine extends StatelessWidget {
               padding: const EdgeInsets.only(top: 2),
               child: Text(
                 'Действие: ${item.action}',
-                style: AppTypography.caption.copyWith(color: textColor, fontSize: 11),
+                style: AppTypography.caption2.copyWith(color: textColor),
               ),
             ),
         ],
@@ -763,7 +759,7 @@ class _EmergencyTab extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Алгоритм:', style: AppTypography.headline.copyWith(color: textColor, fontSize: 13, fontWeight: FontWeight.w700)),
+                        Text('Алгоритм:', style: AppTypography.sectionTitle),
                         const SizedBox(height: 4),
                         for (final step in e.algorithm) ...[
                           Padding(
@@ -773,12 +769,12 @@ class _EmergencyTab extends StatelessWidget {
                               children: [
                                 Text(
                                   '${step.step}. ${step.action}',
-                                  style: AppTypography.body.copyWith(color: textColor, fontSize: 13, fontWeight: FontWeight.w600),
+                                  style: AppTypography.body.copyWith(color: textColor, fontWeight: FontWeight.w600),
                                 ),
                                 if (step.detail.isNotEmpty)
                                   Text(
                                     step.detail,
-                                    style: AppTypography.caption.copyWith(color: secondary, fontSize: 11),
+                                    style: AppTypography.caption2.copyWith(color: secondary),
                                   ),
                               ],
                             ),
@@ -786,14 +782,14 @@ class _EmergencyTab extends StatelessWidget {
                         ],
                         if (e.drugs.isNotEmpty) ...[
                           const SizedBox(height: 8),
-                          Text('Препараты:', style: AppTypography.headline.copyWith(color: textColor, fontSize: 13, fontWeight: FontWeight.w700)),
+                          Text('Препараты:', style: AppTypography.sectionTitle),
                           const SizedBox(height: 4),
                           for (final d in e.drugs) ...[
                             Padding(
                               padding: const EdgeInsets.only(left: 8, bottom: 4),
                               child: Text(
                                 '${d.drug}: ${d.dose} ${d.route} — ${d.frequency}',
-                                style: AppTypography.caption.copyWith(color: textColor, fontSize: 12),
+                                style: AppTypography.caption.copyWith(color: textColor),
                               ),
                             ),
                           ],
@@ -801,7 +797,7 @@ class _EmergencyTab extends StatelessWidget {
                         if (e.monitoring.isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Text('Мониторинг: ${e.monitoring.join(', ')}',
-                              style: AppTypography.caption.copyWith(color: AppColors.systemBlue, fontSize: 12)),
+                              style: AppTypography.caption.copyWith(color: AppColors.systemBlue)),
                         ],
                         if (e.termination.isNotEmpty) ...[
                           const SizedBox(height: 4),
@@ -813,7 +809,7 @@ class _EmergencyTab extends StatelessWidget {
                             ),
                             child: Text(
                               'Критерии прекращения: ${e.termination}',
-                              style: AppTypography.caption.copyWith(color: AppColors.systemRed, fontSize: 11),
+                              style: AppTypography.caption2.copyWith(color: AppColors.systemRed),
                             ),
                           ),
                         ],
@@ -852,7 +848,7 @@ class _FluidTab extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.screenPadding),
           children: [
             // Fluid formulas
-            Text('Формулы жидкостной терапии', style: AppTypography.headline.copyWith(color: textColor, fontSize: 14, fontWeight: FontWeight.w700)),
+            Text('Формулы жидкостной терапии', style: AppTypography.title3),
             const SizedBox(height: 8),
             for (final f in vet.fluidFormulas) ...[
               Card(
@@ -887,7 +883,7 @@ class _FluidTab extends StatelessWidget {
 
             const SizedBox(height: 16),
             // Dose adjustments
-            Text('Коррекция дозы', style: AppTypography.headline.copyWith(color: textColor, fontSize: 14, fontWeight: FontWeight.w700)),
+            Text('Коррекция дозы', style: AppTypography.title3),
             const SizedBox(height: 8),
             for (final entry in vet.doseAdjustments.entries) ...[
               Card(
@@ -912,15 +908,15 @@ class _FluidTab extends StatelessWidget {
                       ],
                       if (entry.value.issues.isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text('Проблемы: ${entry.value.issues.join(', ')}', style: AppTypography.caption.copyWith(color: AppColors.systemOrange, fontSize: 11)),
+                        Text('Проблемы: ${entry.value.issues.join(', ')}', style: AppTypography.caption2.copyWith(color: AppColors.systemOrange)),
                       ],
                       if (entry.value.drugsCareful.isNotEmpty) ...[
                         const SizedBox(height: 2),
-                        Text('Осторожно с: ${entry.value.drugsCareful.join(', ')}', style: AppTypography.caption.copyWith(color: AppColors.systemRed, fontSize: 11)),
+                        Text('Осторожно с: ${entry.value.drugsCareful.join(', ')}', style: AppTypography.caption2.copyWith(color: AppColors.systemRed)),
                       ],
                       if (entry.value.monitoring.isNotEmpty) ...[
                         const SizedBox(height: 2),
-                        Text('Мониторинг: ${entry.value.monitoring.join(', ')}', style: AppTypography.caption.copyWith(color: AppColors.systemBlue, fontSize: 11)),
+                        Text('Мониторинг: ${entry.value.monitoring.join(', ')}', style: AppTypography.caption2.copyWith(color: AppColors.systemBlue)),
                       ],
                     ],
                   ),
@@ -930,7 +926,7 @@ class _FluidTab extends StatelessWidget {
 
             const SizedBox(height: 16),
             // Withdrawals
-            Text('Периоды ожидания', style: AppTypography.headline.copyWith(color: textColor, fontSize: 14, fontWeight: FontWeight.w700)),
+            Text('Периоды ожидания', style: AppTypography.title3),
             const SizedBox(height: 8),
             for (final w in vet.withdrawals) ...[
               Card(
@@ -1045,7 +1041,7 @@ class _StatsTab extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       '$total',
-                      style: AppTypography.largeTitle.copyWith(color: textColor, fontSize: 36, fontWeight: FontWeight.w700),
+                      style: AppTypography.metricLarge.copyWith(color: textColor, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -1065,10 +1061,10 @@ class _StatsTab extends StatelessWidget {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   leading: CircleAvatar(
                     backgroundColor: e.color.withAlpha(30),
-                    child: Text('${e.count}', style: TextStyle(color: e.color, fontWeight: FontWeight.w700)),
+                    child: Text('${e.count}', style: AppTypography.title3.copyWith(color: e.color)),
                   ),
                   title: Text(e.title, style: AppTypography.body.copyWith(color: textColor, fontWeight: FontWeight.w500)),
-                  subtitle: Text(e.source, style: AppTypography.caption.copyWith(color: secondary, fontSize: 11)),
+                  subtitle: Text(e.source, style: AppTypography.caption2.copyWith(color: secondary)),
                 ),
               ),
             ],
@@ -1080,13 +1076,13 @@ class _StatsTab extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('RAG Knowledge Base', style: AppTypography.headline.copyWith(color: textColor, fontSize: 13, fontWeight: FontWeight.w700)),
+                    Text('RAG Knowledge Base', style: AppTypography.sectionTitle),
                     const SizedBox(height: 4),
                     Text(
                       'Локальный FAISS-индекс: 12 024 чанков, 8 000-мерный TF-IDF.\n'
                       'Источники: те же 17 JSON-файлов + advanced/*\n'
                       'Поиск: hybrid (TF-IDF + keyword boost + bilingual EN/RU translation)',
-                      style: AppTypography.caption.copyWith(color: secondary, fontSize: 11),
+                      style: AppTypography.caption2.copyWith(color: secondary),
                     ),
                   ],
                 ),
@@ -1151,10 +1147,10 @@ class _LabeledRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return RichText(
       text: TextSpan(
-        style: AppTypography.caption.copyWith(fontSize: 12),
+        style: AppTypography.caption,
         children: [
-          TextSpan(text: '$label: ', style: TextStyle(color: secondary, fontWeight: FontWeight.w600)),
-          TextSpan(text: value, style: TextStyle(color: textColor)),
+          TextSpan(text: '$label: ', style: AppTypography.caption.copyWith(color: secondary, fontWeight: FontWeight.w600)),
+          TextSpan(text: value, style: AppTypography.caption.copyWith(color: textColor)),
         ],
       ),
     );

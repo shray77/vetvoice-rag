@@ -93,7 +93,7 @@ class _AnimalTile extends StatelessWidget {
                 child: Center(
                   child: Text(
                     animal.icon,
-                    style: const TextStyle(fontSize: 22),
+                    style: AppTypography.title2,
                   ),
                 ),
               ),

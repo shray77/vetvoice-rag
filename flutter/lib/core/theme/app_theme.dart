@@ -212,6 +212,24 @@ class AppTypography {
     height: 1.4,
   );
 
+  /// Section title inside content/cards — sits above body (16) in hierarchy.
+  /// Use for in-card headings ("Алгоритм:", "Препараты:", tier labels) so the
+  /// design system — not magic numbers — owns the size.
+  static const TextStyle sectionTitle = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.2,
+    height: 1.25,
+  );
+
+  /// Micro text for dense badges/chips (compact mode).
+  static const TextStyle micro = TextStyle(
+    fontSize: 10,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.15,
+    height: 1.1,
+  );
+
   /// Aliases
   static const TextStyle caption = caption1;
   static const TextStyle label = caption1;
