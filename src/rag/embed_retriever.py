@@ -173,7 +173,7 @@ class EmbedRetriever:
                     tmp.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(idx_path, tmp)
                     read_path = tmp
-                except Exception as e:
+                except OSError as e:
                     print(f"[Embed] warn: could not copy to ASCII tmp ({e}), trying direct")
             self.index = faiss.read_index(str(read_path))
             self.documents = json.loads(meta_path.read_text(encoding="utf-8"))

@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
 import yaml
 from pydantic import Field
@@ -39,7 +39,7 @@ class YamlSettingsSource(PydanticBaseSettingsSource):
     """Читает configs/config.yaml и приводит его к плоским именам полей."""
 
     # yaml key -> settings field
-    _MAP: dict[tuple[str, str], str] = {
+    _MAP: ClassVar[dict[tuple[str, str], str]] = {
         ("api", "host"): "api_host",
         ("api", "port"): "api_port",
         ("api", "cors_origins"): "cors_origins",

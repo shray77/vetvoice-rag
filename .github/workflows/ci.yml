@@ -27,7 +27,9 @@ jobs:
       - name: Lint Python
         run: |
           ruff check src/ --ignore E501
-          flake8 src/ --max-line-length 120 --exclude __pycache__ --extend-ignore E501
+          # Параметры flake8 (max-line-length/exclude/extend-ignore) живут в setup.cfg —
+          # флаги в CLI переопределяют конфиг, поэтому здесь их не дублируем.
+          flake8 src/
 
   test:
     runs-on: ubuntu-latest

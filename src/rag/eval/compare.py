@@ -41,7 +41,7 @@ def main() -> int:
     vec, index = build_tfidf(chunks)
     print(f"  TF-IDF: {index.ntotal} vectors, {len(chunks)} docs")
 
-    gold = [json.loads(l) for l in GOLD_PATH.read_text(encoding="utf-8").splitlines() if l.strip()]
+    gold = [json.loads(line) for line in GOLD_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
 
     # ── TF-IDF ──
     tfidf_ranks = []
@@ -60,7 +60,7 @@ def main() -> int:
     # ── Embeddings + Hybrid ──
     try:
         from src.rag.embed_retriever import EmbedRetriever
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 — eval должен мягко деградировать без эмбеддингов
         print(f"Embeddings unavailable ({e}); skipping. Run without --tfidf-only after build_index().")
         _dump(results)
         return 0
