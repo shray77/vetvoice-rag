@@ -200,7 +200,7 @@ def _apply_guardrails(body: Dict[str, Any], is_vision: bool = False) -> None:
     body["max_tokens"] = max(1, min(max_tokens, cfg.max_tokens_limit))
 
 
-def _proxy_response(resp: httpx.Response) -> Response:
+def _proxy_response(resp: httpx.Response) -> Any:
     """Пробрасывает статус upstream.
 
     Без этого upstream 401/429 возвращался клиенту с HTTP 200, и клиент
@@ -210,6 +210,15 @@ def _proxy_response(resp: httpx.Response) -> Response:
         payload = resp.json()
     except ValueError:
         payload = {"error": "upstream returned non-JSON", "detail": resp.text[:500]}
+
+    if resp.status_code == 200:
+        return _localize_payload(payload)
+
+    if resp.status_code == 429:
+        raise HTTPException(status_code=429, detail="Upstream rate limit exceeded")
+    if 400 <= resp.status_code < 500:
+        raise HTTPException(status_code=resp.status_code, detail=payload)
+    raise HTTPException(status_code=502, detail=f"Upstream error {resp.status_code}")
 
 
 def _localize_payload(payload: Any) -> Any:
@@ -226,15 +235,6 @@ def _localize_payload(payload: Any) -> Any:
             if isinstance(delta, dict) and isinstance(delta.get("content"), str):
                 delta["content"] = ru_localize(delta["content"])
     return payload
-
-    if resp.status_code == 200:
-        return _localize_payload(payload)
-
-    if resp.status_code == 429:
-        raise HTTPException(status_code=429, detail="Upstream rate limit exceeded")
-    if 400 <= resp.status_code < 500:
-        raise HTTPException(status_code=resp.status_code, detail=payload)
-    raise HTTPException(status_code=502, detail=f"Upstream error {resp.status_code}")
 
 
 # ─── App factory ───────────────────────────────────────────────────────
