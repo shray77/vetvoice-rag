@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """A/B comparison: TF-IDF vs Embeddings vs Hybrid (RRF) on the gold query set.
 
 Usage:

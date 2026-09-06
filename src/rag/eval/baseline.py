@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Baseline evaluation of the CURRENT TF-IDF retriever on the gold query set.
 
 Builds the TF-IDF index in-memory from local assets/data (no HF needed),
