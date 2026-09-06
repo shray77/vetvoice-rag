@@ -114,9 +114,11 @@ class Settings(BaseSettings):
     rag_repo_id: str = "shrayyyy/vet-derm-rag"
     rag_top_k: int = 5
     # Режим ретривера: "tfidf" (только TF-IDF), "hybrid" (TF-IDF + embeddings через
-    # RRF, рекомендуемый дефолт), "embedding" (только dense). TF-IDF всегда —
-    # фолбэк, если эмбеддинг-индекс/модель недоступны.
-    rag_mode: str = "hybrid"
+    # RRF), "embedding" (только dense). TF-IDF — дефолт и фолбэк: A/B (src/rag/eval)
+    # показал, что hybrid НЕ даёт прироста над tfidf (Recall@5/MRR идентичны ~0.12/0.09),
+    # но тащит 241 МБ ONNX-модель в память впустую. Поэтому дефолт = tfidf;
+    # hybrid/embedding оставлены для будущих A/B, но не используются в проде.
+    rag_mode: str = "tfidf"
     # Вес TF-IDF в RRF-гибриде (alpha): score = alpha*rrf(tfidf) + (1-alpha)*rrf(emb).
     rag_hybrid_alpha: float = 0.5
     rag_max_context_chars: int = 5000

@@ -4,8 +4,8 @@ Single entry point for both the Gradio UI (`app.py`) and the FastAPI backend
 (`src/api/app.py`). Mode is driven by `settings.rag_mode`; TF-IDF is always the
 safety net, so the app never breaks if the embedding index/model is unavailable.
 
-- tfidf     : pure TF-IDF + keyword boost (original behaviour)
-- hybrid    : Reciprocal Rank Fusion of TF-IDF + dense embeddings (RECOMMENDED default)
+- tfidf     : pure TF-IDF + keyword boost (DEFAULT — proven ≥ hybrid on A/B)
+- hybrid    : Reciprocal Rank Fusion of TF-IDF + dense embeddings (no measured gain, 241 MB ONNX cost)
 - embedding : dense embeddings only (no TF-IDF) — risky, used only for A/B
 
 Instances are cached (singletons) so the FAISS indices load once per process.
@@ -73,9 +73,9 @@ def retrieve(
     if not rag.is_ready():
         return []
     k = top_k or cfg.rag_top_k
-    m = (mode or cfg.rag_mode or "hybrid").lower()
+    m = (mode or cfg.rag_mode or "tfidf").lower()
     if m not in _VALID_MODES:
-        m = "hybrid"
+        m = "tfidf"
 
     if m == "tfidf":
         return rag.retrieve(query, top_k=k)
