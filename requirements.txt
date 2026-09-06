@@ -23,7 +23,10 @@ gradio==4.44.1
 
 # --- Misc -------------------------------------------------------------------
 requests==2.32.3
-Pillow==11.0.0
+# NOTE: must stay <11.0 — gradio 4.44.1 pins pillow<11.0,>=8.0, so Pillow==11.0.0
+# makes `pip install -r requirements.txt` fail with ResolutionImpossible (breaks
+# CI test job, docker-build AND the HF Space Docker build).
+Pillow==10.4.0
 
 # --- Paper harvester dependencies -------------------------------------------
 PyMuPDF==1.25.1
