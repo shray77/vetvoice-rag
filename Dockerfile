@@ -25,7 +25,7 @@ ENV GRADIO_SERVER_NAME="0.0.0.0"
 ENV GRADIO_SERVER_PORT="7860"
 
 # Liveness: Gradio serves the UI at "/" → use it as the health signal.
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start_period=60s \
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=60s \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:7860/').status==200 else 1)"
 
 CMD ["python", "app.py"]
