@@ -1,6 +1,7 @@
 """Tests for the unified GLMClient (offline — HTTP mocked)."""
 
 from unittest import mock
+import os
 
 from src.vlm.client import GLMClient
 
@@ -16,8 +17,13 @@ def _fake_response(payload_json):
 
 
 def test_configured_flag_without_key():
-    assert GLMClient(api_key="").configured is False
-    assert GLMClient().configured is False  # no env -> empty key
+    # GLMClient falls back to the GLM_API_KEY env var when no key is passed
+    # (see src/vlm/client.py). Neutralize it here so the assertion checks the
+    # *code* path, not whatever GLM_API_KEY happens to be set in the runner
+    # (e.g. CI exports GLM_API_KEY=test, which would make this fail).
+    with mock.patch.dict(os.environ, {"GLM_API_KEY": ""}):
+        assert GLMClient(api_key="").configured is False
+        assert GLMClient().configured is False  # no env -> empty key
 
 
 def test_configured_flag_with_key():
