@@ -9,7 +9,6 @@ import os
 import pickle
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import faiss
 from sklearn.preprocessing import normalize
@@ -344,9 +343,9 @@ class VetDermRAG:
 
     def __init__(
         self,
-        repo_id: Optional[str] = None,
-        local_dir: Optional[str] = None,
-        hf_dir: Optional[str] = None,
+        repo_id: str | None = None,
+        local_dir: str | None = None,
+        hf_dir: str | None = None,
     ):
         cfg = get_settings()
         self.repo_id = repo_id or cfg.rag_repo_id
@@ -359,7 +358,7 @@ class VetDermRAG:
         self.hf_dir = hf_dir or cfg.rag_hf_dir
         self.index = None
         self.vectorizer = None
-        self.documents: List[Dict] = []
+        self.documents: list[dict] = []
         self._load()
 
     def _load(self):
@@ -437,9 +436,9 @@ class VetDermRAG:
     def retrieve(
         self,
         query: str,
-        top_k: Optional[int] = None,
-        min_score: Optional[float] = None,
-    ) -> List[Dict]:
+        top_k: int | None = None,
+        min_score: float | None = None,
+    ) -> list[dict]:
         """Retrieve relevant knowledge chunks for a query.
 
         Hybrid retrieval:
@@ -469,7 +468,7 @@ class VetDermRAG:
         # Also include English-translated terms
         en_query = translate_ru_to_en_query(query).lower()
 
-        results: List[Dict] = []
+        results: list[dict] = []
         for dist, idx in zip(distances[0], indices[0]):
             if idx < 0 or idx >= len(self.documents):
                 continue
@@ -504,7 +503,7 @@ class VetDermRAG:
         return results[:top_k]
 
     def format_context(
-        self, results: List[Dict], max_chars: Optional[int] = None
+        self, results: list[dict], max_chars: int | None = None
     ) -> str:
         """Format retrieved chunks into context string for LLM"""
         cfg = get_settings()

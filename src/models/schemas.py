@@ -1,7 +1,7 @@
 """VetVoice data models — Pydantic schemas"""
 
+
 from pydantic import BaseModel, Field
-from typing import List
 
 
 class AnalysisRequest(BaseModel):
@@ -15,7 +15,7 @@ class AnalysisResponse(BaseModel):
     """Response from veterinary case analysis"""
     vlm_analysis: str = Field(default="", description="VLM image analysis results")
     diagnosis: str = Field(default="", description="LLM-generated differential diagnosis")
-    conditions: List[str] = Field(default_factory=list, description="Detected conditions")
+    conditions: list[str] = Field(default_factory=list, description="Detected conditions")
     disclaimer: str = Field(
         default="This is AI-assisted analysis, not a veterinary diagnosis. "
                 "Consult a licensed veterinarian for definitive diagnosis and treatment."

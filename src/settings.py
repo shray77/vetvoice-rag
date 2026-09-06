@@ -15,11 +15,15 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import yaml
 from pydantic import Field
-from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -35,7 +39,7 @@ class YamlSettingsSource(PydanticBaseSettingsSource):
     """Читает configs/config.yaml и приводит его к плоским именам полей."""
 
     # yaml key -> settings field
-    _MAP: Dict[Tuple[str, str], str] = {
+    _MAP: dict[tuple[str, str], str] = {
         ("api", "host"): "api_host",
         ("api", "port"): "api_port",
         ("api", "cors_origins"): "cors_origins",
@@ -58,7 +62,7 @@ class YamlSettingsSource(PydanticBaseSettingsSource):
         self._data = self._flatten(path)
 
     @classmethod
-    def _flatten(cls, path: Path) -> Dict[str, Any]:
+    def _flatten(cls, path: Path) -> dict[str, Any]:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 raw = yaml.safe_load(f) or {}
@@ -68,7 +72,7 @@ class YamlSettingsSource(PydanticBaseSettingsSource):
             print(f"[warn] cannot parse {path}: {e}")
             return {}
 
-        flat: Dict[str, Any] = {}
+        flat: dict[str, Any] = {}
         for (section, key), field in cls._MAP.items():
             value = (raw.get(section) or {}).get(key)
             if value in (None, ""):
@@ -83,10 +87,10 @@ class YamlSettingsSource(PydanticBaseSettingsSource):
             flat[field] = value
         return flat
 
-    def get_field_value(self, field: Any, field_name: str):  # noqa: ANN401
+    def get_field_value(self, field: Any, field_name: str):
         return self._data.get(field_name), field_name, False
 
-    def __call__(self) -> Dict[str, Any]:
+    def __call__(self) -> dict[str, Any]:
         return dict(self._data)
 
 
@@ -101,11 +105,11 @@ class Settings(BaseSettings):
     # ─── API ────────────────────────────────────────────────────────────────
     api_host: str = "0.0.0.0"
     api_port: int = 7860
-    cors_origins: List[str] = Field(default_factory=lambda: ["*"])
+    cors_origins: list[str] = Field(default_factory=lambda: ["*"])
 
     # ─── RAG ────────────────────────────────────────────────────────────────
     # Пустой local_dir в config.yaml означает «использовать <repo>/knowledge_base».
-    rag_local_dir: Optional[str] = None
+    rag_local_dir: str | None = None
     rag_hf_dir: str = "/tmp/vet_rag"
     rag_repo_id: str = "shrayyyy/vet-derm-rag"
     rag_top_k: int = 5
@@ -118,7 +122,7 @@ class Settings(BaseSettings):
     rag_max_context_chars: int = 5000
     rag_min_score: float = 0.01
     # Репозиторий базы знаний публичный — токен нужен только для приватных.
-    hf_token: Optional[str] = None
+    hf_token: str | None = None
 
     # ─── Z AI / GLM ─────────────────────────────────────────────────────────
     # Публичный endpoint. internal-api.z.ai резолвится в приватный IP и
@@ -127,12 +131,12 @@ class Settings(BaseSettings):
     zai_config_path: str = "/etc/.z-ai-config"
     llm_model: str = "glm-4.5-flash"
     vlm_model: str = "glm-4.6v"
-    glm_api_key: Optional[str] = None
+    glm_api_key: str | None = None
 
     # ─── Безопасность ───────────────────────────────────────────────────────
     # Если список пуст — API работает в открытом режиме (для локальной разработки),
     # но громко предупреждает в логе и отдаёт auth_enabled=false в /v1/health.
-    api_keys: List[str] = Field(default_factory=list)
+    api_keys: list[str] = Field(default_factory=list)
     rate_limit_per_minute: int = 30
     # Whitelist разрешённых моделей (соответствует AppModels в Flutter-клиенте).
     # По умолчанию — курируемый «рекомендованный» набор:
@@ -141,7 +145,7 @@ class Settings(BaseSettings):
     # Если переопределить через env (ZAI_ALLOWED_MODELS, через запятую) —
     # разрешены будут только перечисленные. Пустой список (default_factory=list)
     # означал бы «только llm_model/vlm_model» — здесь сразу заполнен актуальным набором.
-    allowed_models: List[str] = Field(
+    allowed_models: list[str] = Field(
         default_factory=lambda: [
             "glm-4.5-flash",
             "glm-4.7-flash",
@@ -186,7 +190,7 @@ class Settings(BaseSettings):
         )
 
 
-_settings: Optional[Settings] = None
+_settings: Settings | None = None
 
 
 def get_settings() -> Settings:

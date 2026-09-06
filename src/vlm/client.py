@@ -10,7 +10,7 @@ from __future__ import annotations
 import base64
 import io
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 import requests
 from PIL import Image
@@ -38,10 +38,10 @@ class GLMClient:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        model: Optional[str] = None,
-        vlm_model: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        model: str | None = None,
+        vlm_model: str | None = None,
     ):
         cfg = get_settings()
         self.api_key = api_key or cfg.glm_api_key or os.environ.get("GLM_API_KEY", "")
@@ -57,13 +57,13 @@ class GLMClient:
         image.convert("RGB").save(buffered, format="JPEG", quality=85)
         return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
-    def _headers(self) -> Dict[str, str]:
+    def _headers(self) -> dict[str, str]:
         return {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
-    def _call_api(self, payload: Dict[str, Any], timeout: int = 90) -> Dict[str, Any]:
+    def _call_api(self, payload: dict[str, Any], timeout: int = 90) -> dict[str, Any]:
         resp = requests.post(
             f"{self.base_url}/chat/completions",
             json=payload,
@@ -75,7 +75,7 @@ class GLMClient:
         return resp.json()
 
     @staticmethod
-    def _content_of(result: Dict[str, Any]) -> str:
+    def _content_of(result: dict[str, Any]) -> str:
         return result["choices"][0]["message"]["content"]
 
     # ─── Публичные методы ──────────────────────────────────────────────────
@@ -87,7 +87,7 @@ class GLMClient:
     def analyze_image(
         self,
         image: Image.Image,
-        prompt: Optional[str] = None,
+        prompt: str | None = None,
         max_tokens: int = 800,
         temperature: float = 0.3,
     ) -> str:

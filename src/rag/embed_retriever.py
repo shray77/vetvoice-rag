@@ -20,12 +20,11 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import faiss
 import numpy as np
-from tokenizers import Tokenizer  # type: ignore
 import onnxruntime as ort  # type: ignore
+from tokenizers import Tokenizer  # type: ignore
 
 # Local KB dir for the embedding index — mirrors retriever.py layout.
 _DEFAULT_LOCAL_DIR = str(Path(__file__).resolve().parent.parent.parent / "knowledge_base")
@@ -82,7 +81,7 @@ class EmbedRetriever:
 
     def __init__(
         self,
-        local_dir: Optional[str] = None,
+        local_dir: str | None = None,
         tfidf_retriever=None,
     ):
         self.local_dir = Path(local_dir or _DEFAULT_LOCAL_DIR)
@@ -90,7 +89,7 @@ class EmbedRetriever:
         self._model = None
         self._tokenizer = None
         self.index = None
-        self.documents: List[Dict] = []
+        self.documents: list[dict] = []
         self._load()
 
     # ─── lazy model/tokenizer load ──────────────────────────────────────
@@ -110,9 +109,9 @@ class EmbedRetriever:
         )
         return self._model, self._tokenizer
 
-    def _embed(self, texts: List[str], batch_size: int = 256) -> np.ndarray:
+    def _embed(self, texts: list[str], batch_size: int = 256) -> np.ndarray:
         model, tok = self._get_model()
-        all_pooled: List[np.ndarray] = []
+        all_pooled: list[np.ndarray] = []
         for start in range(0, len(texts), batch_size):
             batch = texts[start : start + batch_size]
             # Tokenize (no special tokens; match fastembed/ST preprocessing)
@@ -169,7 +168,7 @@ class EmbedRetriever:
             tmp = None
             if os.name == "nt":
                 try:
-                    import tempfile, shutil
+                    import shutil
                     tmp = Path("D:/tmp_embed_index.faiss")
                     tmp.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(idx_path, tmp)
@@ -182,7 +181,7 @@ class EmbedRetriever:
             return
         print("[Embed] No cached embedding index — call build_index() first.")
 
-    def build_index(self, chunks: List[Dict]) -> None:
+    def build_index(self, chunks: list[dict]) -> None:
         """Embed all chunk contents and store a FAISS index + metadata."""
         self.local_dir.mkdir(parents=True, exist_ok=True)
         texts = [c["content"] for c in chunks]
@@ -211,12 +210,12 @@ class EmbedRetriever:
         print(f"[Embed] ✓ Index built: {index.ntotal} vectors, {dim} dims")
 
     # ─── search ───────────────────────────────────────────────────────
-    def search(self, query: str, top_k: int = 5) -> List[Dict]:
+    def search(self, query: str, top_k: int = 5) -> list[dict]:
         if self.index is None:
             return []
         q = self._embed([query])
         distances, indices = self.index.search(q, top_k)
-        results: List[Dict] = []
+        results: list[dict] = []
         for dist, idx in zip(distances[0], indices[0]):
             if idx < 0 or idx >= len(self.documents):
                 continue
@@ -229,7 +228,7 @@ class EmbedRetriever:
     # ─── hybrid (RRF) ──────────────────────────────────────────────────
     def hybrid_search(
         self, query: str, top_k: int = 5, alpha: float = 0.5, rrf_k: int = 60
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Reciprocal Rank Fusion of embedding + TF-IDF results.
 
         alpha weights the combined RRF score (0.5 = equal). TF-IDF is the
@@ -242,7 +241,7 @@ class EmbedRetriever:
         tfidf_rank = {d.get("chunk_id"): i + 1 for i, d in enumerate(tfidf)}
 
         all_ids = set(emb_rank) | set(tfidf_rank)
-        fused: Dict[str, Dict] = {}
+        fused: dict[str, dict] = {}
         for cid in all_ids:
             r_emb = emb_rank.get(cid, len(emb) + rrf_k)
             r_tf = tfidf_rank.get(cid, len(tfidf) + rrf_k)

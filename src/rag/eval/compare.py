@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 ROOT = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.insert(0, str(ROOT))
@@ -22,7 +21,12 @@ GOLD_PATH = Path(__file__).parent / "gold_queries.jsonl"
 TOP_K = 5
 
 # Reuse the same relevance + tfidf logic as baseline.py
-from src.rag.eval.baseline import build_tfidf, retrieve, is_relevant, collect_local_chunks  # noqa: E402
+from src.rag.eval.baseline import (
+    build_tfidf,
+    collect_local_chunks,
+    is_relevant,
+    retrieve,
+)
 
 
 def emb_relevant(doc, exp_type, exp_conds):
@@ -86,12 +90,12 @@ def main() -> int:
     return 0
 
 
-def _summarize(ranks: List[Optional[int]], gold: List[dict]) -> dict:
+def _summarize(ranks: list[int | None], gold: list[dict]) -> dict:
     n = len(ranks)
     hits = sum(1 for r in ranks if r is not None)
     mrr = sum(1.0 / r for r in ranks if r) / n
     # per-type
-    per_type: Dict[str, List[float]] = {}
+    per_type: dict[str, list[float]] = {}
     for r, item in zip(ranks, gold):
         t = item["expected_chunk_type"]
         per_type.setdefault(t, []).append(1.0 / r if r else 0.0)

@@ -15,18 +15,17 @@ from __future__ import annotations
 import sys
 import threading
 from pathlib import Path
-from typing import Dict, List, Optional
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.settings import get_settings  # noqa: E402
-from src.rag.retriever import VetDermRAG  # noqa: E402
+from src.rag.retriever import VetDermRAG
+from src.settings import get_settings
 
 _VALID_MODES = ("tfidf", "hybrid", "embedding")
 
-_RAG: Optional[VetDermRAG] = None
+_RAG: VetDermRAG | None = None
 _EMBED = None
 _LOCK = threading.Lock()
 
@@ -61,9 +60,9 @@ def _get_embed_retriever(tfidf: VetDermRAG):
 
 def retrieve(
     query: str,
-    top_k: Optional[int] = None,
-    mode: Optional[str] = None,
-) -> List[Dict]:
+    top_k: int | None = None,
+    mode: str | None = None,
+) -> list[dict]:
     """Retrieve relevant chunks using the active RAG mode.
 
     Always falls back to TF-IDF if embeddings are unavailable, so callers can

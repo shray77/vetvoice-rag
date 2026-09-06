@@ -23,16 +23,17 @@ import logging
 import secrets
 import threading
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
 from src.rag.retriever import ru_localize
-from src.rag.search import retrieve, get_rag as _search_get_rag
+from src.rag.search import get_rag as _search_get_rag
+from src.rag.search import retrieve
 from src.settings import Settings, get_settings
 
 logger = logging.getLogger("vetvoice.api")
@@ -42,7 +43,7 @@ logger = logging.getLogger("vetvoice.api")
 # один на процесс.
 
 _config_lock = threading.Lock()
-_config_cache: Dict[str, Any] = {"data": None, "ts": 0.0}
+_config_cache: dict[str, Any] = {"data": None, "ts": 0.0}
 _CONFIG_TTL_SEC = 30.0
 
 UPSTREAM_TIMEOUT_SEC = 90
@@ -50,7 +51,7 @@ VISION_TIMEOUT_SEC = 120
 MAX_RAG_TOP_K = 20
 
 
-def _load_zai_config() -> Dict[str, str]:
+def _load_zai_config() -> dict[str, str]:
     """Read Z AI config from /etc/.z-ai-config with 30s cache (thread-safe)."""
     cfg = get_settings()
     path = cfg.zai_config_path
@@ -60,7 +61,7 @@ def _load_zai_config() -> Dict[str, str]:
         if _config_cache["data"] and (now - _config_cache["ts"]) < _CONFIG_TTL_SEC:
             return dict(_config_cache["data"])
 
-        fresh: Dict[str, str] = {
+        fresh: dict[str, str] = {
             "baseUrl": cfg.zai_base_url,
             "apiKey": cfg.glm_api_key or "Z.ai",
             "chatId": "",
@@ -82,10 +83,10 @@ def _load_zai_config() -> Dict[str, str]:
         return dict(fresh)
 
 
-def _zai_headers() -> Dict[str, str]:
+def _zai_headers() -> dict[str, str]:
     """Build Z AI request headers from current config."""
     cfg = _load_zai_config()
-    h: Dict[str, str] = {
+    h: dict[str, str] = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {cfg.get('apiKey', 'Z.ai')}",
         "X-Z-AI-From": "Z",
@@ -138,11 +139,11 @@ class Message(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    model: Optional[str] = None
-    messages: List[Message]
+    model: str | None = None
+    messages: list[Message]
     temperature: float = 0.7
     max_tokens: int = 2048
-    thinking: Optional[dict] = None
+    thinking: dict | None = None
     use_rag: bool = True       # if True, prepend RAG context to last user message
     rag_top_k: int = 5
 
@@ -157,7 +158,7 @@ class RAGRequest(BaseModel):
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
-async def require_api_key(api_key: Optional[str] = Depends(_api_key_header)) -> None:
+async def require_api_key(api_key: str | None = Depends(_api_key_header)) -> None:
     """Если VETVOICE_API_KEYS задан — требуем совпадение. Иначе открытый режим."""
     cfg = get_settings()
     if not cfg.auth_enabled:
@@ -176,7 +177,7 @@ def _rate_limit_value() -> str:
     return f"{get_settings().rate_limit_per_minute}/minute"
 
 
-def _apply_guardrails(body: Dict[str, Any], is_vision: bool = False) -> None:
+def _apply_guardrails(body: dict[str, Any], is_vision: bool = False) -> None:
     """Whitelist моделей и потолок max_tokens — чтобы прокси не сжигал квоту.
 
     is_vision=True — это эндпоинт VLM: если model не задан, дефолтим в
@@ -240,7 +241,7 @@ def _localize_payload(payload: Any) -> Any:
 # ─── App factory ───────────────────────────────────────────────────────
 
 
-def create_app(settings: Optional[Settings] = None) -> FastAPI:
+def create_app(settings: Settings | None = None) -> FastAPI:
     cfg = settings or get_settings()
 
     app = FastAPI(title="VetVoice RAG API", version="2.1.0")
@@ -286,7 +287,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 "n_vectors": rag.index.ntotal if rag.index else 0,
                 "n_documents": len(rag.documents),
             }
-        except Exception:  # noqa: BLE001
+        except Exception:
             # Детали только в лог: путь до ФС клиенту знать не нужно.
             logger.exception("RAG stats failed")
             return {"loaded": False, "error": "knowledge base unavailable"}
@@ -317,13 +318,13 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 ],
                 "context": context,
             }
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             logger.exception("RAG search failed")
             raise HTTPException(
                 status_code=500, detail="RAG error: knowledge base unavailable"
             ) from e
 
-    def _augment_with_rag(body: Dict[str, Any], top_k: int) -> None:
+    def _augment_with_rag(body: dict[str, Any], top_k: int) -> None:
         """Дополняет последнее user-сообщение RAG-контекстом (in-place)."""
         messages = body.get("messages", [])
         if not messages:
@@ -450,7 +451,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
 # Простой in-memory счётчик на процесс. Для одного инстанса (HF Space,
 # docker-compose) этого достаточно; для нескольких реплик нужен Redis.
 
-_rate_state: Dict[str, List[float]] = {}
+_rate_state: dict[str, list[float]] = {}
 _rate_lock = threading.Lock()
 
 

@@ -17,17 +17,18 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 # Allow running as a script: make `src` importable
 ROOT = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
-from sklearn.feature_extraction.text import TfidfVectorizer  # noqa: E402
-from sklearn.preprocessing import normalize  # noqa: E402
-import faiss  # noqa: E402
+import faiss
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import normalize
 
-from scripts.build_rag import collect_local_chunks, CHUNK_SIZE, CHUNK_OVERLAP  # noqa: E402
+from scripts.build_rag import (
+    collect_local_chunks,
+)
 
 GOLD_PATH = Path(__file__).parent / "gold_queries.jsonl"
 TOP_K = 5
@@ -55,7 +56,7 @@ def translate_query(q: str) -> str:
     return translate_ru_to_en_query(q)
 
 
-def is_relevant(doc: Dict, exp_type: str, exp_conds: List[str]) -> bool:
+def is_relevant(doc: dict, exp_type: str, exp_conds: list[str]) -> bool:
     if doc.get("chunk_type") != exp_type:
         return False
     if not exp_conds:
@@ -110,7 +111,7 @@ def main() -> int:
 
     recall_hits = 0
     mrr_sum = 0.0
-    per_type: Dict[str, List[float]] = {}
+    per_type: dict[str, list[float]] = {}
 
     for i, item in enumerate(gold, 1):
         query = item["query"]
