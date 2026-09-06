@@ -104,7 +104,7 @@ class VlmProvider extends ChangeNotifier {
   /// Надёжнее хрупкого Gradio HF Space API (event_id + SSE-поллинг).
   Future<String?> _fetchRagContext() async {
     HapticHelper.light();
-    final apiKey = await _aiService._getApiKey();
+    final apiKey = await _aiService.getApiKey();
     // Для VLM берём релевантный контекст по ключевым терминам дерматологии.
     final context = await _backend.fetchRagContext(
       'дерматология кожа диагноз лечение поражения',

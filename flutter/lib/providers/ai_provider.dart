@@ -100,7 +100,7 @@ class AiProvider extends ChangeNotifier {
 
       // 0) Primary: VetEco FastAPI backend (RAG-контекст на стороне сервера).
       if (await _aiService.hasApiKey()) {
-        final apiKey = await _aiService._getApiKey();
+        final apiKey = await _aiService.getApiKey();
         answer = await _backend.chatWithRag(
           message: content,
           systemPrompt: _ragSystemPrompt,

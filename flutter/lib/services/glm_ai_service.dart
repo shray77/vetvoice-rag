@@ -28,6 +28,11 @@ class GlmAiService {
     return _apiKey;
   }
 
+  /// Публичный доступ к API-ключу для внешних потребителей (провайдеры).
+  /// Приватный [_getApiKey] виден только внутри этой библиотеки, поэтому
+  /// провайдеры должны вызывать именно этот метод (иначе — ошибка компиляции).
+  Future<String?> getApiKey() => _getApiKey();
+
   Future<void> setApiKey(String key) async {
     _apiKey = key;
     final prefs = await SharedPreferences.getInstance();
