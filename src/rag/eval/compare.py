@@ -56,6 +56,23 @@ def main() -> int:
         _dump(results)
         return 0
 
+    # ── Fusion (main + disease sub-index, RRF) ──
+    # Measures the REAL VetDermRAG.retrieve() (the prod code path), not a
+    # re-implementation, so the number reflects what ships.
+    if "--fusion" in sys.argv:
+        from src.rag.retriever import VetDermRAG
+        rag = VetDermRAG(chunks=chunks)
+        fus_ranks = []
+        for item in gold:
+            res = rag.retrieve(item["query"], TOP_K)
+            rank = next((r for r, d in enumerate(res, 1)
+                         if is_relevant(d, item["expected_chunk_type"], item["expected_conditions"])), None)
+            fus_ranks.append(rank)
+        results["fusion"] = _summarize(fus_ranks, gold)
+        print(f"  Fusion  Recall@{TOP_K}={results['fusion']['recall']:.3f}  MRR={results['fusion']['mrr']:.3f}")
+        _dump(results)
+        return 0
+
     # ── Embeddings + Hybrid ──
     try:
         from src.rag.embed_retriever import EmbedRetriever

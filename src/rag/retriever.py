@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 import faiss
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import normalize
 
 from src.settings import get_settings
@@ -268,6 +269,20 @@ EN_RU_DRUG_TERMS = {
 # context (JSON `conditions`/`INN` fields) into the model's Russian answer.
 _RU_LOCALIZE_MAP = {k.lower(): v for k, v in EN_RU_DRUG_TERMS.items()}
 
+# Symptom / body-part fragments (substring match, lowercased). Used as a ROUTING
+# signal: only symptom queries fuse in the disease sub-index. Drug/protocol/
+# antidote queries that contain no symptom word stay on the main index, so the
+# disease index can't displace their top result. Deliberately excludes disease
+# NAMES and protocol words — those already work via the main index's condition
+# keyword-boost, and routing them away would misfire on drug queries.
+DISEASE_ROUTE_SYMPTOM_KEYS = {
+    "чеш", "зуд", "чеса", "красн", "корк", "гно", "шерст", "лысе", "алопеци",
+    "пятн", "перхот", "пузыр", "язв", "лиж", "воспал", "шелуш", "бляш", "узел",
+    "опухол", "запах", "себоре", "пигмент", "эксуд", "мокнущ", "складк", "мокн",
+    "лап", "морд", "уш", "живот", "спин", "груд", "пах", "нос", "глаз", "хвост",
+    "сып",
+}
+
 
 def ru_localize(text: str) -> str:
     """Replace Latin/English drug & disease names in LLM output with Russian.
@@ -334,6 +349,7 @@ class VetDermRAG:
         repo_id: str | None = None,
         local_dir: str | None = None,
         hf_dir: str | None = None,
+        chunks: list[dict] | None = None,
     ):
         cfg = get_settings()
         self.repo_id = repo_id or cfg.rag_repo_id
@@ -347,7 +363,16 @@ class VetDermRAG:
         self.index = None
         self.vectorizer = None
         self.documents: list[dict] = []
-        self._load()
+        # Dedicated disease sub-index (in-memory) — see _build_disease_index().
+        # Built from self.documents so it needs NO extra HF files; symptom queries
+        # route here via RRF fusion in retrieve() to lift drowned disease chunks.
+        self.disease_index = None
+        self.disease_vectorizer = None
+        self.disease_documents: list[dict] = []
+        if chunks is not None:
+            self._build_from_chunks(chunks)
+        else:
+            self._load()
 
     def _load(self):
         """Load FAISS index, vectorizer, and documents — local first, then HF."""
@@ -384,6 +409,7 @@ class VetDermRAG:
             with open(local_paths["documents"], "r", encoding="utf-8") as f:
                 self.documents = json.load(f)
             print(f"[RAG] Loaded: {self.index.ntotal} vectors, {len(self.documents)} docs (local)")
+            self._build_disease_index()
             return
 
         # Fallback: HF Hub
@@ -420,6 +446,135 @@ class VetDermRAG:
         with open(doc_path, "r", encoding="utf-8") as f:
             self.documents = json.load(f)
         print(f"[RAG] Loaded: {self.index.ntotal} vectors, {len(self.documents)} docs (HF Hub)")
+        self._build_disease_index()
+
+    # =================================================================
+    # In-memory index builders (no HF files needed)
+    # =================================================================
+    def _build_from_chunks(self, chunks: list[dict]) -> None:
+        """Build main + disease indexes directly from a chunk list.
+
+        Used by the eval harness (`VetDermRAG(chunks=...)`) so fusion can be
+        measured without writing/downloading index files. Mirrors the
+        vectorizer config in scripts/build_rag.py so scores stay comparable.
+        """
+        self.documents = chunks
+        texts = [c["content"] for c in chunks]
+        self.vectorizer = TfidfVectorizer(
+            max_features=8000, ngram_range=(1, 1), stop_words=None,
+            min_df=1, max_df=0.95, sublinear_tf=True, strip_accents=None,
+        )
+        mat = self.vectorizer.fit_transform(texts).toarray().astype("float32")
+        mat = normalize(mat, norm="l2")
+        self.index = faiss.IndexFlatIP(mat.shape[1])
+        self.index.add(mat)
+        self._build_disease_index()
+
+    def _build_disease_index(self) -> None:
+        """Build a SECOND TF-IDF index over only `chunk_type == "disease"`.
+
+        The main index is ~89% drug chunks, so disease chunks drown and a
+        symptom query can't reach them. A dedicated 179-chunk index lets
+        symptom queries retrieve the right disease chunk, which is then fused
+        back into the main results via RRF in retrieve(). Built from
+        self.documents, so no extra HF artifact is required.
+        """
+        self.disease_index = None
+        self.disease_vectorizer = None
+        self.disease_documents = []
+        if not self.documents:
+            return
+        dis = [c for c in self.documents if c.get("chunk_type") == "disease"]
+        if not dis:
+            print("[RAG] no disease chunks found; disease sub-index skipped")
+            return
+        texts = [c["content"] for c in dis]
+        vec = TfidfVectorizer(
+            max_features=8000, ngram_range=(1, 1), stop_words=None,
+            min_df=1, max_df=0.95, sublinear_tf=True, strip_accents=None,
+        )
+        mat = vec.fit_transform(texts).toarray().astype("float32")
+        mat = normalize(mat, norm="l2")
+        idx = faiss.IndexFlatIP(mat.shape[1])
+        idx.add(mat)
+        self.disease_vectorizer = vec
+        self.disease_index = idx
+        self.disease_documents = dis
+        print(f"[RAG] disease sub-index: {idx.ntotal} vectors")
+
+    def _disease_route(self, query: str) -> bool:
+        """Route signal: fuse the disease sub-index only for symptom queries.
+
+        Symptom words (зуд/пятн/лап/воспал...) mean the user likely wants a
+        diagnosis, so the disease index helps. Drug/protocol/antidote queries
+        without a symptom word stay on the main index — the disease index can't
+        displace their top result. Disease-NAME queries are intentionally NOT
+        routed: they already resolve via the main index's condition boost.
+        """
+        ql = query.lower()
+        return any(k in ql for k in DISEASE_ROUTE_SYMPTOM_KEYS)
+
+    def _retrieve_disease(self, query: str, top_k: int) -> list[dict]:
+        """Retrieve against the disease-only sub-index (no min_score filter)."""
+        if not self.disease_index or not self.disease_vectorizer:
+            return []
+        q = translate_ru_to_en_query(query)
+        qv = self.disease_vectorizer.transform([q]).toarray().astype("float32")
+        qv = normalize(qv, norm="l2")
+        fetch_k = min(top_k * 10, 50)
+        _, ids = self.disease_index.search(qv, fetch_k)
+        q_lower = query.lower()
+        en_query = translate_ru_to_en_query(query).lower()
+        results: list[dict] = []
+        for idx in ids[0]:
+            if idx < 0 or idx >= len(self.disease_documents):
+                continue
+            doc = self.disease_documents[idx].copy()
+            conditions = [c.lower() for c in (doc.get("conditions") or [])]
+            boost = 0.0
+            matched = 0
+            for cond in conditions:
+                if cond in q_lower or cond in en_query:
+                    boost += 0.30
+                    matched += 1
+            boost = min(boost, 0.90)
+            multiplier = 1.5 if matched > 0 else 1.0
+            doc["score"] = boost * multiplier
+            doc["tfidf_score"] = 0.0
+            doc["keyword_boost"] = boost
+            doc["keyword_matches"] = matched
+            results.append(doc)
+        results.sort(key=lambda x: x["score"], reverse=True)
+        return results[:top_k]
+
+    @staticmethod
+    def _rrf_fuse(main_results: list[dict], dis_results: list[dict],
+                  top_k: int, k: int = 60) -> list[dict]:
+        """Reciprocal Rank Fusion of two ranked result lists.
+
+        Rank-based, so it safely combines the differently-scaled main scores
+        and disease scores without score normalization. Dedup by chunk_id;
+        a chunk appearing in both lists gets summed weights (disease chunks
+        present in the main index get an extra lift).
+        """
+        scores: dict[str, float] = {}
+        docs: dict[str, dict] = {}
+        for rank, doc in enumerate(main_results, 1):
+            cid = doc.get("chunk_id")
+            scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + rank)
+            docs[cid] = doc
+        for rank, doc in enumerate(dis_results, 1):
+            cid = doc.get("chunk_id")
+            scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + rank)
+            if cid not in docs:
+                docs[cid] = doc
+        fused = sorted(scores.keys(), key=lambda c: scores[c], reverse=True)
+        out: list[dict] = []
+        for cid in fused[:top_k]:
+            d = docs[cid].copy()
+            d["rrf_score"] = round(scores[cid], 5)
+            out.append(d)
+        return out
 
     def retrieve(
         self,
@@ -488,6 +643,19 @@ class VetDermRAG:
 
         # Re-sort by combined score, take top_k
         results.sort(key=lambda x: x["score"], reverse=True)
+
+        # ── Disease fusion ──
+        # Symptom queries can't reach disease chunks in the ~89%-drug main index;
+        # the dedicated disease sub-index surfaces them and RRF re-ranks so the
+        # right disease chunk rises WITHOUT stealing drug/protocol results
+        # (fusion augments main, it never replaces it). Applied only when the
+        # query carries a symptom word, so drug/antidote/protocol queries keep
+        # their main-index top result untouched.
+        if self.disease_index is not None and self._disease_route(query):
+            dis_results = self._retrieve_disease(query, top_k=top_k)
+            if dis_results:
+                return self._rrf_fuse(results, dis_results, top_k)
+
         return results[:top_k]
 
     def format_context(
