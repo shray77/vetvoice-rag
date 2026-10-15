@@ -135,7 +135,14 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
     final provider = context.watch<VetProvider>();
 
     if (provider.isLoading) {
-      return AppLoadingState(message: provider.statusMessage);
+      // БЫЛО: return AppLoadingState(...) без Scaffold — фон оставался
+      // прозрачным/чёрным на время загрузки баз. Оборачиваем.
+      return Scaffold(
+        backgroundColor: AppColorsResolver.background(context),
+        body: SafeArea(
+          child: AppLoadingState(message: provider.statusMessage),
+        ),
+      );
     }
 
     final step = _currentStep(provider);

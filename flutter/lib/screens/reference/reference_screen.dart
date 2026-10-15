@@ -66,11 +66,18 @@ class _ReferenceScreenState extends State<ReferenceScreen>
               ),
               child: Row(
                 children: [
-                  Text(
-                    'Справочник',
-                    style: AppTypography.largeTitle.copyWith(color: textColor),
+                  // Flexible вместо сырого Text: заголовок + бейдж «N записей»
+                  // на узких экранах/крупном системном шрифте переполнялись
+                  // (RenderFlex overflow 32px на 390w).
+                  Expanded(
+                    child: Text(
+                      'Справочник',
+                      style: AppTypography.largeTitle.copyWith(color: textColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   Consumer<VetProvider>(
                     builder: (context, vet, _) {
                       final stats = vet.dbStats;

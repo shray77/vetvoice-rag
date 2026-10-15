@@ -130,7 +130,7 @@ class CalcDrug {
       withdrawalDays: _parseInt(json['withdrawal_days'], 0),
       fixedDose: json['fixed_dose'],
       calculatorApplicable: _parseBool(json['calculator_applicable'], true),
-      contraindications: json['contraindications'] as String? ?? '',
+      contraindications: contraindicationsText(json['contraindications']),
       sideEffects: (json['side_effects'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ?? [],
@@ -1164,4 +1164,28 @@ class HistoryEntry {
     method: json['method'] as String? ?? '',
     timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
   );
+}
+
+/// contraindications в drugs_calc.json приходят в двух формах:
+///  - строка (старые записи, drugs_registry.json);
+///  - структурированный Map {pregnancy, lactation, young, warnings[]}
+///    (большинство записей drugs_calc.json — 1558 из 2401).
+/// Раньше `as String?` бросал исключение и запись препарата целиком
+/// выкидывалась из базы — собираем из Map человекочитаемый текст.
+String contraindicationsText(dynamic raw) {
+  if (raw is String) return raw;
+  if (raw is Map<String, dynamic>) {
+    final parts = <String>[];
+    if (raw['pregnancy'] == true) parts.add('не применять при беременности');
+    if (raw['lactation'] == true) parts.add('не применять в период лактации');
+    if (raw['young'] == true) parts.add('не применять молодым животным');
+    final warnings = raw['warnings'];
+    if (warnings is List) {
+      for (final w in warnings) {
+        if (w is String && w.trim().isNotEmpty) parts.add(w.trim());
+      }
+    }
+    return parts.join('. ');
+  }
+  return '';
 }

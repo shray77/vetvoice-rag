@@ -18,7 +18,7 @@ void main() {
         diagnosis: 'Травматический артрит',
         diseaseSeverity: 'средняя',
         prescribedDrugs: [
-          PrescribedDrug(name: 'Мелоксикам', shortDescription: '0.1 мг/кг внутрь 7 дней'),
+          PrescribedDrug(name: 'Мелоксикам', notes: '0.1 мг/кг внутрь 7 дней'),
         ],
         procedures: 'Физиотерапия',
         followUp: 'Повторный осмотр через неделю',
@@ -32,7 +32,7 @@ void main() {
       expect(text, contains('VetEco — Ветеринарная запись'));
       expect(text, contains('Собака'));
       expect(text, contains('Ротвейлер'));
-      expect(text, contains('35 кг'));
+      expect(text, contains('35.0 кг'));
       expect(text, contains('S — СУБЪЕКТИВНО'));
       expect(text, contains('Хромота три дня'));
       expect(text, contains('O — ОБЪЕКТИВНО'));
@@ -65,7 +65,7 @@ void main() {
         animalType: 'Собака',
         animalWeight: 10.0,
         diagnosis: 'Оtitis',
-        prescribedDrugs: [PrescribedDrug(name: 'Капли', shortDescription: '2 капли')],
+        prescribedDrugs: [PrescribedDrug(name: 'Капли', notes: '2 капли')],
         createdAt: DateTime(2026, 6, 21),
         status: VetRecordStatus.parsed,
       );
@@ -77,13 +77,13 @@ void main() {
   });
 
   group('PrescribedDrug', () {
-    test('shortDescription is accessible', () {
+    test('notes is accessible', () {
       final drug = PrescribedDrug(
         name: 'Энрофлоксацин',
-        shortDescription: '5 мг/кг в/м 5 дней',
+        notes: '5 мг/кг в/м 5 дней',
       );
       expect(drug.name, 'Энрофлоксацин');
-      expect(drug.shortDescription, '5 мг/кг в/м 5 дней');
+      expect(drug.notes, '5 мг/кг в/м 5 дней');
     });
   });
 }

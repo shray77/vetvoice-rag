@@ -12,6 +12,7 @@ import '../../providers/vet_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../services/glm_ai_service.dart';
 import '../reference/reference_screen.dart';
+import '../terms/terms_screen.dart';
 
 /// Экран «Ещё» — Настройки + VetLearn + О приложении
 class SettingsScreen extends StatefulWidget {
@@ -210,6 +211,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildInfoTile('Записей побочных эфф.', '${AppConstants.totalSideEffectEntries}'),
                 _buildInfoTile('API', 'GLM (Z AI), выбирается в «AI»'),
                 _buildInfoTile('RAG KB', '12 024 чанков, FAISS TF-IDF'),
+              ],
+            ),
+          ),
+
+          // Юридический слой — условия и дисклеймер (офлайн-экран TermsScreen)
+          SliverToBoxAdapter(
+            child: _buildSection(
+              title: 'Юридическое',
+              icon: Icons.gavel_rounded,
+              children: [
+                AppCard(
+                  padding: EdgeInsets.zero,
+                  child: AppListTile(
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.systemTeal.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.small),
+                      ),
+                      child: const Icon(Icons.description_rounded,
+                          size: 20, color: AppColors.systemTeal),
+                    ),
+                    title: 'Условия использования и дисклеймер',
+                    subtitle: 'Информационный сервис «как есть», не ветеринарная консультация',
+                    showChevron: true,
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute<void>(
+                        builder: (_) => const TermsScreen(),
+                      ));
+                    },
+                  ),
+                ),
               ],
             ),
           ),
@@ -480,10 +514,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.cardPadding, vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: AppTypography.body.copyWith(color: textColor)),
-          Text(value, style: AppTypography.body.copyWith(color: secondaryTextColor)),
+          // Раскрываем заголовок и значение: при крупном системном шрифте
+          // длинные значения («GLM (Z AI), выбирается в «AI»») переполняли Row.
+          Expanded(
+            child: Text(
+              title,
+              style: AppTypography.body.copyWith(color: textColor),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              style: AppTypography.body.copyWith(color: secondaryTextColor),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+            ),
+          ),
         ],
       ),
     );

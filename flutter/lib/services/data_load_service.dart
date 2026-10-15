@@ -161,7 +161,7 @@ class DataLoadService {
       // 5. Non-contagious diseases (non_contagious_diseases.json) — 30 entries
       final ncData = await _loadJson('assets/data/non_contagious_diseases.json');
       if (ncData != null) {
-        final List<dynamic> list = ncData['diseases'] ?? [];
+        final List<dynamic> list = _asList(ncData['diseases']);
         _nonContagiousDiseases = list
             .whereType<Map<String, dynamic>>()
             .map((e) => Disease.fromJson(e, isContagious: false))
@@ -172,7 +172,7 @@ class DataLoadService {
       // 6. Drug interactions (advanced/drug_interactions.json) — 73 entries
       final interactionData = await _loadJson('assets/data/advanced/drug_interactions.json');
       if (interactionData != null) {
-        final List<dynamic> list = interactionData['interactions'] ?? [];
+        final List<dynamic> list = _asList(interactionData['interactions']);
         _interactions = list
             .whereType<Map<String, dynamic>>()
             .map((e) => DrugInteraction.fromJson(e))
@@ -183,7 +183,7 @@ class DataLoadService {
       // 7. Side effects (advanced/side_effects.json) — 20 entries
       final seData = await _loadJson('assets/data/advanced/side_effects.json');
       if (seData != null) {
-        final List<dynamic> list = seData['drugs'] ?? [];
+        final List<dynamic> list = _asList(seData['drugs']);
         _sideEffects = list
             .whereType<Map<String, dynamic>>()
             .map((e) => SideEffectEntry.fromJson(e))
@@ -195,7 +195,7 @@ class DataLoadService {
       // 8. Antidotes (advanced/antidotes.json) — 17 entries
       final anData = await _loadJson('assets/data/advanced/antidotes.json');
       if (anData != null) {
-        final List<dynamic> list = anData['poisonings'] ?? [];
+        final List<dynamic> list = _asList(anData['poisonings']);
         _antidotes = list
             .whereType<Map<String, dynamic>>()
             .map((e) => Antidote.fromJson(e))
@@ -207,7 +207,7 @@ class DataLoadService {
       // 9. Treatment protocols (advanced/treatment_protocols.json) — 124 entries
       final tpData = await _loadJson('assets/data/advanced/treatment_protocols.json');
       if (tpData != null) {
-        final List<dynamic> list = tpData['protocols'] ?? [];
+        final List<dynamic> list = _asList(tpData['protocols']);
         _treatmentProtocols = list
             .whereType<Map<String, dynamic>>()
             .map((e) => TreatmentProtocol.fromJson(e))
@@ -219,7 +219,7 @@ class DataLoadService {
       // 10. Non-contagious protocols (advanced/non_contagious_protocols.json) — 30 entries
       final ncpData = await _loadJson('assets/data/advanced/non_contagious_protocols.json');
       if (ncpData != null) {
-        final List<dynamic> list = ncpData['protocols'] ?? [];
+        final List<dynamic> list = _asList(ncpData['protocols']);
         _nonContagiousProtocols = list
             .whereType<Map<String, dynamic>>()
             .map((e) => TreatmentProtocol.fromJson(e))
@@ -231,7 +231,7 @@ class DataLoadService {
       // 11. Emergency protocols (advanced/emergency_protocols.json) — 16 entries
       final epData = await _loadJson('assets/data/advanced/emergency_protocols.json');
       if (epData != null) {
-        final List<dynamic> list = epData['protocols'] ?? [];
+        final List<dynamic> list = _asList(epData['protocols']);
         _emergencyProtocols = list
             .whereType<Map<String, dynamic>>()
             .map((e) => EmergencyProtocol.fromJson(e))
@@ -243,7 +243,15 @@ class DataLoadService {
       // 12. Fluid therapy (advanced/fluid_therapy.json) — formulas
       final ftData = await _loadJson('assets/data/advanced/fluid_therapy.json');
       if (ftData != null) {
-        final List<dynamic> list = ftData['formulas'] ?? [];
+        // formulas в JSON — dict {maintenance, deficit, shock_dose, ongoing_losses}:
+        // раньше ждали List, каст падал и рвал loadAll целиком (блоки 15-18
+        // verified/correct/dosage-db/unofficial оставались пустыми).
+        final rawFt = ftData['formulas'];
+        final List<dynamic> list = rawFt is List
+            ? rawFt
+            : rawFt is Map<String, dynamic>
+                ? rawFt.values.toList()
+                : const [];
         _fluidFormulas = list
             .whereType<Map<String, dynamic>>()
             .map((e) => FluidFormula.fromJson(e))
@@ -255,7 +263,7 @@ class DataLoadService {
       // 13. Withdrawal periods (advanced/withdrawal_by_product.json)
       final wData = await _loadJson('assets/data/advanced/withdrawal_by_product.json');
       if (wData != null) {
-        final List<dynamic> list = wData['drugs'] ?? [];
+        final List<dynamic> list = _asList(wData['drugs']);
         _withdrawals = list
             .whereType<Map<String, dynamic>>()
             .map((e) => WithdrawalInfo.fromJson(e))
@@ -314,14 +322,14 @@ class DataLoadService {
       // 17. Dosage database (dosage_database.json) — raw map {drug: {animal: {...}}}
       final ddData = await _loadJson('assets/data/dosage_database.json');
       if (ddData != null) {
-        _dosageDatabase = ddData['dosages'] as Map<String, dynamic>? ?? {};
+        _dosageDatabase = _asMap(ddData['dosages']);
         debugPrint('Loaded ${_dosageDatabase!.length} dosage-database entries');
       }
 
       // 18. Unofficial protocols (unofficial_protocols.json) — raw list of records
       final upData = await _loadJson('assets/data/unofficial_protocols.json');
       if (upData != null) {
-        final List<dynamic> list = upData['records'] ?? [];
+        final List<dynamic> list = _asList(upData['records']);
         _unofficialProtocols = list
             .whereType<Map<String, dynamic>>()
             .toList();
@@ -350,6 +358,14 @@ class DataLoadService {
       return null;
     }
   }
+
+  /// Безопасные приведения для полей JSON, чья форма может отличаться:
+  /// вместо исключения «type X is not a subtype of Y» (оно раньше рвало
+  /// весь loadAll, оставляя базы пустыми) — тихо возвращаем пустое значение.
+  static List<dynamic> _asList(dynamic v) =>
+      v is List<dynamic> ? v : const [];
+  static Map<String, dynamic> _asMap(dynamic v) =>
+      v is Map<String, dynamic> ? v : <String, dynamic>{};
 
   /// Поиск препаратов по названию/МНН
   List<dynamic> searchDrugs(String query, {String? animalFilter}) {

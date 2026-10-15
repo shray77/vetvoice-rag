@@ -190,11 +190,14 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
 
   Widget _buildChatEmptyState() {
     final primary = AppColorsResolver.primary(context);
+    // SingleChildScrollView: на малых экранах (568px) колонка с иконкой + 4 чипами
+    // не влезала по высоте — RenderFlex overflow 103px. Теперь скроллится.
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               width: 72,
@@ -234,6 +237,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
               ],
             ),
           ],
+          ),
         ),
       ),
     );
