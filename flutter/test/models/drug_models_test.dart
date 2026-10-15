@@ -219,4 +219,33 @@ void main() {
       );
     });
   });
+
+  group('Animal.displayIcon', () {
+    // Регресс v1.1.1: в drugs.json значением icon было слово ("cattle") —
+    // тайл калькулятора рисовал текст, вылезавший за кружок.
+    test('ASCII-слово в icon подменяется эмодзи по id', () {
+      const cattle = Animal(id: 'cattle', name: 'КРС', icon: 'cattle');
+      const sheep = Animal(id: 'sheep', name: 'МРС', icon: 'sheep');
+      const horse = Animal(id: 'horse', name: 'Лошади', icon: 'horse');
+      const pig = Animal(id: 'pig', name: 'Свиньи', icon: 'pig');
+      const poultry = Animal(id: 'poultry', name: 'Птица', icon: 'poultry');
+      expect(cattle.displayIcon, '🐄');
+      expect(sheep.displayIcon, '🐑');
+      expect(horse.displayIcon, '🐴');
+      expect(pig.displayIcon, '🐖');
+      expect(poultry.displayIcon, '🐔');
+    });
+
+    test('настоящее эмодзи проходит насквозь', () {
+      const dog = Animal(id: 'dog', name: 'Собаки', icon: '🐕‍🦺');
+      expect(dog.displayIcon, '🐕‍🦺');
+    });
+
+    test('пустое и незнакомое — лапка', () {
+      const empty = Animal(id: '', name: 'X', icon: '');
+      const unknown = Animal(id: 'alien', name: 'X', icon: 'alien');
+      expect(empty.displayIcon, '🐾');
+      expect(unknown.displayIcon, '🐾');
+    });
+  });
 }

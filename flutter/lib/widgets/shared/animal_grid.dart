@@ -23,9 +23,12 @@ class AnimalGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 1.05,
+        // v1.1.1: фидбек юзера — «коробочки слишком близко друг к другу».
+        // 10 → 14 по обеим осям + тайл стал ниже (1.05 → 0.92), чтобы
+        // кружок-иконка и подпись дышали, а не слипались.
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        childAspectRatio: 0.92,
       ),
       itemCount: animals.length,
       itemBuilder: (context, index) {
@@ -82,8 +85,8 @@ class _AnimalTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   color: isSelected
                       ? primaryColor.withValues(alpha: 0.15)
@@ -91,13 +94,15 @@ class _AnimalTile extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Center(
+                  // v1.1.1: displayIcon вместо icon — в данных могло лежать
+                  // слово ("cattle"), оно вылезало за кружок. Теперь эмодзи.
                   child: Text(
-                    animal.icon,
+                    animal.displayIcon,
                     style: AppTypography.title2,
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 7),
               Text(
                 animal.name,
                 style: AppTypography.caption1.copyWith(
@@ -128,9 +133,9 @@ class _AnimalTile extends StatelessWidget {
   }
 
   String _weightLabel(Animal a) {
-    if (a.maxWeight > 100) {
-      return '${a.minWeight.toStringAsFixed(0)}-${a.maxWeight.toStringAsFixed(0)} кг';
-    }
-    return '${a.minWeight.toStringAsFixed(0)}-${a.maxWeight.toStringAsFixed(1)} кг';
+    // v1.1.1: «0-20.0 кг» → «0-20 кг» — дробный хвост только когда он есть.
+    String fmt(double v) =>
+        v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
+    return '${fmt(a.minWeight)}-${fmt(a.maxWeight)} кг';
   }
 }

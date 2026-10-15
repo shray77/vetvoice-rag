@@ -131,9 +131,17 @@ class _MainNavigationState extends State<MainNavigation> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      body: IndexedStack(
-        index: nav.currentIndex,
-        children: _screens,
+      // v1.1.1: SafeArea сверху — раньше все 4 таба рисовали largeTitle
+      // вплотную к статус-бару («хэдер слишком высоко»: «Записи»/«Калькулятор»
+      // залезали под часы и батарейку). Низ не трогаем — NavigationBar
+      // и поля ввода обрабатывают нижний инсет сами.
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: IndexedStack(
+          index: nav.currentIndex,
+          children: _screens,
+        ),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

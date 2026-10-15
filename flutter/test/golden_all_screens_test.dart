@@ -24,6 +24,7 @@ import 'package:veteco/screens/settings/settings_screen.dart';
 import 'package:veteco/screens/onboarding/onboarding_screen.dart';
 import 'package:veteco/screens/reference/reference_screen.dart';
 import 'package:veteco/screens/terms/terms_screen.dart';
+import 'package:veteco/main.dart';
 
 enum _Flavor { light, dark, night }
 
@@ -76,11 +77,14 @@ Future<void> _render(WidgetTester tester, Widget screen, String name,
 
 Future<void> _loadRealFonts() async {
   // Реальные шрифты вместо Ahem — иначе кириллица рисуется тофу-квадратами.
+  // v1.1.1: в семью Roboto добавлен NotoColorEmoji — эмодзи-иконки животных
+  // (🐄🐑🐴) в golden-кадрах рисуются как в приложении, а не тофу.
   final families = <String, List<String>>{
     'Roboto': [
       '/home/z/flutter/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
       '/home/z/flutter/bin/cache/artifacts/material_fonts/Roboto-Medium.ttf',
       '/home/z/flutter/bin/cache/artifacts/material_fonts/Roboto-Bold.ttf',
+      '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',
     ],
     'MaterialIcons': [
       '/home/z/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
@@ -153,6 +157,7 @@ void main() {
     '16_reference_dark': () => const ReferenceScreen(),
     '17_terms_light': () => const TermsScreen(),
     '18_terms_dark': () => const TermsScreen(),
+    '20_shell_light': () => const MainNavigation(),
   }.entries) {
     final name = e.key;
     final logical = name.endsWith('_small') ? const Size(320, 568) : const Size(390, 844);
@@ -161,6 +166,33 @@ void main() {
       await _render(tester, e.value(), name, logical: logical, flavor: flavor);
     });
   }
+
+  testWidgets('golden: 21_shell_statusbar', (tester) async {
+    // Симуляция статус-бара: viewPadding сверху 44 логических px.
+    // Проверяет фикс v1.1.1 — SafeArea в MainNavigation отодвигает
+    // largeTitle-хэдеры от статус-бара (раньше «Записи» залезали под часы).
+    tester.view.devicePixelRatio = 2.0;
+    tester.view.physicalSize = const Size(780, 1688);
+    final sb = FakeViewPadding(top: 44, left: 0, right: 0, bottom: 24);
+    tester.view.viewPadding = sb;
+    tester.view.padding = FakeViewPadding(top: 44, left: 0, right: 0, bottom: 24);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_wrap(const MainNavigation(), flavor: _Flavor.light));
+    for (int i = 0; i < 25; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+      try {
+        final p = tester.element(find.byType(NotesScreen)).readProvider<VetProvider>();
+        if (!p.isLoading) break;
+      } catch (_) {
+        break;
+      }
+    }
+    await tester.pump(const Duration(milliseconds: 300));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('golden/21_shell_statusbar.png'),
+    );
+  });
 
   testWidgets('golden: 10_vlm_light', (tester) async {
     await tester.pumpWidget(_wrap(const AiAssistantScreen(), flavor: _Flavor.light));

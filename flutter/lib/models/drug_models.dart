@@ -263,6 +263,42 @@ class Animal {
     this.pregnancyTerm = 'Беременность',
   });
 
+  /// Словарь иконок по id вида. Страховка на случай, если в данных
+  /// значением `icon` снова окажется текст (баг v1.1.0: в drugs.json
+  /// лежали слова "cattle"/"sheep" — они вылезали за кружок тайла).
+  static const Map<String, String> _iconById = {
+    'cattle': '🐄',
+    'sheep': '🐑',
+    'goat': '🐐',
+    'horse': '🐴',
+    'pig': '🐖',
+    'poultry': '🐔',
+    'chicken': '🐔',
+    'bird': '🦅',
+    'dog': '🐕',
+    'cat': '🐈',
+    'rabbit': '🐇',
+    'bee': '🐝',
+    'fish': '🐟',
+    'deer': '🦌',
+    'camel': '🐪',
+    'mink': '🦭',
+    'fur': '🦊',
+    'rodent': '🐁',
+  };
+
+  static final RegExp _asciiOnly = RegExp(r'^[A-Za-z0-9_\- ]*$');
+
+  /// Иконка для UI: если в данных пришло ASCII-слово вместо эмодзи —
+  /// подменяем по id вида; пустое/незнакомое — лапка.
+  String get displayIcon {
+    final ic = icon.trim();
+    if (ic.isEmpty || _asciiOnly.hasMatch(ic)) {
+      return _iconById[id.toLowerCase()] ?? '🐾';
+    }
+    return ic;
+  }
+
   factory Animal.fromJson(Map<String, dynamic> json) {
     return Animal(
       id: json['id'] as String? ?? '',
