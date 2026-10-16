@@ -79,8 +79,24 @@ jobs:
         # Non-fatal: analyze but don't block the build on lint warnings
         run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
 
+      - name: Decode release keystore
+        # Keystore из секретов. Наличие файла включает release-подпись
+        # в flutter/android/app/build.gradle (signingConfigs.release); без
+        # файла сборка прозрачно падает на debug-ключ (локальная разработка).
+        working-directory: flutter
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/veteco-release.jks
+          test -s android/app/veteco-release.jks && echo "keystore ready: $(wc -c < android/app/veteco-release.jks) bytes"
+
       - name: Build release APK
         working-directory: flutter
+        env:
+          KEYSTORE_FILE: ${{ github.workspace }}/flutter/android/app/veteco-release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build apk --release --shrink
 
       - name: Get version & short SHA
@@ -139,6 +155,8 @@ jobs:
           name: ${{ steps.version.outputs.name }}
           body: |
             ## VetEco ${{ steps.version.outputs.version }} (`${{ steps.version.outputs.short_sha }}`)
+
+            > 🔑 Сборка подписана release-ключом (CN=VetEco). Если у вас стояла версия до 1.1.2 — разово удалите старое приложение и поставьте это APK (смена подписи; все последующие апдейты будут вставать поверх).
 
             ### 📲 Установка на телефон
             **Отсканируйте QR-код** ниже камерой телефона → откроется прямая ссылка на APK:

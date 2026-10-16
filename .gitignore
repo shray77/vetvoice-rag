@@ -72,3 +72,8 @@ collected_papers/
 # Flutter assets symlink (real data in /assets/data/)
 flutter/assets/data
 node_modules/
+
+# Release keystores / подпись (никогда не в репе)
+*.jks
+*.keystore
+flutter/android/key.properties

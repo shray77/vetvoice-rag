@@ -11,6 +11,12 @@ if (flutterRoot == null) {
     flutterRoot = System.env.FLUTTER_ROOT
 }
 
+// Версия из pubspec.yaml — flutter build пишет её в local.properties.
+// Раньше тут был хардкод versionCode 1 / "1.0.0": pubspec-версии (1.1.x)
+// игнорировались, Android не видел апдейтов.
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
+def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.0'
+
 apply plugin: 'com.android.application'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
@@ -23,13 +29,28 @@ android {
         applicationId "com.veteco.app"
         minSdk 24
         targetSdk 36
-        versionCode 1
-        versionName "1.0.0"
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+    }
+
+    signingConfigs {
+        release {
+            // Release-подпись из env (CI: secrets KEYSTORE_*). Локальные сборки
+            // без env прозрачно падают на debug-ключ — flutter run --release работает.
+            def ksPath = System.getenv("KEYSTORE_FILE")
+            if (ksPath != null && file(ksPath).exists()) {
+                storeFile file(ksPath)
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            def ksPath = System.getenv("KEYSTORE_FILE")
+            signingConfig = (ksPath != null && file(ksPath).exists()) ? signingConfigs.release : signingConfigs.debug
         }
     }
 
