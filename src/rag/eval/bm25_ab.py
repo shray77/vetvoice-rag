@@ -1,4 +1,3 @@
-#!/usr/bin/env python3.13
 """A/B: текущий TF-IDF ранг vs BM25-гибрид на gold-наборе (60 запросов).
 
 Варианты:
@@ -97,13 +96,11 @@ def rank_tfidf(vec, index, documents, query: str) -> list[dict]:
         if idx < 0 or idx >= len(documents):
             continue
         doc = documents[idx].copy()
-        tfidf_score = float(vec.transform([q]).toarray()[0][0]) if False else None
-        boost, matched = cond_boost(doc, q_lower, en_query)
         results.append(doc)
     # порядок из FAISS-ранга; boost переупорядочивает как аддитив к ранговому весу
     # (продакшн: score = tfidf*mult + boost — здесь приближаем рангом + boost)
     for rank, doc in enumerate(results, 1):
-        boost, matched = cond_boost(doc, q_lower, en_query)
+        boost, _matched = cond_boost(doc, q_lower, en_query)
         doc["_v0"] = -rank + 3.0 * boost
     results.sort(key=lambda d: d["_v0"], reverse=True)
     return results
@@ -122,7 +119,7 @@ def main() -> int:
     bm25_stem = BM25Okapi(corpus_stem)
     print(f"  BM25 готов ({len(corpus_plain)} документов)\n")
 
-    gold = [json.loads(l) for l in GOLD_PATH.read_text(encoding="utf-8").splitlines() if l.strip()]
+    gold = [json.loads(line) for line in GOLD_PATH.read_text(encoding="utf-8").splitlines() if line.strip()]
     print(f"Gold: {len(gold)} запросов\n")
 
     variants = ["V0_tfidf", "V1_bm25", "V2_rrf", "V3_rrf_boost", "V4_rrf_stem"]
@@ -152,7 +149,7 @@ def main() -> int:
         cand = []
         for j in order:
             d = chunks[j].copy()
-            boost, _ = cond_boost(d, ql, el)
+            boost, _matched = cond_boost(d, ql, el)
             d["_v1"] = scores[j] * (1.5 if boost > 0 else 1.0) + boost
             cand.append(d)
         cand.sort(key=lambda d: d["_v1"], reverse=True)

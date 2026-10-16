@@ -37,6 +37,7 @@ def _bm25_tokenize(text: str) -> list[str]:
             out.append(t[:_BM25_STEM_LEN])
     return out
 
+
 # ============================================================
 # Russian → English medical term translation for RAG retrieval
 # ============================================================
