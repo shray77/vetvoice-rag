@@ -550,7 +550,7 @@ with gr.Blocks(
         secondary_hue="blue",
         font=["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
         text_size="md",
-        radius="lg",
+        radius_size="lg",
     ),
 ) as demo:
 
