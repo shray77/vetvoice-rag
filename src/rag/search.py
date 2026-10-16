@@ -4,7 +4,8 @@ Single entry point for both the Gradio UI (`app.py`) and the FastAPI backend
 (`src/api/app.py`). Mode is driven by `settings.rag_mode`; TF-IDF is always the
 safety net, so the app never breaks if the embedding index/model is unavailable.
 
-- tfidf     : pure TF-IDF + keyword boost (DEFAULT — proven ≥ hybrid on A/B)
+- tfidf     : pure TF-IDF + keyword boost (прежний дефолт)
+- bm25      : BM25Okapi (стем-токены) + keyword boost (ДЕФОЛТ — A/B: Recall 0.200 vs 0.117, MRR 0.163 vs 0.096)
 - hybrid    : Reciprocal Rank Fusion of TF-IDF + dense embeddings (no measured gain, 241 MB ONNX cost)
 - embedding : dense embeddings only (no TF-IDF) — risky, used only for A/B
 
@@ -23,7 +24,7 @@ if str(ROOT) not in sys.path:
 from src.rag.retriever import VetDermRAG
 from src.settings import get_settings
 
-_VALID_MODES = ("tfidf", "hybrid", "embedding")
+_VALID_MODES = ("bm25", "tfidf", "hybrid", "embedding")
 
 _RAG: VetDermRAG | None = None
 _EMBED = None
@@ -73,12 +74,17 @@ def retrieve(
     if not rag.is_ready():
         return []
     k = top_k or cfg.rag_top_k
-    m = (mode or cfg.rag_mode or "tfidf").lower()
+    m = (mode or cfg.rag_mode or "bm25").lower()
     if m not in _VALID_MODES:
-        m = "tfidf"
+        m = "bm25"
 
     if m == "tfidf":
         return rag.retrieve(query, top_k=k)
+
+    if m == "bm25":
+        # BM25-канал (дефолт). Если rank_bm25 не установлен / индекс не собрался —
+        # retrieve_bm25 сам падает на TF-IDF (прозрачный фолбэк).
+        return rag.retrieve_bm25(query, top_k=k)
 
     er = _get_embed_retriever(rag)
     if er is None or er.index is None:

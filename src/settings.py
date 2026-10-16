@@ -116,9 +116,10 @@ class Settings(BaseSettings):
     # Режим ретривера: "tfidf" (только TF-IDF), "hybrid" (TF-IDF + embeddings через
     # RRF), "embedding" (только dense). TF-IDF — дефолт и фолбэк: A/B (src/rag/eval)
     # показал, что hybrid НЕ даёт прироста над tfidf (Recall@5/MRR идентичны ~0.12/0.09),
-    # но тащит 241 МБ ONNX-модель в память впустую. Поэтому дефолт = tfidf;
-    # hybrid/embedding оставлены для будущих A/B, но не используются в проде.
-    rag_mode: str = "tfidf"
+    # но тащит 241 МБ ONNX-модель в память впустую. С 1.1.3 дефолт = bm25
+    # (BM25Okapi со стем-токенами; A/B src/rag/eval/bm25_ab.py: Recall@5 0.200
+    # vs 0.117, MRR 0.163 vs 0.096 у tfidf). tfidf/hybrid/embedding — фолбэки.
+    rag_mode: str = "bm25"
     # Вес TF-IDF в RRF-гибриде (alpha): score = alpha*rrf(tfidf) + (1-alpha)*rrf(emb).
     rag_hybrid_alpha: float = 0.5
     rag_max_context_chars: int = 5000

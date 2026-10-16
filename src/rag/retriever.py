@@ -14,7 +14,28 @@ import faiss
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import normalize
 
+try:
+    from rank_bm25 import BM25Okapi
+except ImportError:  # BM25 — опциональное усиление, фолбэк на TF-IDF
+    BM25Okapi = None
+
 from src.settings import get_settings
+
+# ============================================================
+# BM25 lexical channel (дефолтный ранкер с 1.1.3)
+# ============================================================
+_BM25_TOKEN_RE = re.compile(r"\w+", re.UNICODE)
+_BM25_STEM_LEN = 6  # обрубок для грубой RU-морфологии (преднизолона≈преднизолон)
+
+
+def _bm25_tokenize(text: str) -> list[str]:
+    """Токены BM25: полные слова + стем-обрубки (падежи/числа RU)."""
+    toks = [t.lower() for t in _BM25_TOKEN_RE.findall(text)]
+    out = list(toks)
+    for t in toks:
+        if len(t) > _BM25_STEM_LEN:
+            out.append(t[:_BM25_STEM_LEN])
+    return out
 
 # ============================================================
 # Russian → English medical term translation for RAG retrieval
@@ -369,6 +390,8 @@ class VetDermRAG:
         self.disease_index = None
         self.disease_vectorizer = None
         self.disease_documents: list[dict] = []
+        # BM25 lexical channel (строят _build_from_chunks/_load)
+        self._bm25 = None
         if chunks is not None:
             self._build_from_chunks(chunks)
         else:
@@ -410,6 +433,7 @@ class VetDermRAG:
                 self.documents = json.load(f)
             print(f"[RAG] Loaded: {self.index.ntotal} vectors, {len(self.documents)} docs (local)")
             self._build_disease_index()
+            self._build_bm25()
             return
 
         # Fallback: HF Hub
@@ -447,6 +471,7 @@ class VetDermRAG:
             self.documents = json.load(f)
         print(f"[RAG] Loaded: {self.index.ntotal} vectors, {len(self.documents)} docs (HF Hub)")
         self._build_disease_index()
+        self._build_bm25()
 
     # =================================================================
     # In-memory index builders (no HF files needed)
@@ -469,6 +494,34 @@ class VetDermRAG:
         self.index = faiss.IndexFlatIP(mat.shape[1])
         self.index.add(mat)
         self._build_disease_index()
+        self._build_bm25()
+
+    def _build_bm25(self) -> None:
+        """Собрать BM25-индекс по загруженным документам.
+
+        BM25-документ = content + conditions + chunk_type + source — так
+        запрос «взаимодействие» находит drug_interaction-чанк, даже если
+        самого слова в content нет. Токены — полные + стем-обрубки (падежи).
+        """
+        self._bm25 = None
+        if BM25Okapi is None:
+            print("[RAG] rank_bm25 недоступен — BM25-канал выключен (TF-IDF фолбэк)")
+            return
+        if not self.documents:
+            return
+        corpus = []
+        for c in self.documents:
+            parts = [c.get("content", "")]
+            parts += [x for x in (c.get("conditions") or []) if x]
+            parts.append(c.get("chunk_type", ""))
+            parts.append(c.get("source", ""))
+            corpus.append(_bm25_tokenize(" ".join(parts)))
+        self._bm25 = BM25Okapi(corpus)
+        print(f"[RAG] BM25 index: {len(corpus)} docs")
+
+    @property
+    def has_bm25(self) -> bool:
+        return self._bm25 is not None
 
     def _build_disease_index(self) -> None:
         """Build a SECOND TF-IDF index over only `chunk_type == "disease"`.
@@ -651,6 +704,61 @@ class VetDermRAG:
         # (fusion augments main, it never replaces it). Applied only when the
         # query carries a symptom word, so drug/antidote/protocol queries keep
         # their main-index top result untouched.
+        if self.disease_index is not None and self._disease_route(query):
+            dis_results = self._retrieve_disease(query, top_k=top_k)
+            if dis_results:
+                return self._rrf_fuse(results, dis_results, top_k)
+
+        return results[:top_k]
+
+    def retrieve_bm25(
+        self,
+        query: str,
+        top_k: int | None = None,
+        min_score: float | None = None,
+    ) -> list[dict]:
+        """BM25-ранжирование (лексический канал, дефолт с 1.1.3).
+
+        A/B на gold-наборе (src/rag/eval/bm25_ab.py, 2026-10-16):
+        Recall@5 0.200 / MRR 0.163 против 0.117/0.096 у TF-IDF+boost.
+        Boost-логика и disease-fusion идентичны retrieve(). Параметр
+        min_score на BM25 не действует — scores не нормированы, отсечение
+        делает top_k.
+        """
+        if self._bm25 is None or not self.documents:
+            return self.retrieve(query, top_k=top_k, min_score=min_score)
+
+        cfg = get_settings()
+        top_k = top_k if top_k is not None else cfg.rag_top_k
+
+        search_query = translate_ru_to_en_query(query)
+        scores = self._bm25.get_scores(_bm25_tokenize(search_query))
+        order = sorted(
+            range(len(self.documents)), key=lambda j: scores[j], reverse=True
+        )[: min(top_k * 10, 50)]
+
+        q_lower = query.lower()
+        en_query = search_query.lower()
+        results: list[dict] = []
+        for j in order:
+            doc = self.documents[j].copy()
+            boost = 0.0
+            matched = 0
+            for cond in (doc.get("conditions") or []):
+                if cond and (cond.lower() in q_lower or cond.lower() in en_query):
+                    boost += 0.30
+                    matched += 1
+            boost = min(boost, 0.90)
+            multiplier = 1.5 if matched > 0 else 1.0
+            doc["score"] = float(scores[j]) * multiplier + boost
+            doc["bm25_score"] = float(scores[j])
+            doc["keyword_boost"] = boost
+            doc["keyword_matches"] = matched
+            results.append(doc)
+
+        results.sort(key=lambda x: x["score"], reverse=True)
+
+        # Disease fusion — та же логика, что в retrieve().
         if self.disease_index is not None and self._disease_route(query):
             dis_results = self._retrieve_disease(query, top_k=top_k)
             if dis_results:
