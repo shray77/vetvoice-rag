@@ -10148,9 +10148,11 @@
       "disease_id": null,
       "diagnosis": "Грипп птиц, за исключением указанного в пункте 18",
       "code": "",
-      "category": "",
-      "category_name": "",
-      "species": [],
+      "category": "infectious",
+      "category_name": "Инфекционные болезни",
+      "species": [
+        "Птица"
+      ],
       "pathogen_type": "вирусная этиология",
       "severity": "moderate",
       "order_number": "64",
@@ -10524,9 +10526,12 @@
       "disease_id": null,
       "diagnosis": "Некробактериоз, за исключением указанного в пункте 20",
       "code": "",
-      "category": "",
-      "category_name": "",
-      "species": [],
+      "category": "infectious",
+      "category_name": "Инфекционные болезни",
+      "species": [
+        "КРС",
+        "МРС"
+      ],
       "pathogen_type": "бактериальная этиология",
       "severity": "moderate",
       "order_number": "66",
@@ -15292,9 +15297,11 @@
       "disease_id": null,
       "diagnosis": "Инфекционный бурсит (Болезнь Гамборо)",
       "code": "",
-      "category": "",
-      "category_name": "",
-      "species": [],
+      "category": "infectious",
+      "category_name": "Инфекционные болезни",
+      "species": [
+        "Птица"
+      ],
       "pathogen_type": "вирусная этиология",
       "severity": "moderate",
       "order_number": "88",

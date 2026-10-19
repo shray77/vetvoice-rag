@@ -8,7 +8,10 @@
       "name": "Энрофлоксацин",
       "dose": 0.05,
       "unit": "ml/kg",
-      "animals": ["КРС", "МРС"],
+      "animals": [
+        "КРС",
+        "МРС"
+      ],
       "method": "Внутримышечно",
       "method_short": "в/м",
       "active_ingredient": "Энрофлоксацин 10%",
@@ -33,7 +36,11 @@
       "name": "Амоксициллин",
       "dose": 0.1,
       "unit": "ml/kg",
-      "animals": ["КРС", "МРС", "Свиньи"],
+      "animals": [
+        "КРС",
+        "МРС",
+        "Свиньи"
+      ],
       "method": "Внутримышечно",
       "method_short": "в/м",
       "active_ingredient": "Амоксициллин 15%",
@@ -55,7 +62,11 @@
       "name": "Ивермектин",
       "dose": 0.02,
       "unit": "ml/kg",
-      "animals": ["КРС", "МРС", "Лошади"],
+      "animals": [
+        "КРС",
+        "МРС",
+        "Лошади"
+      ],
       "method": "Подкожно",
       "method_short": "п/к",
       "active_ingredient": "Ивермектин 1%",
@@ -80,7 +91,12 @@
       "name": "Дексаметазон",
       "dose": 0.04,
       "unit": "ml/kg",
-      "animals": ["КРС", "МРС", "Лошади", "Свиньи"],
+      "animals": [
+        "КРС",
+        "МРС",
+        "Лошади",
+        "Свиньи"
+      ],
       "method": "Внутримышечно",
       "method_short": "в/м",
       "active_ingredient": "Дексаметазон 0.4%",
@@ -107,7 +123,11 @@
       "name": "Тилозин",
       "dose": 0.05,
       "unit": "ml/kg",
-      "animals": ["КРС", "Свиньи", "Птица"],
+      "animals": [
+        "КРС",
+        "Свиньи",
+        "Птица"
+      ],
       "method": "Внутримышечно",
       "method_short": "в/м",
       "active_ingredient": "Тилозин 20%",
@@ -129,7 +149,12 @@
       "name": "Флунексин",
       "dose": 0.02,
       "unit": "ml/kg",
-      "animals": ["КРС", "МРС", "Лошади", "Свиньи"],
+      "animals": [
+        "КРС",
+        "МРС",
+        "Лошади",
+        "Свиньи"
+      ],
       "method": "Внутримышечно",
       "method_short": "в/м",
       "active_ingredient": "Флунексин меглумин",
@@ -154,7 +179,12 @@
       "name": "Окситетрациклин",
       "dose": 0.1,
       "unit": "ml/kg",
-      "animals": ["КРС", "МРС", "Свиньи", "Птица"],
+      "animals": [
+        "КРС",
+        "МРС",
+        "Свиньи",
+        "Птица"
+      ],
       "method": "Внутримышечно",
       "method_short": "в/м",
       "active_ingredient": "Окситетрациклин 10%",
@@ -179,7 +209,13 @@
       "name": "Гамавит",
       "dose": 0.1,
       "unit": "ml/kg",
-      "animals": ["КРС", "МРС", "Лошади", "Свиньи", "Птица"],
+      "animals": [
+        "КРС",
+        "МРС",
+        "Лошади",
+        "Свиньи",
+        "Птица"
+      ],
       "method": "Внутримышечно или подкожно",
       "method_short": "в/м, п/к",
       "active_ingredient": "Комплексный иммуномодулятор",
@@ -199,7 +235,10 @@
       "name": "Кальция борглюконат",
       "dose": 0.5,
       "unit": "ml/kg",
-      "animals": ["КРС", "МРС"],
+      "animals": [
+        "КРС",
+        "МРС"
+      ],
       "method": "Внутривенно медленно",
       "method_short": "в/в",
       "active_ingredient": "Кальция глюконат + борная кислота",
@@ -222,7 +261,11 @@
       "name": "Окситоцин",
       "dose": 0.05,
       "unit": "ml/животное",
-      "animals": ["КРС", "МРС", "Свиньи"],
+      "animals": [
+        "КРС",
+        "МРС",
+        "Свиньи"
+      ],
       "method": "Внутримышечно или подкожно",
       "method_short": "в/м, п/к",
       "active_ingredient": "Окситоцин 10 ЕД/мл",
@@ -253,10 +296,30 @@
       "pregnancy_term": "Стельность",
       "gestation_days": 285,
       "age_groups": [
-        {"name": "Теленок", "category": "young", "max_months": 6, "description": "До 6 месяцев"},
-        {"name": "Молодняк", "category": "young", "max_months": 18, "description": "6-18 месяцев"},
-        {"name": "Взрослое", "category": "adult", "max_months": 120, "description": "1.5-10 лет"},
-        {"name": "Пожилое", "category": "old", "max_months": 240, "description": "Старше 10 лет"}
+        {
+          "name": "Теленок",
+          "category": "young",
+          "max_months": 6,
+          "description": "До 6 месяцев"
+        },
+        {
+          "name": "Молодняк",
+          "category": "young",
+          "max_months": 18,
+          "description": "6-18 месяцев"
+        },
+        {
+          "name": "Взрослое",
+          "category": "adult",
+          "max_months": 120,
+          "description": "1.5-10 лет"
+        },
+        {
+          "name": "Пожилое",
+          "category": "old",
+          "max_months": 240,
+          "description": "Старше 10 лет"
+        }
       ]
     },
     {
@@ -270,10 +333,30 @@
       "pregnancy_term": "Сукотность",
       "gestation_days": 152,
       "age_groups": [
-        {"name": "Ягненок", "category": "young", "max_months": 4, "description": "До 4 месяцев"},
-        {"name": "Молодняк", "category": "young", "max_months": 12, "description": "4-12 месяцев"},
-        {"name": "Взрослое", "category": "adult", "max_months": 84, "description": "1-7 лет"},
-        {"name": "Пожилое", "category": "old", "max_months": 144, "description": "Старше 7 лет"}
+        {
+          "name": "Ягненок",
+          "category": "young",
+          "max_months": 4,
+          "description": "До 4 месяцев"
+        },
+        {
+          "name": "Молодняк",
+          "category": "young",
+          "max_months": 12,
+          "description": "4-12 месяцев"
+        },
+        {
+          "name": "Взрослое",
+          "category": "adult",
+          "max_months": 84,
+          "description": "1-7 лет"
+        },
+        {
+          "name": "Пожилое",
+          "category": "old",
+          "max_months": 144,
+          "description": "Старше 7 лет"
+        }
       ]
     },
     {
@@ -287,10 +370,30 @@
       "pregnancy_term": "Жеребость",
       "gestation_days": 340,
       "age_groups": [
-        {"name": "Жеребенок", "category": "young", "max_months": 6, "description": "До 6 месяцев"},
-        {"name": "Молодняк", "category": "young", "max_months": 36, "description": "6-36 месяцев"},
-        {"name": "Взрослое", "category": "adult", "max_months": 180, "description": "3-15 лет"},
-        {"name": "Пожилое", "category": "old", "max_months": 360, "description": "Старше 15 лет"}
+        {
+          "name": "Жеребенок",
+          "category": "young",
+          "max_months": 6,
+          "description": "До 6 месяцев"
+        },
+        {
+          "name": "Молодняк",
+          "category": "young",
+          "max_months": 36,
+          "description": "6-36 месяцев"
+        },
+        {
+          "name": "Взрослое",
+          "category": "adult",
+          "max_months": 180,
+          "description": "3-15 лет"
+        },
+        {
+          "name": "Пожилое",
+          "category": "old",
+          "max_months": 360,
+          "description": "Старше 15 лет"
+        }
       ]
     },
     {
@@ -304,10 +407,30 @@
       "pregnancy_term": "Супоросность",
       "gestation_days": 115,
       "age_groups": [
-        {"name": "Поросенок", "category": "young", "max_months": 2, "description": "До 2 месяцев"},
-        {"name": "Молодняк", "category": "young", "max_months": 9, "description": "2-9 месяцев"},
-        {"name": "Взрослое", "category": "adult", "max_months": 48, "description": "9 месяцев - 4 года"},
-        {"name": "Пожилое", "category": "old", "max_months": 96, "description": "Старше 4 лет"}
+        {
+          "name": "Поросенок",
+          "category": "young",
+          "max_months": 2,
+          "description": "До 2 месяцев"
+        },
+        {
+          "name": "Молодняк",
+          "category": "young",
+          "max_months": 9,
+          "description": "2-9 месяцев"
+        },
+        {
+          "name": "Взрослое",
+          "category": "adult",
+          "max_months": 48,
+          "description": "9 месяцев - 4 года"
+        },
+        {
+          "name": "Пожилое",
+          "category": "old",
+          "max_months": 96,
+          "description": "Старше 4 лет"
+        }
       ]
     },
     {
@@ -321,10 +444,30 @@
       "pregnancy_term": "Насиживание",
       "gestation_days": 21,
       "age_groups": [
-        {"name": "Цыпленок", "category": "young", "max_months": 1, "description": "До 1 месяца"},
-        {"name": "Молодняк", "category": "young", "max_months": 5, "description": "1-5 месяцев"},
-        {"name": "Взрослое", "category": "adult", "max_months": 36, "description": "5 месяцев - 3 года"},
-        {"name": "Пожилое", "category": "old", "max_months": 72, "description": "Старше 3 лет"}
+        {
+          "name": "Цыпленок",
+          "category": "young",
+          "max_months": 1,
+          "description": "До 1 месяца"
+        },
+        {
+          "name": "Молодняк",
+          "category": "young",
+          "max_months": 5,
+          "description": "1-5 месяцев"
+        },
+        {
+          "name": "Взрослое",
+          "category": "adult",
+          "max_months": 36,
+          "description": "5 месяцев - 3 года"
+        },
+        {
+          "name": "Пожилое",
+          "category": "old",
+          "max_months": 72,
+          "description": "Старше 3 лет"
+        }
       ]
     }
   ]

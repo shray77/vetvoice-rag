@@ -144,10 +144,10 @@ class AppModels {
 class AppConstants {
   static const String appName = 'VetEco';
   static const String appVersion = '1.3.0';
-  // Total counts reflect actual JSON data (audited 2026-06-21 via scripts/audit_data.py):
+  // Total counts reflect actual JSON data (audited 2026-06-21; drug sync из vetvoice 2026-10-20 via scripts/audit_data.py):
   //   - drugs_calc.json:           2401 drugs
   //   - drugs_registry.json:       2449 drugs
-  //   - diseases.json:              139 contagious diseases
+  //   - diseases.json:              158 contagious diseases
   //   - non_contagious_diseases:     30 non-contagious diseases
   //   - treatment_protocols.json:   124 protocols
   //   - non_contagious_protocols:    30 protocols
@@ -158,14 +158,14 @@ class AppConstants {
   //   - fluid_therapy.json:           4 formulas
   //   - withdrawal_by_product.json:  83 entries
   //   - dose_adjustments.json:        5 sections
-  //   - verified_dosages.json:       7 entries
+  //   - verified_dosages.json:     2376 entries (синк из vetvoice 2026-10-20)
   //   - correct_dosages_reference:  27 entries
   //   - dosage_database.json:      684 entries
   //   - unofficial_protocols.json:1116 records
   static const int totalRegistryDrugs = 2449;
-  static const int totalContagiousDiseases = 139;
+  static const int totalContagiousDiseases = 158;
   static const int totalNonContagiousDiseases = 30;
-  static const int totalDiseases = totalContagiousDiseases + totalNonContagiousDiseases; // 169
+  static const int totalDiseases = totalContagiousDiseases + totalNonContagiousDiseases; // 188
   static const int totalTreatmentProtocols = 124;
   static const int totalNonContagiousProtocols = 30;
   static const int totalProtocols = totalTreatmentProtocols + totalNonContagiousProtocols; // 154
@@ -177,7 +177,7 @@ class AppConstants {
   static const int totalFluidFormulas = 4;
   static const int totalWithdrawals = 83;
   static const int totalDoseAdjustments = 5;
-  static const int totalVerifiedDosages = 7;
+  static const int totalVerifiedDosages = 2376;
   static const int totalCorrectDosages = 27;
   static const int totalDosageDatabase = 684;
   static const int totalUnofficialProtocols = 1116;

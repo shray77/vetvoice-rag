@@ -147,7 +147,7 @@ class DataLoadService {
         _animals = animals;
       }
 
-      // 4. Contagious diseases (diseases.json) — 139 entries
+      // 4. Contagious diseases (diseases.json) — 158 entries
       final diseaseData = await _loadJson('assets/data/diseases.json');
       if (diseaseData != null) {
         final List<dynamic> diseasesList = diseaseData['diseases'] ?? [];
@@ -287,7 +287,7 @@ class DataLoadService {
         debugPrint('Loaded ${_doseAdjustments!.length} dose-adjustment sections');
       }
 
-      // 15. Verified dosages (verified_dosages.json) — 7 named entries
+      // 15. Verified dosages (verified_dosages.json) — 2376 named entries
       final vdData = await _loadJson('assets/data/verified_dosages.json');
       if (vdData != null) {
         _verifiedDosages = {};

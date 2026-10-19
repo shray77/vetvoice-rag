@@ -76,6 +76,29 @@ make flutter-build-apk       # релизный APK
 | POST | `/v1/rag/search` | Прямой ретрив из локальной базы |
 | GET | `/v1/rag/stats` | Статистика индекса |
 
+## Источник препаратов
+
+Лекарственные базы (`drugs_calc`, `verified_dosages`, `diseases`, `drugs`,
+`advanced/treatment_protocols`) — **канонический источник: репозиторий [vetvoice](https://github.com/shray77/vetvoice)**.
+ВетЭко не ведёт свою копию, а синхронизируется:
+
+```bash
+make sync-drugs                                # из GitHub (raw.githubusercontent.com)
+python3 scripts/sync_drugs_from_vetvoice.py --from ../vetvoice   # из локального клона
+python3 scripts/sync_drugs_from_vetvoice.py --check             # проверка без записи (CI-ready)
+```
+
+Правила синка:
+- 5 файлов — байт-в-байт из vetvoice;
+- `dosage_database.json` — merge: общие записи из vetvoice, локальные
+  дополнения сохраняются (исторически здесь их 13);
+- правки препаратов делать **в vetvoice**, затем прогонять синк здесь.
+
+Пуш в `assets/data/**` автоматически запускает CI-ворклоф `Build Embedding Index`
+(перестройка плотного FAISS-индекса → HF Hub). После синка крупного объёма
+(как 2026-10-20: verified_dosages 7 → 2 376 записей) HF Space стоит
+передеплоить (`scripts/deploy_hf.py`), чтобы ретривер поднял свежий индекс.
+
 ## База знаний
 
 Локально: `python scripts/build_rag.py` → `knowledge_base/`. В проде ретривер тянет

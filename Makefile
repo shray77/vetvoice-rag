@@ -21,6 +21,9 @@ docker-stop: ## Stop Docker container
 rag-update: ## Rebuild RAG knowledge base locally
 	python scripts/build_rag.py
 
+sync-drugs: ## Sync drug databases from canonical source (vetvoice repo)
+	python3 scripts/sync_drugs_from_vetvoice.py
+
 flutter-sync-assets: ## Copy assets/data -> flutter/assets/data (required before Flutter build)
 	@mkdir -p flutter/assets/data
 	cp -r assets/data/. flutter/assets/data/
