@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../core/constants/app_constants.dart';
-import '../core/theme/app_theme.dart';
 import '../models/drug_models.dart';
 import '../services/glm_ai_service.dart';
 import '../services/backend_rag_service.dart';
@@ -115,14 +113,14 @@ class AiProvider extends ChangeNotifier {
       // 1) Fallback: прямой GLM через Z.AI (без RAG-контекста).
       if (answer == null || answer.isEmpty) {
         answer = await _aiService.askWithRag(question: content, ragContext: null);
-        if (answer != null && answer.isNotEmpty) {
+        if (answer.isNotEmpty) {
           source = 'direct_glm';
           _saveToCache(content, answer);
         }
       }
 
       // 2) Last resort: offline cache.
-      if (answer == null || answer.isEmpty) {
+      if (answer.isEmpty) {
         final cached = _getFromCache(content);
         if (cached != null) {
           answer = '$cached\n\n⚠️ Ответ из офлайн-кэша.';
@@ -134,7 +132,7 @@ class AiProvider extends ChangeNotifier {
 
       _messages.add(ChatMessage(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        content: answer ?? 'Не удалось получить ответ.',
+        content: answer,
         isUser: false,
         timestamp: DateTime.now(),
         sources: source == 'hf_space'

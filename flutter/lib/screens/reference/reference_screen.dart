@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_colors_resolver.dart';
 import '../../core/widgets/app_components.dart';
-import '../../core/constants/app_constants.dart';
 import '../../providers/vet_provider.dart';
 import '../../models/drug_models.dart';
 

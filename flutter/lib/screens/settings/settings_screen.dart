@@ -55,16 +55,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await prefs.setString(AppModels.selectedVlmModelPrefsKey, id);
   }
 
-  Future<void> _loadSettings() async {
-    // Settings loaded from ThemeProvider
-  }
-
   @override
   Widget build(BuildContext context) {
     final textColor = AppColorsResolver.textPrimary(context);
     final secondaryTextColor = AppColorsResolver.textSecondary(context);
-    final tertiaryTextColor = AppColorsResolver.textTertiary(context);
-    final surfaceColor = AppColorsResolver.surface(context);
     final bgColor = AppColorsResolver.background(context);
     final primaryColor = AppColorsResolver.primary(context);
 
@@ -352,7 +346,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required List<Widget> children,
   }) {
     final secondaryTextColor = AppColorsResolver.textSecondary(context);
-    final surfaceColor = AppColorsResolver.surface(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
       child: Column(
@@ -377,36 +370,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           AppCard.standard(
             padding: EdgeInsets.zero,
             child: Column(children: children),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    final textColor = AppColorsResolver.textPrimary(context);
-    final secondaryTextColor = AppColorsResolver.textSecondary(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.cardPadding, vertical: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTypography.body.copyWith(color: textColor)),
-                Text(subtitle, style: AppTypography.footnote.copyWith(color: secondaryTextColor)),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
           ),
         ],
       ),

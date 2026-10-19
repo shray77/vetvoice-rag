@@ -324,7 +324,6 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
   ) {
     final isDone = step < currentStep;
     final isActive = step == currentStep;
-    final color = isDone || isActive ? primary : tertiary;
     final textColor = AppColorsResolver.textPrimary(context);
 
     return Tooltip(
@@ -533,7 +532,6 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
   Widget _buildFavoritesSection(VetProvider provider) {
     if (provider.favorites.isEmpty) return const SizedBox.shrink();
     final textColor = AppColorsResolver.textPrimary(context);
-    final secondary = AppColorsResolver.textSecondary(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

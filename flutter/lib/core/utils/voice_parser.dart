@@ -1,5 +1,3 @@
-import 'package:flutter/services.dart';
-
 // Re-export HapticHelper from app_theme.dart for backward compatibility
 // with files that still import voice_parser.dart.
 export '../theme/app_theme.dart' show HapticHelper;

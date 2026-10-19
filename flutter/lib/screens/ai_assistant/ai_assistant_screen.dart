@@ -707,7 +707,6 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
   /// Страница результатов VLM
   Widget _buildVlmResultView(VlmProvider provider) {
     final textColor = AppColorsResolver.textPrimary(context);
-    final primary = AppColorsResolver.primary(context);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
