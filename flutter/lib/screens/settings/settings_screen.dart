@@ -59,6 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final textColor = AppColorsResolver.textPrimary(context);
     final secondaryTextColor = AppColorsResolver.textSecondary(context);
+    final surfaceColor = AppColorsResolver.surface(context);
     final bgColor = AppColorsResolver.background(context);
     final primaryColor = AppColorsResolver.primary(context);
 
