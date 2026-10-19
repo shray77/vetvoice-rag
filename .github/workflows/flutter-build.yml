@@ -65,10 +65,9 @@ jobs:
 
       - name: Install dependencies
         working-directory: flutter
-        # Remove stale lock so fresh shared_preferences_android can be resolved
-        run: |
-          rm -f pubspec.lock
-          flutter pub get
+        # pubspec.lock закоммичен и обновлён — сборка воспроизводима;
+        # прежний rm -f pubspec.lock тихо поднимал версии зависимостей
+        run: flutter pub get
 
       - name: Create local.properties
         working-directory: flutter
@@ -76,8 +75,9 @@ jobs:
 
       - name: Analyze
         working-directory: flutter
-        # Non-fatal: analyze but don't block the build on lint warnings
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+        # Ошибки/варнинги валят сборку; info-заметки (prefer_const и т.п.) — нет.
+        # Прежний '|| true' делал анализ декоративным
+        run: flutter analyze --no-fatal-infos
 
       - name: Decode release keystore
         # Keystore из секретов. Наличие файла включает release-подпись

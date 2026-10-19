@@ -1,0 +1,31 @@
+# Flutter/Dart — генерируемые артефакты (стандартный набор приложения)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+build/
+
+# Android — машинно-зависимое и генерируемое
+android/local.properties
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+android/.gradle/
+android/captures/
+android/gradlew*
+android/key.properties
+android/app/debug
+android/app/profile
+android/app/release
+*.jks
+*.keystore
+
+# Символизация/обфускация
+app.*.symbols
+app.*.map.json
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Примечание: pubspec.lock ДЛЯ ПРИЛОЖЕНИЯ коммитится (воспроизводимость сборки).

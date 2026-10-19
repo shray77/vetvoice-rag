@@ -44,9 +44,6 @@ class ApiConfig {
   // Если пустой — все AI запросы идут через HF Space fallback.
   static const String apiKeyPrefsKey = 'zai_api_key';
 
-  // Legacy (не используется, но оставлено для совместимости)
-  @Deprecated('Use baseUrl instead')
-  static const String glmBaseUrl = baseUrl;
 }
 
 /// Описание одной выбираемой модели Z AI (GLM) для UI и запросов.
@@ -143,7 +140,7 @@ class AppModels {
 /// App-wide constants
 class AppConstants {
   static const String appName = 'VetEco';
-  static const String appVersion = '1.3.0';
+  static const String appVersion = '1.1.2';
   // Total counts reflect actual JSON data (audited 2026-06-21; drug sync из vetvoice 2026-10-20 via scripts/audit_data.py):
   //   - drugs_calc.json:           2401 drugs
   //   - drugs_registry.json:       2449 drugs

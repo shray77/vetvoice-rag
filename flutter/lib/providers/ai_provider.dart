@@ -150,15 +150,6 @@ class AiProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Запрос к RAG через VetEco FastAPI backend.
-  ///
-  /// DEPRECATED: ранее использовался хрупкий Gradio HF Space API
-  /// (event_id + SSE-поллинг). Теперь RAG-поиск идёт через
-  /// [BackendRagService] (см. sendMessage). Этот метод оставлен пустым
-  /// для обратной совместимости и будет удалён в следующем рефакторе.
-  @Deprecated('Use BackendRagService instead')
-  Future<String?> _askRagViaHfSpace(String query) async => null;
-
   /// Очистить историю чата
   void clearChat() {
     _messages.clear();
