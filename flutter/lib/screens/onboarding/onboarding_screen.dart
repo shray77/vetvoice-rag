@@ -50,7 +50,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     _OnboardingPage(
       icon: Icons.menu_book_rounded,
       title: 'Справочник',
-      subtitle: '188 болезней, 154 протокола, 73 взаимодействия, 17 антидотов',
+      subtitle: '187 болезней, 154 протокола, 73 взаимодействия, 17 антидотов',
       color: AppColors.systemOrange,
     ),
   ];

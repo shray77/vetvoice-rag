@@ -99,14 +99,7 @@ jobs:
         if: always()
         run: |
           if [ -f collected_papers/papers_metadata.json ]; then
-            python -c "
-            import json
-            with open('collected_papers/papers_metadata.json') as f:
-                    m = json.load(f)
-            print(f'Total papers: {len(m.get(\"papers\", []))}')
-            print(f'Total chunks: {m.get(\"total_chunks\", 0)}')
-            print(f'Last harvest: {m.get(\"last_harvest\", \"N/A\")}')
-            "
+            python -c "import json; m = json.load(open('collected_papers/papers_metadata.json')); p = m.get('papers', []) if isinstance(m, dict) else m; print('Total papers:', len(p)); print('Total chunks:', m.get('total_chunks', 0) if isinstance(m, dict) else len(m)); print('Last harvest:', m.get('last_harvest', 'N/A') if isinstance(m, dict) else 'N/A')"
           else
             echo "No harvest report generated"
           fi

@@ -147,7 +147,7 @@ class DataLoadService {
         _animals = animals;
       }
 
-      // 4. Contagious diseases (diseases.json) — 158 entries
+      // 4. Contagious diseases (diseases.json) — 157 entries
       final diseaseData = await _loadJson('assets/data/diseases.json');
       if (diseaseData != null) {
         final List<dynamic> diseasesList = diseaseData['diseases'] ?? [];

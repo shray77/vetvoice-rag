@@ -897,6 +897,30 @@ def harvest_papers(source: str, queries: List[str], max_per_query: int = 10) -> 
     return all_papers
 
 
+def refresh_local_chunks(existing: List[Dict]) -> List[Dict]:
+    """Свежие локальные чанки из assets/data + бумажные чанки из стора.
+
+    Локальная порция KB пересобирается с нуля каждый прогон: chunk_id =
+    source:hash(content), поэтому неизменившиеся чанки дедупятся естественным
+    путём (совпадает id), новые/изменившиеся базы попадают в стор, а
+    устаревшие локальные чанки вытесняются свежим набором. Бумажные чанки
+    (source "paper:...") сохраняются как есть — их источник только тут.
+    Без этого синк баз (напр., препаратов из vetvoice) никогда не попадал
+    в TF-IDF KB: update-rag мержил только новые бумаги со старым стором.
+    """
+    try:
+        from scripts.build_rag import collect_local_chunks  # python -m / из корня репо
+    except ImportError:
+        from build_rag import collect_local_chunks  # python scripts/paper_harvester.py
+    local = collect_local_chunks()
+    papers = [c for c in existing if not str(c.get("source", "")).endswith(".json")]
+    log.info(
+        f"Local chunks refreshed from assets/data: {len(local)} "
+        f"(было локальных: {len(existing) - len(papers)}); paper chunks kept: {len(papers)}"
+    )
+    return local + papers
+
+
 def process_papers_to_rag(papers: List[Dict], rebuild: bool = False) -> int:
     """Convert harvested papers to RAG chunks and rebuild index"""
     builder = RAGIndexBuilder()
@@ -904,6 +928,9 @@ def process_papers_to_rag(papers: List[Dict], rebuild: bool = False) -> int:
     # Load existing chunks
     existing = builder.load_existing_chunks() if not rebuild else []
     log.info(f"Existing chunks: {len(existing)}")
+
+    # Свежие локальные данные (assets/data) — до мержа бумаг
+    existing = refresh_local_chunks(existing)
 
     # Convert papers to chunks
     new_chunks = []
@@ -914,8 +941,9 @@ def process_papers_to_rag(papers: List[Dict], rebuild: bool = False) -> int:
     log.info(f"New chunks from papers: {len(new_chunks)}")
 
     if not new_chunks and not rebuild:
-        log.warning("No new chunks generated")
-        return 0
+        # НЕ выходим: refresh_local_chunks мог изменить локальную порцию —
+        # индекс нужно пересобрать даже без новых бумаг
+        log.warning("No new paper chunks — rebuilding with refreshed local data")
 
     # Merge and build
     merged = builder.merge_chunks(existing, new_chunks)
@@ -1011,6 +1039,7 @@ Examples:
         log.info("Rebuilding FAISS index from existing data...")
         builder = RAGIndexBuilder()
         existing = builder.load_existing_chunks()
+        existing = refresh_local_chunks(existing)
         if existing:
             builder.build_index(existing)
             if args.upload:

@@ -147,7 +147,7 @@ class AppConstants {
   // Total counts reflect actual JSON data (audited 2026-06-21; drug sync из vetvoice 2026-10-20 via scripts/audit_data.py):
   //   - drugs_calc.json:           2401 drugs
   //   - drugs_registry.json:       2449 drugs
-  //   - diseases.json:              158 contagious diseases
+  //   - diseases.json:              157 contagious diseases
   //   - non_contagious_diseases:     30 non-contagious diseases
   //   - treatment_protocols.json:   124 protocols
   //   - non_contagious_protocols:    30 protocols
@@ -163,9 +163,9 @@ class AppConstants {
   //   - dosage_database.json:      684 entries
   //   - unofficial_protocols.json:1116 records
   static const int totalRegistryDrugs = 2449;
-  static const int totalContagiousDiseases = 158;
+  static const int totalContagiousDiseases = 157;
   static const int totalNonContagiousDiseases = 30;
-  static const int totalDiseases = totalContagiousDiseases + totalNonContagiousDiseases; // 188
+  static const int totalDiseases = totalContagiousDiseases + totalNonContagiousDiseases; // 187
   static const int totalTreatmentProtocols = 124;
   static const int totalNonContagiousProtocols = 30;
   static const int totalProtocols = totalTreatmentProtocols + totalNonContagiousProtocols; // 154

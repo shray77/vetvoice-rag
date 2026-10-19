@@ -115,7 +115,7 @@ def main():
     # Totals
     print()
     print("Expected Flutter app totals:")
-    print("  - 188 diseases (158 contagious + 30 non-contagious)")
+    print("  - 187 diseases (157 contagious + 30 non-contagious)")
     print("  - 154 treatment protocols (124 + 30)")
     print("  - All 18 JSON files loaded")
 
