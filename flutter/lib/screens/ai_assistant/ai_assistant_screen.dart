@@ -509,7 +509,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
                   'GLM VLM (GLM-4.6V / GLM-5V-Turbo) — Vision Language Model с поддержкой RAG. '
                   'Анализирует фотографии кожных поражений, ушных инфекций, глазных '
                   'патологий. Результаты дополняются контекстом из базы ветеринарных '
-                  'знаний (12 024 чанков). 3-tier fallback: локальный FastAPI → '
+                  'знаний (58 242 чанка: данные + научные статьи). 3-tier fallback: локальный FastAPI → '
                   'HF Space → прямой VLM.',
                   style: AppTypography.footnote.copyWith(
                     color: AppColorsResolver.textSecondary(context),

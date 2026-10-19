@@ -205,7 +205,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _buildInfoTile('Экстренных протоколов', '${AppConstants.totalEmergencyProtocols}'),
                 _buildInfoTile('Записей побочных эфф.', '${AppConstants.totalSideEffectEntries}'),
                 _buildInfoTile('API', 'GLM (Z AI), выбирается в «AI»'),
-                _buildInfoTile('RAG KB', '12 024 чанков, FAISS TF-IDF'),
+                _buildInfoTile('RAG KB', '58 242 чанка · TF-IDF + FAISS'),
               ],
             ),
           ),

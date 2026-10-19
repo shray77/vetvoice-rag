@@ -1085,7 +1085,7 @@ class _StatsTab extends StatelessWidget {
                     Text('RAG Knowledge Base', style: AppTypography.sectionTitle),
                     const SizedBox(height: 4),
                     Text(
-                      'Локальный FAISS-индекс: 12 024 чанков, 8 000-мерный TF-IDF.\n'
+                      'RAG-индекс: 58 242 чанка (15 709 данных + 42 533 научных), TF-IDF 10 000-мерный.\n'
                       'Источники: те же 17 JSON-файлов + advanced/*\n'
                       'Поиск: hybrid (TF-IDF + keyword boost + bilingual EN/RU translation)',
                       style: AppTypography.caption2.copyWith(color: secondary),
