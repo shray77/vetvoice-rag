@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
-/// Перевод vet-ds v2.3.2 в Material-слой VetEco: голос A «Научная
+/// Перевод vet-ds v2.3.4 в Material-слой VetEco: голос A «Научная
 /// периодика» — A-light «бумага» (дефолт) + A-dark «Вечерний номер».
 ///
 /// Источник токенов — vet-ds/vet-ds.css, блоки :root и [data-theme="dark"].
+///
+/// v2.3.4 (Task 176): синхрон с ядром через scripts/ds_gate.py — гейт парсит
+/// этот файл против design/tokens.json (срез ядра из vet-ds). Поймал и закрыл
+/// дрейф border-strong v2.3.2 (рамки инпутов были 1.5–1.7:1 — §1.4.11).
 /// VetEco — AI-ассистент и справочник RAG («читаешь»: чат, референс,
 /// заметки) — голос A; калькулятор доз = единственный «действуешь»-раздел,
 /// его плотность решает локальный слой, а не смена голоса всей оболочки.
@@ -26,7 +30,7 @@ abstract final class DsLight {
   static const Color surface = Color(0xFFFFFFFF);
   static const Color surface2 = Color(0xFFF1EEE6);
   static const Color border = Color(0xFFE3E0D5);
-  static const Color borderStrong = Color(0xFFC8C4B6);
+  static const Color borderStrong = Color(0xFF857F6E);
   static const Color rule = Color(0xFF1C1B1A);
 
   // -- Текст --------------------------------------------------------------
@@ -54,7 +58,7 @@ abstract final class DsDark {
   static const Color surface = Color(0xFF2A2620);
   static const Color surface2 = Color(0xFF34302A);
   static const Color border = Color(0xFF3F3A32);
-  static const Color borderStrong = Color(0xFF554E44);
+  static const Color borderStrong = Color(0xFF857F6E);
   static const Color rule = Color(0xFF6E685C);
 
   // -- Текст ---------------------------------------------------------------
