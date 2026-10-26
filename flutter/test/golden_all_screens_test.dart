@@ -75,24 +75,41 @@ Future<void> _render(WidgetTester tester, Widget screen, String name,
   );
 }
 
+/// Шрифт из кеша SDK: FLUTTER_ROOT (CI, ставит subosito/flutter-action)
+/// → жёсткий путь песочницы разработки. null = нет нигде (FONT MISSING).
+String? _sdkFont(String name) {
+  final fr = Platform.environment['FLUTTER_ROOT'] ?? '';
+  for (final d in [
+    if (fr.isNotEmpty) '$fr/bin/cache/artifacts/material_fonts',
+    '/home/z/flutter/bin/cache/artifacts/material_fonts',
+  ]) {
+    final f = File('$d/$name');
+    if (f.existsSync()) return f.path;
+  }
+  return null;
+}
+
 Future<void> _loadRealFonts() async {
   // Реальные шрифты вместо Ahem — иначе кириллица рисуется тофу-квадратами.
   // v1.1.1: в семью Roboto добавлен NotoColorEmoji — эмодзи-иконки животных
   // (🐄🐑🐴) в golden-кадрах рисуются как в приложении, а не тофу.
-  final families = <String, List<String>>{
+  final families = <String, List<String?>>{
     'Roboto': [
-      '/home/z/flutter/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf',
-      '/home/z/flutter/bin/cache/artifacts/material_fonts/Roboto-Medium.ttf',
-      '/home/z/flutter/bin/cache/artifacts/material_fonts/Roboto-Bold.ttf',
+      _sdkFont('Roboto-Regular.ttf'),
+      _sdkFont('Roboto-Medium.ttf'),
+      _sdkFont('Roboto-Bold.ttf'),
       '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',
     ],
-    'MaterialIcons': [
-      '/home/z/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
-    ],
+    'MaterialIcons': [_sdkFont('MaterialIcons-Regular.otf')],
   };
   for (final e in families.entries) {
     final loader = FontLoader(e.key);
     for (final path in e.value) {
+      if (path == null) {
+        // ignore: avoid_print
+        print('FONT MISSING: ${e.key}');
+        continue;
+      }
       final f = File(path);
       if (f.existsSync()) {
         loader.addFont(Future.value(ByteData.view(f.readAsBytesSync().buffer)));
