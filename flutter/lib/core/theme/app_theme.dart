@@ -350,7 +350,7 @@ class AppTheme {
     scaffoldBackgroundColor: const Color(0xFF16130E),
     canvasColor: const Color(0xFF16130E),
     appBarTheme: const AppBarTheme(
-      backgroundColor: const Color(0xFF16130E),
+      backgroundColor: Color(0xFF16130E),
       foregroundColor: DsDark.text,
       elevation: 0,
       scrolledUnderElevation: 0,
