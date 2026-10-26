@@ -1,7 +1,7 @@
 name: veteco
 description: "VetEco — ветеринарная экосистема: диктовка → медкарта, калькулятор дозировок, AI-RAG, VLM диагностика"
 publish_to: 'none'
-version: 1.1.2+4  # 1.1.2: release-подпись APK + versionCode теперь из pubspec
+version: 1.2.0+5  # 1.2.0: vet-ds v2.3.2 «Научная периодика» (голос A + бирюза) — lib/theme/ds.dart
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -38,3 +38,11 @@ flutter:
   assets:
     - assets/data/
     - assets/data/advanced/
+
+  # vet-ds v2.3.2: Prata — дисплей-заголовки (serif периодики, 99 КБ,
+  # кириллица; прецедент VetOS Task 166). Текст — системный Roboto.
+  fonts:
+    - family: Prata
+      fonts:
+        - asset: assets/fonts/Prata-Regular.ttf
+          weight: 400

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../../theme/ds.dart';
 import '../utils/app_colors_resolver.dart';
 
 /// Polished card with consistent radius, padding, and optional header/footer.
@@ -363,32 +364,32 @@ class AppBadge extends StatelessWidget {
     switch (v) {
       case AppBadgeVariant.critical:
         return _BadgeColors(
-          background: isDark ? const Color(0x33DC2626) : AppColors.dangerContainer,
-          foreground: isDark ? const Color(0xFFF87171) : AppColors.danger,
+          background: isDark ? const Color(0x33E87963) : AppColors.dangerContainer,
+          foreground: isDark ? DsDark.red : AppColors.danger,
           border: Colors.transparent,
         );
       case AppBadgeVariant.warning:
         return _BadgeColors(
-          background: isDark ? const Color(0x33EA580C) : AppColors.warningContainer,
-          foreground: isDark ? const Color(0xFFFB923C) : AppColors.warning,
+          background: isDark ? const Color(0x33E08A4F) : AppColors.warningContainer,
+          foreground: isDark ? DsDark.orange : AppColors.warning,
           border: Colors.transparent,
         );
       case AppBadgeVariant.moderate:
         return _BadgeColors(
-          background: isDark ? const Color(0x33CA8A04) : const Color(0xFFFEF3C7),
-          foreground: isDark ? const Color(0xFFFACC15) : const Color(0xFFA16207),
+          background: isDark ? const Color(0x33D9A24A) : const Color(0xFFF1E9D2),
+          foreground: isDark ? DsDark.amber : AppColors.severityModerate,
           border: Colors.transparent,
         );
       case AppBadgeVariant.info:
         return _BadgeColors(
-          background: isDark ? const Color(0x332563EB) : AppColors.infoContainer,
-          foreground: isDark ? const Color(0xFF60A5FA) : AppColors.info,
+          background: isDark ? const Color(0x3382A9CC) : AppColors.infoContainer,
+          foreground: isDark ? DsDark.blue : AppColors.info,
           border: Colors.transparent,
         );
       case AppBadgeVariant.mild:
         return _BadgeColors(
-          background: isDark ? const Color(0x3316A34A) : AppColors.successContainer,
-          foreground: isDark ? const Color(0xFF4ADE80) : AppColors.success,
+          background: isDark ? const Color(0x338DB96F) : AppColors.successContainer,
+          foreground: isDark ? DsDark.green : AppColors.success,
           border: Colors.transparent,
         );
       case AppBadgeVariant.neutral:

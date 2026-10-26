@@ -13,6 +13,7 @@ import '../../providers/navigation_provider.dart';
 import '../../services/glm_ai_service.dart';
 import '../reference/reference_screen.dart';
 import '../terms/terms_screen.dart';
+import '../../theme/ds.dart';
 
 /// Экран «Ещё» — Настройки + VetLearn + О приложении
 class SettingsScreen extends StatefulWidget {
@@ -119,7 +120,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         subtitle: 'Все базы: $total записей (болезни, протоколы, взаимодействия, антидоты…)',
                         onTap: () {
                           Navigator.of(context).push(
-                            MaterialPageRoute(
+                            DsRoute(
                               builder: (_) => const ReferenceScreen(),
                             ),
                           );
@@ -233,7 +234,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     subtitle: 'Информационный сервис «как есть», не ветеринарная консультация',
                     showChevron: true,
                     onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute<void>(
+                      Navigator.of(context).push(DsRoute<void>(
                         builder: (_) => const TermsScreen(),
                       ));
                     },
@@ -289,7 +290,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _openVetLearn() {
     Navigator.of(context).push(
-      MaterialPageRoute(
+      DsRoute(
         builder: (_) => const _VetLearnScreen(),
       ),
     );

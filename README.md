@@ -19,6 +19,10 @@ Gradio + FastAPI-бэкенд (прокси к Z.AI GLM) + Flutter-клиент.
   `configs/config.yaml` → дефолты).
 - `flutter/` — мобильный клиент (Dart). Данные из `assets/data/` копируются в
   `flutter/assets/data` на сборке (см. `Makefile` / `flutter-build.yml`).
+  v1.2.0 — на vet-ds v2.3.2 «Научная периодика» (голос A + бирюза Vet Teal
+  #0F766E/#2DD4BF, зеркально vet-insilico): токены `flutter/lib/theme/ds.dart`,
+  гейт контраста `scripts/ds_gate_flutter.py` (56 пар AA), Prata-дисплей,
+  радиусы ≤ 10, движение 160 мс, эмодзи в UI запрещены.
 
 ## Быстрый старт
 

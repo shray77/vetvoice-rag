@@ -123,7 +123,7 @@ class AiProvider extends ChangeNotifier {
       if (answer.isEmpty) {
         final cached = _getFromCache(content);
         if (cached != null) {
-          answer = '$cached\n\n⚠️ Ответ из офлайн-кэша.';
+          answer = '$cached\n\nОтвет из офлайн-кэша.';
           source = 'cache';
         }
       }

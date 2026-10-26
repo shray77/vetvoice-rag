@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../theme/ds.dart';
+
 /// ═══════════════════════════════════════════════════════════════════════
-/// VetEco Design System v2.0
+/// VetEco — vet-ds v2.3.2: голос A «Научная периодика» + бирюза бренда.
+/// v1.2.0: бумага A-light / тёплый графит A-dark (lib/theme/ds.dart —
+/// DsLight/DsDark), характер — Vet Teal #0F766E/#2DD4BF (зеркально
+/// vet-insilico), эмодзи в UI запрещены, радиусы ≤ 10, текст ≥ AA,
+/// движение 160 мс, Prata-дисплей. Прежние имена констант сохранены
+/// (AppColors.*, AppTypography.*) — значения едут из ядра DS.
 /// ═══════════════════════════════════════════════════════════════════════
 /// Inspired by Apple Health — clean clinical aesthetic, generous whitespace,
 /// strong typographic hierarchy, semantic color usage.
@@ -15,23 +22,23 @@ import 'package:flutter/services.dart';
 class AppColors {
   // ─── Brand: Vet Teal ───────────────────────────────────────────────
   /// Primary brand color — calm clinical teal.
-  static const Color primary = Color(0xFF0D9488);
-  static const Color primaryLight = Color(0xFF14B8A6);
-  static const Color primaryDark = Color(0xFF0F766E);
-  static const Color primaryContainer = Color(0xFFCCFBF1);   // light teal tint
-  static const Color primaryContainerDark = Color(0xFF134E4A);
-  static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color onPrimaryContainer = Color(0xFF134E4A);
+  static const Color primary = DsLight.accent; // характер: AA на бумаге
+  static const Color primaryLight = DsDark.accent; // яркий характер для тёмного
+  static const Color primaryDark = DsLight.accentStrong;
+  static const Color primaryContainer = Color(0xFFD8F0ED);   // бирюзовый тинт на бумаге
+  static const Color primaryContainerDark = Color(0xFF123B37);
+  static const Color onPrimary = DsLight.accentInk;
+  static const Color onPrimaryContainer = Color(0xFF123B37);
 
   // ─── Semantic ──────────────────────────────────────────────────────
-  static const Color success = Color(0xFF16A34A);
-  static const Color successContainer = Color(0xFFDCFCE7);
-  static const Color warning = Color(0xFFEA580C);
-  static const Color warningContainer = Color(0xFFFFEDD5);
-  static const Color danger = Color(0xFFDC2626);
-  static const Color dangerContainer = Color(0xFFFEE2E2);
-  static const Color info = Color(0xFF2563EB);
-  static const Color infoContainer = Color(0xFFDBEAFE);
+  static const Color success = DsLight.green;
+  static const Color successContainer = Color(0xFFDDEBD6);
+  static const Color warning = DsLight.orange;
+  static const Color warningContainer = Color(0xFFF5E7DC);
+  static const Color danger = DsLight.red;
+  static const Color dangerContainer = Color(0xFFFBE3E1);
+  static const Color info = DsLight.blue;
+  static const Color infoContainer = Color(0xFFE1EAF2);
 
   // ─── Apple-style system colors (kept for semantic clarity) ────────
   static const Color systemBlue = Color(0xFF007AFF);
@@ -48,49 +55,49 @@ class AppColors {
   static const Color systemGrey = Color(0xFF8E8E93);
 
   // ─── Light theme surfaces ──────────────────────────────────────────
-  static const Color background = Color(0xFFF2F2F7);    // Apple grouped bg
-  static const Color surface = Color(0xFFFFFFFF);       // Card surface
-  static const Color secondarySurface = Color(0xFFF9F9FB);
-  static const Color tertiarySurface = Color(0xFFEFEFF2);
+  static const Color background = DsLight.bg;           // тёплая бумага DS
+  static const Color surface = DsLight.surface;        // Card surface
+  static const Color secondarySurface = DsLight.surface2;
+  static const Color tertiarySurface = Color(0xFFE9E6DC);
 
   // ─── Light theme text ──────────────────────────────────────────────
-  static const Color textPrimary = Color(0xFF1C1C1E);
-  static const Color textSecondary = Color(0xFF6B6B70);
-  static const Color textTertiary = Color(0xFF9E9EA5);
-  static const Color textPlaceholder = Color(0xFFC7C7CC);
-  static const Color textOnTeal = Color(0xFFFFFFFF);
+  static const Color textPrimary = DsLight.text;
+  static const Color textSecondary = DsLight.muted;
+  static const Color textTertiary = DsLight.faint;
+  static const Color textPlaceholder = Color(0xFF9E9789);
+  static const Color textOnTeal = DsLight.accentInk;
 
   // ─── Light theme separators/fills ──────────────────────────────────
-  static const Color separator = Color(0xFFE5E5EA);
-  static const Color opaqueSeparator = Color(0xFFC6C6C8);
-  static const Color fillPrimary = Color(0x33000000);
-  static const Color fillSecondary = Color(0x1A000000);
+  static const Color separator = DsLight.border;
+  static const Color opaqueSeparator = DsLight.borderStrong;
+  static const Color fillPrimary = Color(0x331C1B1A);
+  static const Color fillSecondary = Color(0x1A1C1B1A);
 
   // ─── Dark theme surfaces ───────────────────────────────────────────
   /// Slightly off-black for less eye strain vs pure black.
-  static const Color darkBackground = Color(0xFF0A0A0C);
-  static const Color darkSurface = Color(0xFF1C1C1E);
-  static const Color darkSecondarySurface = Color(0xFF2C2C2E);
-  static const Color darkTertiarySurface = Color(0xFF3A3A3C);
+  static const Color darkBackground = DsDark.bg;
+  static const Color darkSurface = DsDark.surface;
+  static const Color darkSecondarySurface = DsDark.surface2;
+  static const Color darkTertiarySurface = DsDark.border;
 
   // ─── Dark theme text ───────────────────────────────────────────────
-  static const Color darkTextPrimary = Color(0xFFF2F2F7);
-  static const Color darkTextSecondary = Color(0xFFAEAEB2);
-  static const Color darkTextTertiary = Color(0xFF636366);
-  static const Color darkTextPlaceholder = Color(0xFF48484A);
+  static const Color darkTextPrimary = DsDark.text;
+  static const Color darkTextSecondary = DsDark.muted;
+  static const Color darkTextTertiary = DsDark.faint;
+  static const Color darkTextPlaceholder = DsDark.rule;
 
   // ─── Dark theme separators/fills ───────────────────────────────────
-  static const Color darkSeparator = Color(0xFF38383A);
-  static const Color darkOpaqueSeparator = Color(0xFF545458);
-  static const Color darkFillPrimary = Color(0x66FFFFFF);
-  static const Color darkFillSecondary = Color(0x33FFFFFF);
+  static const Color darkSeparator = DsDark.border;
+  static const Color darkOpaqueSeparator = DsDark.borderStrong;
+  static const Color darkFillPrimary = Color(0x66EDE9E0);
+  static const Color darkFillSecondary = Color(0x33EDE9E0);
 
   // ─── Severity scale (for medical status indicators) ────────────────
-  static const Color severityCritical = Color(0xFFDC2626);  // red-600
-  static const Color severityWarning = Color(0xFFEA580C);   // orange-600
-  static const Color severityModerate = Color(0xFFCA8A04);  // yellow-600
-  static const Color severityInfo = Color(0xFF2563EB);      // blue-600
-  static const Color severityMild = Color(0xFF16A34A);      // green-600
+  static const Color severityCritical = DsLight.red;
+  static const Color severityWarning = DsLight.orange;
+  static const Color severityModerate = DsLight.amber;
+  static const Color severityInfo = DsLight.blue;
+  static const Color severityMild = DsLight.green;
 
   // ─── Legacy aliases (keep for back-compat with existing screens) ──
   static const Color error = danger;
@@ -101,15 +108,17 @@ class AppColors {
 class AppTypography {
   // ─── Display / Headers ─────────────────────────────────────────────
   static const TextStyle largeTitle = TextStyle(
+    fontFamily: Ds.display, // Prata — заголовки-витрины периодики
     fontSize: 34,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w400,
     letterSpacing: -0.5,
     height: 1.12,
   );
 
   static const TextStyle title1 = TextStyle(
+    fontFamily: Ds.display, // Prata — заголовки-витрины периодики
     fontSize: 28,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w400,
     letterSpacing: -0.4,
     height: 1.18,
   );
@@ -257,20 +266,20 @@ class AppSpacing {
 class AppRadius {
   static const double xs = 4.0;
   static const double small = 8.0;
-  static const double medium = 12.0;
-  static const double large = 16.0;
-  static const double xl = 20.0;
-  static const double xxl = 28.0;
+  static const double medium = Ds.radius;
+  static const double large = Ds.radius;
+  static const double xl = Ds.radius;
+  static const double xxl = Ds.radius;
   static const double full = 9999.0;
 
   /// Card radius (matches Material 3 default).
-  static const double card = 16.0;
+  static const double card = Ds.radius;
 
   /// Button radius.
-  static const double button = 12.0;
+  static const double button = Ds.radiusS;
 
   /// Chip/badge radius.
-  static const double chip = 8.0;
+  static const double chip = Ds.radiusS;
 }
 
 /// Elevation (subtle, Apple-style — small shadows only).
@@ -302,7 +311,7 @@ class AppElevation {
 /// Animation durations.
 class AppDurations {
   static const Duration instant = Duration(milliseconds: 100);
-  static const Duration fast = Duration(milliseconds: 200);
+  static const Duration fast = Ds.dur; // 160 мс — единая спецификация DS
   static const Duration medium = Duration(milliseconds: 350);
   static const Duration slow = Duration(milliseconds: 500);
   static const Duration slower = Duration(milliseconds: 800);
@@ -324,70 +333,70 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.dark,
     colorScheme: const ColorScheme.dark(
-      primary: Color(0xFFFFB300),
-      onPrimary: Colors.black,
+      primary: DsDark.amber,
+      onPrimary: Color(0xFF1F1305),
       primaryContainer: Color(0xFF3E2723),
       onPrimaryContainer: Color(0xFFFFCC80),
-      secondary: Color(0xFFFFB300),
-      onSecondary: Colors.black,
-      surface: Color(0xFF0A0A0A),
-      onSurface: Color(0xFFE0E0E0),
-      surfaceContainerHighest: Color(0xFF1A1A1A),
-      error: Color(0xFFEF9A9A),
-      onError: Colors.black,
-      outline: Color(0xFF2A2A2A),
-      outlineVariant: Color(0xFF333333),
+      secondary: DsDark.amber,
+      onSecondary: Color(0xFF1F1305),
+      surface: Color(0xFF16130E),
+      onSurface: DsDark.text,
+      surfaceContainerHighest: Color(0xFF2A251C),
+      error: DsDark.red,
+      onError: Color(0xFF1F1305),
+      outline: Color(0xFF332D22),
+      outlineVariant: Color(0xFF3A3428),
     ),
-    scaffoldBackgroundColor: Colors.black,
-    canvasColor: Colors.black,
+    scaffoldBackgroundColor: const Color(0xFF16130E),
+    canvasColor: const Color(0xFF16130E),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.black,
-      foregroundColor: Color(0xFFE0E0E0),
+      backgroundColor: const Color(0xFF16130E),
+      foregroundColor: DsDark.text,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      titleTextStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Color(0xFFE0E0E0), letterSpacing: -0.3),
+      titleTextStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: DsDark.text, letterSpacing: -0.3),
       systemOverlayStyle: SystemUiOverlayStyle(statusBarColor: Colors.transparent, statusBarIconBrightness: Brightness.light, statusBarBrightness: Brightness.dark),
     ),
     cardTheme: CardThemeData(
-      color: const Color(0xFF0F0F0F),
+      color: const Color(0xFF201C15),
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.card)),
       surfaceTintColor: Colors.transparent,
     ),
-    dividerTheme: const DividerThemeData(color: Color(0xFF1A1A1A), thickness: 0.5, space: 0.5),
+    dividerTheme: const DividerThemeData(color: Color(0xFF2A251C), thickness: 0.5, space: 0.5),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF111111),
+      fillColor: const Color(0xFF241F17),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.medium), borderSide: BorderSide.none),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.medium), borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.medium), borderSide: const BorderSide(color: Color(0xFFFFB300), width: 1.5)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.medium), borderSide: const BorderSide(color: DsDark.amber, width: 1.5)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      hintStyle: AppTypography.body.copyWith(color: const Color(0xFF555555)),
+      hintStyle: AppTypography.body.copyWith(color: const Color(0xFF6E685C)),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: const Color(0xFF16130E),
       surfaceTintColor: Colors.transparent,
-      indicatorColor: const Color(0xFF3E2723),
+      indicatorColor: const Color(0xFF3E2A1D),
       indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.large)),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return AppTypography.caption2.copyWith(color: const Color(0xFFFFB300), fontWeight: FontWeight.w600);
+          return AppTypography.caption2.copyWith(color: DsDark.amber, fontWeight: FontWeight.w600);
         }
-        return AppTypography.caption2.copyWith(color: const Color(0xFF555555));
+        return AppTypography.caption2.copyWith(color: const Color(0xFF6E685C));
       }),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return const IconThemeData(color: Color(0xFFFFB300), size: 24);
+          return const IconThemeData(color: DsDark.amber, size: 24);
         }
-        return const IconThemeData(color: Color(0xFF555555), size: 24);
+        return const IconThemeData(color: Color(0xFF6E685C), size: 24);
       }),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: ButtonStyle(
-        backgroundColor: WidgetStateProperty.all(const Color(0xFFFFB300)),
-        foregroundColor: WidgetStateProperty.all(Colors.black),
+        backgroundColor: WidgetStateProperty.all(DsDark.amber),
+        foregroundColor: WidgetStateProperty.all(const Color(0xFF1F1305)),
         padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 24, vertical: 14)),
         shape: WidgetStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.button))),
         textStyle: WidgetStateProperty.all(AppTypography.callout),
@@ -628,17 +637,21 @@ class AppTheme {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.xl),
+        side: const BorderSide(color: AppColors.opaqueSeparator), // волосок DS
       ),
       titleTextStyle: AppTypography.title3.copyWith(color: AppColors.textPrimary),
       contentTextStyle: AppTypography.body.copyWith(color: AppColors.textSecondary),
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: AppColors.textPrimary,
-      contentTextStyle: AppTypography.body.copyWith(color: Colors.white),
+      backgroundColor: AppColors.secondarySurface, // DS-панель surface2
+      contentTextStyle: AppTypography.body.copyWith(color: AppColors.textPrimary),
       behavior: SnackBarBehavior.floating,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.medium),
+        side: const BorderSide(color: AppColors.opaqueSeparator), // волосок DS
       ),
+      actionTextColor: AppColors.primary,
     ),
     textTheme: const TextTheme(
       displayLarge: AppTypography.largeTitle,
@@ -671,11 +684,11 @@ class AppTheme {
       onSecondary: AppColors.onPrimary,
       secondaryContainer: AppColors.primaryContainerDark,
       onSecondaryContainer: AppColors.primaryContainer,
-      tertiary: Color(0xFF60A5FA),
+      tertiary: DsDark.blue,
       surface: AppColors.darkSurface,
       onSurface: AppColors.darkTextPrimary,
       surfaceContainerHighest: AppColors.darkSecondarySurface,
-      error: Color(0xFFF87171),
+      error: DsDark.red,
       onError: Colors.white,
       outline: AppColors.darkSeparator,
       outlineVariant: AppColors.darkTertiarySurface,
@@ -731,11 +744,11 @@ class AppTheme {
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.medium),
-        borderSide: const BorderSide(color: Color(0xFFF87171), width: 1.5),
+        borderSide: const BorderSide(color: DsDark.red, width: 1.5),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppRadius.medium),
-        borderSide: const BorderSide(color: Color(0xFFF87171), width: 2),
+        borderSide: const BorderSide(color: DsDark.red, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       hintStyle: AppTypography.body.copyWith(color: AppColors.darkTextTertiary),
@@ -875,17 +888,21 @@ class AppTheme {
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.xl),
+        side: const BorderSide(color: AppColors.darkOpaqueSeparator), // волосок DS
       ),
       titleTextStyle: AppTypography.title3.copyWith(color: AppColors.darkTextPrimary),
       contentTextStyle: AppTypography.body.copyWith(color: AppColors.darkTextSecondary),
     ),
     snackBarTheme: SnackBarThemeData(
-      backgroundColor: AppColors.darkTextPrimary,
-      contentTextStyle: AppTypography.body.copyWith(color: AppColors.darkBackground),
+      backgroundColor: AppColors.darkSecondarySurface, // DS-панель surface2
+      contentTextStyle: AppTypography.body.copyWith(color: AppColors.darkTextPrimary),
       behavior: SnackBarBehavior.floating,
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.medium),
+        side: const BorderSide(color: AppColors.darkOpaqueSeparator), // волосок DS
       ),
+      actionTextColor: AppColors.primaryLight,
     ),
     textTheme: const TextTheme(
       displayLarge: AppTypography.largeTitle,

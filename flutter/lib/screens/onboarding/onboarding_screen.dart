@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_colors_resolver.dart';
 import '../terms/terms_screen.dart';
+import '../../theme/ds.dart';
 
 /// Onboarding экран — показывается ОДИН раз при первом запуске.
 /// Флаг 'onboarding_complete' сохраняется в SharedPreferences.
@@ -246,7 +247,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           const SizedBox(height: AppSpacing.lg),
           InkWell(
             onTap: () {
-              Navigator.of(context).push(MaterialPageRoute<void>(
+              Navigator.of(context).push(DsRoute<void>(
                 builder: (_) => const TermsScreen(),
               ));
             },
