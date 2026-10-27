@@ -79,14 +79,21 @@ jobs:
         # Прежний '|| true' делал анализ декоративным
         run: flutter analyze --no-fatal-infos
 
-      - name: Unit tests
+      - name: Precache SDK fonts
         working-directory: flutter
-        # Task 178: юнит-гейты ввода (RU-запятая и пр.) — раньше тесты
-        # в CI ветэко не гонялись ВООБЩЕ (analyze + build). Голдены сюда
-        # пока сознательно не включены: им нужен шрифтовый сетап
-        # (FLUTTER_ROOT/material_fonts) как vetos в Task 176 — отдельный
-        # шаг, пока гоняем только чистые юнит-тесты без рендера.
-        run: flutter test test/decimal_input_test.dart
+        # material_fonts нужны golden-тестам (FontLoader читает их из кеша
+        # SDK; паттерн vetos Task 176: без предкеша первый тест мог
+        # стартовать раньше фоновой загрузки)
+        run: flutter precache --universal
+
+      - name: Test (юниты + голдены)
+        working-directory: flutter
+        # Task 179: полный набор вместо точечного decimal_input_test
+        # (Task 178). База 21 PNG перегенерирована на 3.27.0 = пин CI
+        # (Task 176), шрифты портабельны (_sdkFont: FLUTTER_ROOT → песочница),
+        # поэтому голдены в CI безопасны: дрейф рендера/дизайна = красный
+        # ДО релиза, а не «тихий APK с тофу» после.
+        run: flutter test
 
       - name: Decode release keystore
         # Keystore из секретов. Наличие файла включает release-подпись
