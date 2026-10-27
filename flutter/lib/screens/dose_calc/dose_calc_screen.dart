@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/app_colors_resolver.dart';
 import '../../core/utils/voice_parser.dart';
+import '../../utils/decimal_input.dart';
 import '../../core/widgets/app_components.dart';
 import '../../providers/vet_provider.dart';
 import '../../models/drug_models.dart';
@@ -493,7 +494,10 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
             ),
             style: AppTypography.body.copyWith(color: textColor),
             onChanged: (value) {
-              final w = double.tryParse(value);
+              // Task 178: RU-локаль даёт запятую — раньше «12,5»
+              // молча игнорировалось и подсказка просила вес,
+              // который уже введён.
+              final w = parseDecimal(value);
               if (w != null) provider.setWeight(w);
             },
           ),

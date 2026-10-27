@@ -79,6 +79,15 @@ jobs:
         # Прежний '|| true' делал анализ декоративным
         run: flutter analyze --no-fatal-infos
 
+      - name: Unit tests
+        working-directory: flutter
+        # Task 178: юнит-гейты ввода (RU-запятая и пр.) — раньше тесты
+        # в CI ветэко не гонялись ВООБЩЕ (analyze + build). Голдены сюда
+        # пока сознательно не включены: им нужен шрифтовый сетап
+        # (FLUTTER_ROOT/material_fonts) как vetos в Task 176 — отдельный
+        # шаг, пока гоняем только чистые юнит-тесты без рендера.
+        run: flutter test test/decimal_input_test.dart
+
       - name: Decode release keystore
         # Keystore из секретов. Наличие файла включает release-подпись
         # в flutter/android/app/build.gradle (signingConfigs.release); без
