@@ -21,7 +21,7 @@ Gradio + FastAPI-бэкенд (прокси к Z.AI GLM) + Flutter-клиент.
   `flutter/assets/data` на сборке (см. `Makefile` / `flutter-build.yml`).
   v1.2.0 — на vet-ds v2.3.2 «Научная периодика» (голос A + бирюза Vet Teal
   #0F766E/#2DD4BF, зеркально vet-insilico): токены `flutter/lib/theme/ds.dart`,
-  гейт контраста `scripts/ds_gate_flutter.py` (56 пар AA), Prata-дисплей,
+  гейт контраста `scripts/ds_gate.py` (70 пар AA), Prata-дисплей,
   радиусы ≤ 10, движение 160 мс, эмодзи в UI запрещены.
 
 ## Быстрый старт
@@ -64,6 +64,7 @@ make flutter-build-apk       # релизный APK
 | `VETVOICE_API_KEYS` | Через запятую; если пусто — открытый режим | — |
 | `VETVOICE_RATE_LIMIT_PER_MINUTE` | Rate limit | `30` |
 | `VETVOICE_RAG_TOP_K` | Число чанков | `5` |
+| `VETVOICE_RAG_REPO_REVISION` | Пин ревизии HF-репо базы (supply-chain) | — |
 | `VETVOICE_KB_DIR` | Локальная база знаний | `<repo>/knowledge_base` |
 | `HF_TOKEN` | Только для приватных репо / загрузки | — |
 
@@ -118,6 +119,9 @@ pytest tests/ -v --cov=src
 - `tests/test_api.py` — FastAPI через `TestClient` (offline).
 - `tests/test_rag.py` — RU↔EN перевод запросов.
 - `tests/test_client.py` — единый `GLMClient` (мок httpx).
+- `tests/test_terms.py` — словари RU↔EN: уникальность ключей, кириллица
+  значений, стоп-лист опечаток МНН. Лёгкий — запускается без ML-зависимостей
+  (`python3 -m pytest tests/test_terms.py`).
 
 CI: lint (ruff/flake8) → test (cov ≥ 30%) → docker-build → deployHF.
 
@@ -126,6 +130,26 @@ CI: lint (ruff/flake8) → test (cov ≥ 30%) → docker-build → deployHF.
 API открыт по умолчанию (dev). Перед публикацией задай `VETVOICE_API_KEYS` —
 включится проверка `X-API-Key`, rate limit и whitelist моделей. ⚠️ Дозировки —
 ознакомительные, не заменяют консультацию ветврача.
+
+### Supply-chain: pickle-артефакты из публичного HF-репо
+
+Если локальной `knowledge_base/` нет, ретривер (`src/rag/retriever.py::_load`)
+скачивает артефакты из публичного HF-репо `shrayyyy/vet-derm-rag` и делает
+`pickle.load` векторизатора (`vet_derm_vectorizer.pkl`). Артефакты пересобирает
+CI этого репозитория (воркфлоу «Build Embedding Index» из `assets/data/**`),
+но ветка по умолчанию «плавающая»: скомпрометированный HF-аккаунт может
+подменить pickle вредоносным. Митигации:
+
+- пин ревизии: `VETVOICE_RAG_REPO_REVISION=<commit-хэш/тег>` — загрузка идёт
+  строго из указанного снапшота; фактическая ревизия логируется строкой
+  `[RAG] HF artifacts revision: ...`;
+- локальная база `python3 scripts/build_rag.py` → `knowledge_base/` минует
+  HF Hub вовсе;
+- мониторинг лога ревизии на HF Space при непинованных деплоях.
+
+Полный переход на JSON-конфиг векторизатора (vocabulary_ + idf_ — плоские
+структуры, восстановление `TfidfVectorizer` вручную) — в бэклоге: объёмный
+рефакторинг вне волны 184.
 
 ## Лицензия
 

@@ -7,15 +7,15 @@ import '../services/backend_rag_service.dart';
 
 /// Провайдер AI-ассистента с RAG.
 ///
-/// Стратегия запроса:
-///   1. HF Space Gradio API (`shrayyyy-vetderm-ai.hf.space`) — Space сам
-///      вызывает GLM с RAG-контекстом и возвращает финальный ответ.
-///      ВАЖНО: НЕ отправлять этот ответ повторно в GLM!
-///   2. Прямой GLM без RAG (glm_ai_service.dart) — финальный fallback.
+/// Цепочка запроса (Task 184 — комментарии сведены к реальности):
+///   1. VetEco FastAPI backend (BackendRagService → /v1/chat/completions
+///      с use_rag=true) — RAG-контекст собирается на сервере. Задаётся в
+///      Settings; по умолчанию — HF Space (Gradio), который также ходит
+///      в GLM с RAG. Ответ сервера в GLM повторно НЕ отправляем.
+///   2. Прямой GLM без RAG (GlmAiService → api.z.ai) — финальный фолбэк.
+///   3. Офлайн-кэш (последние 20 пар Q&A в SharedPreferences).
 ///
-/// Локальный FastAPI убран: на реальном телефоне `http://10.0.2.2:7860`
-/// не резолвится (это IP для эмулятора). Когда задеплоим FastAPI на
-/// публичный URL — добавим обратно как primary.
+/// Если все уровни не дали ответа — честное сообщение вместо пустого бабла.
 class AiProvider extends ChangeNotifier {
   final GlmAiService _aiService = GlmAiService();
   final BackendRagService _backend = BackendRagService();
@@ -23,7 +23,7 @@ class AiProvider extends ChangeNotifier {
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
   String _error = '';
-  String _lastSource = '';   // 'hf_space' | 'direct_glm' | 'cache'
+  String _lastSource = '';   // 'backend_rag' | 'direct_glm' | 'cache'
 
   // ─── Offline cache ────────────────────────────────────────────────
   // Last 20 Q&A pairs saved in SharedPreferences for offline access.
@@ -128,6 +128,14 @@ class AiProvider extends ChangeNotifier {
         }
       }
 
+      // 3) Все уровни промолчали (нет ключа Z AI / бэкенд недоступен /
+      // прямой GLM вернул пусто и кэш пуст) — честное сообщение вместо
+      // пустого бабла в чате (аудит 183, M4).
+      if (answer.isEmpty) {
+        answer = 'Не получил ответ от AI — проверьте ключ Z AI в настройках '
+            'и подключение к серверу.';
+      }
+
       _lastSource = source;
 
       _messages.add(ChatMessage(
@@ -135,9 +143,6 @@ class AiProvider extends ChangeNotifier {
         content: answer,
         isUser: false,
         timestamp: DateTime.now(),
-        sources: source == 'hf_space'
-            ? [SourceReference(title: 'Источник: RAG + GLM', snippet: 'Ветеринарная база знаний')]
-            : null,
       ));
     } catch (e) {
       _error = 'Ошибка: $e';

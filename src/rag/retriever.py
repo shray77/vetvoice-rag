@@ -8,6 +8,7 @@ import json
 import os
 import pickle
 import re
+import tempfile
 from pathlib import Path
 
 import faiss
@@ -19,7 +20,19 @@ try:
 except ImportError:  # BM25 — опциональное усиление, фолбэк на TF-IDF
     BM25Okapi = None
 
+from src.rag.terms import (  # noqa: F401 — реэкспорт для обратной совместимости
+    DISEASE_ROUTE_SYMPTOM_KEYS,
+    EN_RU_DRUG_TERMS,
+    RU_EN_TERMS,
+    ru_localize,
+    translate_ru_to_en_query,
+)
 from src.settings import get_settings
+
+# Task 184: словари RU↔EN и перевод запросов живут в лёгком src/rag/terms.py
+# (без faiss/sklearn) — тесты словарей запускаются без ML-окружения. Выше —
+# реэкспорт: историческое место определений было здесь, потребители
+# (app.py, src/api/app.py, eval-скрипты, tests/) импортируют отсюда.
 
 # ============================================================
 # BM25 lexical channel (дефолтный ранкер с 1.1.3)
@@ -38,321 +51,27 @@ def _bm25_tokenize(text: str) -> list[str]:
     return out
 
 
-# ============================================================
-# Russian → English medical term translation for RAG retrieval
-# ============================================================
-RU_EN_TERMS = {
-    # Symptoms
-    "чешет": "pruritus itchy scratching", "зуд": "pruritus itchy",
-    "чесаться": "pruritus itchy scratching", "красная": "erythema red inflamed",
-    "красное": "erythema red", "воспалённая": "inflamed inflammation",
-    "воспаление": "inflammation", "выпадает шерсть": "alopecia hair loss",
-    "выпадение шерсти": "alopecia hair loss", "лысеет": "alopecia hair loss bald",
-    "лысины": "alopecia bald patches", "перхоть": "scale scaling seborrhea dandruff",
-    "корки": "crust crusted", "прыщики": "papule pustule pustules pimples",
-    "гнойнички": "pustule pyoderma bacterial", "пятна": "patch macule",
-    "ранки": "erosion ulcer wound", "язвочки": "ulcer erosion",
-    "шишка": "nodule tumor mass", "опухоль": "tumor neoplasm mass",
-    "запах": "odor smell malodor", "плохой запах": "malodor smell odor",
-    "жирная кожа": "seborrhea oleosa greasy skin", "сухая кожа": "seborrhea sicca dry skin",
-    "тёмная кожа": "hyperpigmentation dark skin", "пигментация": "hyperpigmentation pigmentation",
-    # Body parts
-    "лапы": "paws feet interdigital", "морда": "face facial",
-    "уши": "ears otitis ear", "живот": "ventrum abdomen belly inguinal",
-    "спина": "dorsum back", "грудь": "chest axillae",
-    "подмышки": "axillae armpit", "паха": "inguinal groin",
-    "нос": "nose nasal planum", "глаза": "eyes periocular",
-    "хвост": "tail", "анус": "perianal anal",
-    # Breeds
-    "французский бульдог": "French Bulldog brachycephalic",
-    "бульдог": "Bulldog brachycephalic", "мопс": "Pug brachycephalic",
-    "лабрадор": "Labrador Retriever", "овчарка": "German Shepherd",
-    "немецкая овчарка": "German Shepherd", "терьер": "Terrier West Highland",
-    "вест хайленд": "West Highland White Terrier", "шарпей": "Shar-Pei",
-    "пудель": "Poodle", "спаниель": "Cocker Spaniel",
-    "чихуахуа": "Chihuahua", "корги": "Corgi", "хаски": "Husky",
-    "шпиц": "Spitz", "йорк": "Yorkshire Terrier",
-    "йоркширский терьер": "Yorkshire Terrier", "такса": "Dachshund",
-    "доберман": "Doberman Pinscher", "ретривер": "Golden Retriever",
-    "голден ретривер": "Golden Retriever", "чау-чау": "Chow Chow",
-    "акита": "Akita", "ротвейлер": "Rottweiler", "бассет": "Basset Hound",
-    "бигль": "Beagle", "далматин": "Dalmatian", "боксёр": "Boxer",
-    "самоед": "Samoyed", "мальтезе": "Maltese", "ши-тцу": "Shih Tzu",
-    "кокер-спаниель": "Cocker Spaniel", "ризеншнауцер": "Giant Schnauzer",
-    # Diseases
-    "аллергия": "allergy atopic dermatitis allergic",
-    "атопический дерматит": "atopic dermatitis atopy",
-    "демодекоз": "demodicosis Demodex mange",
-    "чесотка": "sarcoptic mange scabies",
-    "лишай": "dermatophytosis ringworm fungal",
-    "стригущий лишай": "dermatophytosis ringworm",
-    "малассезия": "Malassezia yeast",
-    "дрожжевая инфекция": "Malassezia yeast infection",
-    "пиодермия": "pyoderma bacterial skin infection",
-    "фолликулит": "folliculitis", "себорея": "seborrhea",
-    "гипотиреоз": "hypothyroidism thyroid",
-    "гиперадренокортицизм": "hyperadrenocorticism Cushing",
-    "кушинг": "Cushing hyperadrenocorticism",
-    "пемфигус": "pemphigus autoimmune",
-    "аутоиммунное": "autoimmune pemphigus SLE",
-    "отит": "otitis externa ear infection",
-    "горячая точка": "hot spot acute moist dermatitis",
-    "экзема": "eczema dermatitis",
-    "интертриго": "intertrigo skin fold dermatitis",
-    "облысение": "alopecia hair loss",
-    "облизывает лапы": "lick paw atopic dermatitis",
-    "вылизывает": "lick acral lick granuloma",
-    "мокнет": "moist weeping exudative",
-    "кровоточит": "bleeding hemorrhagic ulcer",
-    # Animals
-    "собака": "dog canine", "щенок": "puppy young dog",
-    "кот": "cat feline", "кошка": "cat feline",
-    "маленький": "young small", "старый": "old geriatric senior",
-}
+def _snapshot_revision(path: str) -> str:
+    """Ревизия артефакта HF для лога загрузки.
 
-# ============================================================
-# English → Russian drug/disease name mapping (for EN queries)
-# ============================================================
-EN_RU_DRUG_TERMS = {
-    "enrofloxacin": "энрофлоксацин",
-    "amoxicillin": "амоксициллин",
-    "doxycycline": "доксициклин",
-    "tylosin": "тилозин",
-    "ceftiofur": "цефтиофур",
-    "maropitant": "маропитант",
-    "ivermectin": "ивермектин",
-    "doramectin": "дорамектин",
-    "selamectin": "селамектин",
-    "moxidectin": "моксидектин",
-    "praziquantel": "празиквантел",
-    "pyrantel": "пирантел",
-    "febantel": "фебантел",
-    "fenbendazole": "фенбендазол",
-    "albendazole": "альбендазол",
-    "ketoprofen": "кетопрофен",
-    "carprofen": "карпрофен",
-    "meloxicam": "мелоксикам",
-    "dexamethasone": "дексаметазон",
-    "prednisolone": "преднизолон",
-    "gentamicin": "гентамицин",
-    "kanamycin": "канамицин",
-    "trimethoprim": "триметоприм",
-    "sulfamethoxazole": "сульфаметоксазол",
-    "metronidazole": "метронидазол",
-    "florfenicol": "флорфеникол",
-    "tulathromycin": "тулатромицин",
-    "gamithromycin": "гамитромицин",
-    "tilmicosin": "тилмикозин",
-    "atropine": "атропин",
-    "diazepam": "диазепам",
-    "ketamine": "кетамин",
-    "xylazine": "ксилазин",
-    "propofol": "пропофол",
-    "isoflurane": "изофлуран",
-    "furosemide": "фуросемид",
-    "digoxin": "дигоксин",
-    "benzylpenicillin": "бензилпенициллин",
-    "oxytetracycline": "окситетрациклин",
-    "chloramphenicol": "хлорамфеникол",
-    # Diseases
-    "fmd": "ящур",
-    "foot and mouth": "ящур",
-    "rabies": "бешенство",
-    "anthrax": "сибирская язва",
-    "brucellosis": "бруцеллёз",
-    "tuberculosis": "туберкулёз",
-    "leptospirosis": "лептоспироз",
-    "leishmaniasis": "лейшманиоз",
-    "dermatophytosis": "дерматофития лишай",
-    "ringworm": "лишай дерматофития",
-    "mange": "чесотка",
-    "demodicosis": "демодекоз",
-    "otitis": "отит",
-    "pyoderma": "пиодермия",
-    "malassezia": "малассезия",
-    "atopic dermatitis": "атопический дерматит",
-    "cushing": "кушинг",
-    "hypothyroidism": "гипотиреоз",
-    # Animals
-    "cattle": "крс",
-    "cow": "крс",
-    "bovine": "крс",
-    "sheep": "мрс",
-    "ovine": "мрс",
-    "goat": "мрс",
-    "pig": "свиньи",
-    "swine": "свиньи",
-    "porcine": "свиньи",
-    "poultry": "птица",
-    "chicken": "птица",
-    "dog": "собака",
-    "canine": "собака",
-    "cat": "кошка",
-    "feline": "кошка",
-    "horse": "лошадь",
-    "equine": "лошадь",
-    "rabbit": "кролик",
-    # Topics
-    "side effects": "побочные эффекты",
-    "side effect": "побочный эффект",
-    "dosage": "доза дозировка",
-    "dose": "доза",
-    "treatment": "лечение",
-    "contraindication": "противопоказание",
-    "withdrawal": "период ожидания",
-    "interaction": "взаимодействие",
-    "antidote": "антидот",
-    "poisoning": "отравление",
-    # Extra high-frequency INNs likely to leak from JSON context
-    "penicillin": "пенициллин",
-    "amplicillin": "ампициллин",
-    "ampicillin": "ампициллин",
-    "cephalexin": "цефалексин",
-    "cefazolin": "цефазолин",
-    "clindamycin": "клиндамицин",
-    "lincomycin": "линкомицин",
-    "neomycin": "неомицин",
-    "polymyxin": "полимиксин",
-    "fipronil": "фипронил",
-    "imidacloprid": "имидаклоприд",
-    "permethrin": "перметрин",
-    "pyrethrin": "пиретрин",
-    "afoxolaner": "афоксоланер",
-    "fluralaner": "флураланер",
-    "lotilaner": "лотиланер",
-    "levamisole": "левамизол",
-    "clorsulon": "клорсулон",
-    "toltrazuril": "толтразурил",
-    "diclazuril": "диклазурил",
-    "ponazuril": "поназурил",
-    "marbofloxacin": "марбофлоксацин",
-    "pradofloxacin": "прадофлоксацин",
-    "gatifloxacin": "гатифлоксацин",
-    "ciprofloxacin": "ципрофлоксацин",
-    "levofloxacin": "левофлоксацин",
-    "azithromycin": "азитромицин",
-    "clarithromycin": "кларитромицин",
-    "erythromycin": "эритромицин",
-    "metoclopramide": "метоклопрамид",
-    "ondansetron": "ондансетрон",
-    "butorphanol": "буторфанол",
-    "buprenorphine": "бупренорфин",
-    "tramadol": "трамадол",
-    "gabapentin": "габапентин",
-    "phenobarbital": "фенобарбитал",
-    "levetiracetam": "леветирацетам",
-    "insulin": "инсулин",
-    "glargine": "гларгин",
-    "detomidine": "детомидин",
-    "romifidine": "ромифидин",
-    "medetomidine": "медетомидин",
-    "acepromazine": "ацепромазин",
-    "midazolam": "мидазолам",
-    "phenylephrine": "фенилэфрин",
-    "epinephrine": "адреналин",
-    "adrenaline": "адреналин",
-    "norepinephrine": "норадреналин",
-    "salbutamol": "сальбутамол",
-    "aminophylline": "аминофиллин",
-    "theophylline": "теофиллин",
-    "heparin": "гепарин",
-    "warfarin": "варфарин",
-    "clopidogrel": "клопидогрел",
-    "omeprazole": "омепразол",
-    "ranitidine": "ранитидин",
-    "famotidine": "фамотидин",
-    "sulfasalazine": "сульфасалазин",
-    "cholestyramine": "холестирамин",
-    "ursodeoxycholic": "урсодезоксихолевая кислота",
-    "ursodiol": "урсодезоксихолевая кислота",
-    "methimazole": "метимазол",
-    "levothyroxine": "левотироксин",
-    "trilostane": "трилостан",
-    "mitotane": "митотан",
-    "desoxycorticosterone": "дезоксикортикостерон",
-    "spironolactone": "спиронолактон",
-    "benazepril": "беназеприл",
-    "enalapril": "эналаприл",
-    "pimobendan": "пимобендан",
-    "atenolol": "атенолол",
-    "diltiazem": "дилтиазем",
-    "amlodipine": "амлодипин",
-    "lidocaine": "лидокаин",
-    "procainamide": "прокаинамид",
-    "sotalol": "соталол",
-    "tetracycline": "тетрациклин",
-    "amikacin": "амикацин",
-    "tobramycin": "тобрамицин",
-    "streptomycin": "стрептомицин",
-}
-
-# Reverse map for localizing LLM output: English/Latin term -> Russian.
-# Used by ru_localize() to strip English drug/disease names that leak from RAG
-# context (JSON `conditions`/`INN` fields) into the model's Russian answer.
-_RU_LOCALIZE_MAP = {k.lower(): v for k, v in EN_RU_DRUG_TERMS.items()}
-
-# Symptom / body-part fragments (substring match, lowercased). Used as a ROUTING
-# signal: only symptom queries fuse in the disease sub-index. Drug/protocol/
-# antidote queries that contain no symptom word stay on the main index, so the
-# disease index can't displace their top result. Deliberately excludes disease
-# NAMES and protocol words — those already work via the main index's condition
-# keyword-boost, and routing them away would misfire on drug queries.
-DISEASE_ROUTE_SYMPTOM_KEYS = {
-    "чеш", "зуд", "чеса", "красн", "корк", "гно", "шерст", "лысе", "алопеци",
-    "пятн", "перхот", "пузыр", "язв", "лиж", "воспал", "шелуш", "бляш", "узел",
-    "опухол", "запах", "себоре", "пигмент", "эксуд", "мокнущ", "складк", "мокн",
-    "лап", "морд", "уш", "живот", "спин", "груд", "пах", "нос", "глаз", "хвост",
-    "сып",
-}
-
-
-def ru_localize(text: str) -> str:
-    """Replace Latin/English drug & disease names in LLM output with Russian.
-
-    Targeted fix for the RAG leak where GLM copied raw EN INN names (e.g.
-    ``prednisolone``, ``enrofloxacin``) from the retrieved context into its
-    Russian-language answer. Only known terms from EN_RU_DRUG_TERMS are touched,
-    so ordinary Russian text is left untouched.
+    Два расклада huggingface_hub: классический кэш кладёт файлы в
+    ``snapshots/<commit>/...``; режим local_dir (наш случай) — в сам каталог,
+    а commit-хэш — первой строкой ``.cache/huggingface/download/*.metadata``.
     """
-    if not text:
-        return text
-    for en, ru in sorted(_RU_LOCALIZE_MAP.items(), key=lambda x: -len(x[0])):
-        # Whole-word, case-insensitive. Handles phrases like "atopic dermatitis".
-        text = re.sub(rf"(?i)\b{re.escape(en)}\b", ru, text)
-    return text
-
-
-def translate_ru_to_en_query(text: str) -> str:
-    """Translate Russian medical query to English for FAISS retrieval.
-
-    Also handles reverse: English drug/disease names → Russian transliteration,
-    so EN queries can match RU chunks in the index.
-    """
-    text_lower = text.lower()
-    en_terms = []
-    ru_terms = []
-
-    # RU → EN
-    sorted_ru = sorted(RU_EN_TERMS.items(), key=lambda x: len(x[0]), reverse=True)
-    for ru_term, en_translation in sorted_ru:
-        if ru_term in text_lower:
-            en_terms.append(en_translation)
-
-    # EN → RU
-    sorted_en = sorted(EN_RU_DRUG_TERMS.items(), key=lambda x: len(x[0]), reverse=True)
-    for en_term, ru_translation in sorted_en:
-        if en_term in text_lower:
-            ru_terms.append(ru_translation)
-
-    en_words = re.findall(r'[a-zA-Z]+', text)
-    parts = [text]
-    if en_terms:
-        parts.append(" ".join(en_terms))
-    if en_words:
-        parts.append(" ".join(en_words))
-    if ru_terms:
-        parts.append(" ".join(ru_terms))
-    return " ".join(parts)
+    p = Path(path)
+    if "snapshots" in p.parts:
+        i = p.parts.index("snapshots")
+        if i + 1 < len(p.parts):
+            return p.parts[i + 1]
+    meta = p.parent / ".cache" / "huggingface" / "download" / (p.name + ".metadata")
+    if meta.exists():
+        try:
+            first = meta.read_text(encoding="utf-8").splitlines()[0].strip()
+            if first:
+                return first
+        except OSError:
+            pass
+    return "unknown"
 
 
 class VetDermRAG:
@@ -420,7 +139,11 @@ class VetDermRAG:
             if os.name == "nt":
                 try:
                     import shutil as _shutil
-                    tmp = Path("D:/tmp_vet_rag_read.faiss")
+                    # Task 184: раньше жёсткий D:/tmp_vet_rag_read.faiss — на
+                    # машинах без диска D: копия падала. Теперь системный tmpdir.
+                    fd, tmp_name = tempfile.mkstemp(suffix=".faiss", prefix="vet_rag_read_")
+                    os.close(fd)
+                    tmp = Path(tmp_name)
                     _shutil.copy2(idx_read, tmp)
                     idx_read = tmp
                 except Exception as e:  # noqa: BLE001
@@ -429,6 +152,8 @@ class VetDermRAG:
             if tmp is not None and tmp.exists():
                 tmp.unlink(missing_ok=True)
             with open(local_paths["vectorizer"], "rb") as f:
+                # SUPPLY-CHAIN (Task 184): pickle.load векторизатора — осознанный
+                # компромисс; источник и пин ревизии — см. «Безопасность» в README.
                 self.vectorizer = pickle.load(f)
             with open(local_paths["documents"], "r", encoding="utf-8") as f:
                 self.documents = json.load(f)
@@ -450,20 +175,30 @@ class VetDermRAG:
         os.makedirs(self.hf_dir, exist_ok=True)
         # Репозиторий базы знаний публичный — токен не обязателен.
         # Он нужен только если репо сделают приватным.
-        token = get_settings().hf_token or os.environ.get("HF_TOKEN") or None
+        cfg = get_settings()
+        token = cfg.hf_token or os.environ.get("HF_TOKEN") or None
+        # SUPPLY-CHAIN (Task 184): артефакты грузим из публичного HF-репо и
+        # pickle.load'им векторизатор. Риск и пин ревизии — см. «Безопасность»
+        # в README (VETVOICE_RAG_REPO_REVISION).
+        revision = cfg.rag_repo_revision or None
 
         index_path = hf_hub_download(
             repo_id=self.repo_id, filename=files["index"],
-            token=token, local_dir=self.hf_dir,
+            token=token, local_dir=self.hf_dir, revision=revision,
         )
         vec_path = hf_hub_download(
             repo_id=self.repo_id, filename=files["vectorizer"],
-            token=token, local_dir=self.hf_dir,
+            token=token, local_dir=self.hf_dir, revision=revision,
         )
         doc_path = hf_hub_download(
             repo_id=self.repo_id, filename=files["documents"],
-            token=token, local_dir=self.hf_dir,
+            token=token, local_dir=self.hf_dir, revision=revision,
         )
+
+        # Ревизия артефактов для логов: HF-кэш хранит файлы в
+        # snapshots/<commit>/... — показываем, что реально загрузили.
+        rev = _snapshot_revision(index_path)
+        print(f"[RAG] HF artifacts revision: {rev}")
 
         self.index = faiss.read_index(index_path)
         with open(vec_path, "rb") as f:

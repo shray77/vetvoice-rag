@@ -19,10 +19,6 @@ class ApiConfig {
   static const String glmModel = 'glm-4.5-flash';
   static const String glmVlmModel = 'glm-4.6v';
 
-  // HF Space (RAG backend — всегда доступен)
-  static const String hfSpaceUrl = 'https://shrayyyy-vetderm-ai.hf.space';
-  static const String ragApiPath = '/gradio_api/call/rag_search';
-
   // ─── VetEco FastAPI backend (primary RAG source) ──────────────────
   // Публичный URL задаётся в Settings (см. backendBaseUrlPrefsKey).
   // Если пусто — используем публичный HF Space Gradio API как fallback.
@@ -30,7 +26,6 @@ class ApiConfig {
   // Для обратной совместимости: старый ключ (было 'vetvoice_backend_base_url').
   static const String legacyBackendBaseUrlPrefsKey = 'vetvoice_backend_base_url';
   static const String backendChatPath = '/v1/chat/completions';
-  static const String backendVisionPath = '/v1/chat/completions/vision';
   static const String backendRagSearchPath = '/v1/rag/search';
   // Дефолтный публичный бэкенд (переопределяется в Settings).
   static const String defaultBackendBaseUrl = 'https://shrayyyy-vetderm-ai.hf.space';
@@ -140,7 +135,9 @@ class AppModels {
 /// App-wide constants
 class AppConstants {
   static const String appName = 'VetEco';
-  static const String appVersion = '1.1.2';
+  // Держать синхронно с версией в flutter/pubspec.yaml (сейчас 1.2.0+5):
+  // appVersion — человекочитаемая часть без суффикса сборки.
+  static const String appVersion = '1.2.0';
   // Total counts reflect actual JSON data (audited 2026-06-21; drug sync из vetvoice 2026-10-20 via scripts/audit_data.py):
   //   - drugs_calc.json:           2401 drugs
   //   - drugs_registry.json:       2449 drugs

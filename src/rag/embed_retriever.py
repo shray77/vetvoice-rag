@@ -10,7 +10,7 @@ Implementation: pure onnxruntime + tokenizers (NO torch, NO fastembed).
   - Model: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
     (multilingual ~50 langs incl. RU+EN, 384-dim, ~241 MB, mean-pooled)
   - All files are expected LOCALLY under MODEL_DIR (set VETVOICE_EMBED_MODEL_DIR
-    or use the default D:/vetvoice-models/fastembed/... snapshot path).
+    or use the default knowledge_base/embed_model/, Task 184).
   - Zero network at build/query time. $0, offline.
 
 No API key, no network. Only cost: the one-time model download (already done).
@@ -31,30 +31,27 @@ _DEFAULT_LOCAL_DIR = str(Path(__file__).resolve().parent.parent.parent / "knowle
 
 # Where the ONNX model + tokenizer live.
 # Priority:
-#   1. VETVOICE_EMBED_MODEL_DIR env (local path)
-#   2. D: copy already downloaded
-#   3. TEMP copy (fastembed default)
-#   4. Download from HF Hub repo (shrayyyy/vet-derm-rag, path embed_model/)
+#   1. VETVOICE_EMBED_MODEL_DIR env (any local path)
+#   2. knowledge_base/embed_model/ — рядом с файлами KB, зеркалит раскладку
+#      HF-репо (shrayyyy/vet-derm-rag: embed_model/ в корне)
+#   3. Download from HF Hub repo (shrayyyy/vet-derm-rag, path embed_model/)
+#
+# Task 184: прототип родился на Windows — исторические дефолты были
+# D:/vetvoice-models/fastembed/... и C:/Users/Администратор/... (кириллица
+# в пути ломала faiss). В Linux/Docker это мусорные пути. Перенеси модель
+# в knowledge_base/embed_model/ или задай VETVOICE_EMBED_MODEL_DIR.
 HF_REPO = "shrayyyy/vet-derm-rag"
 HF_MODEL_PATH = "embed_model"
-MODEL_DIR = os.environ.get("VETVOICE_EMBED_MODEL_DIR") or (
-    "D:/vetvoice-models/fastembed/"
-    "models--qdrant--paraphrase-multilingual-MiniLM-L12-v2-onnx-Q/"
-    "snapshots/faf4aa4225822f3bc6376869cb1164e8e3feedd0"
-)
-_TEMP_DIR = (
-    "C:/Users/Администратор/AppData/Local/Temp/fastembed_cache/"
-    "models--qdrant--paraphrase-multilingual-MiniLM-L12-v2-onnx-Q/"
-    "snapshots/faf4aa4225822f3bc6376869cb1164e8e3feedd0"
+MODEL_DIR = os.environ.get("VETVOICE_EMBED_MODEL_DIR") or str(
+    Path(_DEFAULT_LOCAL_DIR) / HF_MODEL_PATH
 )
 
 MAX_LENGTH = 128
 
 
 def _resolve_model_dir() -> str:
-    for d in (MODEL_DIR, _TEMP_DIR):
-        if Path(d, "model_optimized.onnx").exists():
-            return d
+    if Path(MODEL_DIR, "model_optimized.onnx").exists():
+        return MODEL_DIR
     # Fall back to HF Hub download into a local cache dir.
     try:
         from huggingface_hub import snapshot_download
@@ -169,8 +166,12 @@ class EmbedRetriever:
             if os.name == "nt":
                 try:
                     import shutil
-                    tmp = Path("D:/tmp_embed_index.faiss")
-                    tmp.parent.mkdir(parents=True, exist_ok=True)
+                    import tempfile
+                    # Task 184: раньше жёсткий D:/tmp_embed_index.faiss —
+                    # теперь системный tmpdir (машины без диска D:).
+                    fd, tmp_name = tempfile.mkstemp(suffix=".faiss", prefix="vet_embed_read_")
+                    os.close(fd)
+                    tmp = Path(tmp_name)
                     shutil.copy2(idx_path, tmp)
                     read_path = tmp
                 except OSError as e:

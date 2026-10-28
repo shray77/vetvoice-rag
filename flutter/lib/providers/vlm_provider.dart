@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
+import '../core/constants/app_constants.dart';
 import '../core/theme/app_theme.dart';
 import '../services/glm_ai_service.dart';
 import '../services/backend_rag_service.dart';
 
 /// Провайдер VLM (Vision Language Model) диагностики
-/// Стратегия: GLM-4V напрямую + опциональный RAG контекст из HF Space
+/// Стратегия: выбранная VLM-модель (AppModels.selectedVlmModel()) напрямую
+/// через api.z.ai + опциональный RAG-контекст из VetEco backend.
 /// Это надёжнее чем Gradio API с файлами (который даёт 400 на изображениях)
 class VlmProvider extends ChangeNotifier {
   final GlmAiService _aiService = GlmAiService();
@@ -79,7 +81,8 @@ class VlmProvider extends ChangeNotifier {
       // 1. Получаем RAG контекст (текстовый запрос, надёжный)
       String? ragContext = await _fetchRagContext();
 
-      // 2. Вызываем GLM-4V напрямую с изображением + RAG контекст
+      // 2. Вызываем выбранную VLM-модель напрямую с изображением + RAG контекст
+      final modelId = await AppModels.selectedVlmModel();
       final prompt = _buildPrompt(ragContext: ragContext);
       final result = await _aiService.analyzeImage(
         imageBase64: _imageBase64!,
@@ -87,9 +90,9 @@ class VlmProvider extends ChangeNotifier {
       );
 
       _analysisResult = result;
-      _modelUsed = ragContext != null
-          ? 'GLM-4V + RAG'
-          : 'GLM-4V Flash';
+      // Реальный id выбранной модели (glm-4.6v / glm-5v-turbo), а не
+      // захардкоженный «GLM-4V» — бейдж в UI должен совпадать с запросом.
+      _modelUsed = ragContext != null ? '$modelId + RAG' : modelId;
     } catch (e) {
       _error = 'Ошибка анализа: $e';
       debugPrint('VLM error: $e');

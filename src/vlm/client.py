@@ -132,14 +132,5 @@ class GLMClient:
         return self._content_of(self._call_api(payload, timeout=90))
 
 
-# Обратная совместимость: старое имя класса и метод.
-class GLMVisionClient(GLMClient):
-    """Deprecated. Используй GLMClient."""
-
-    def analyze_skin_image(self, image: Image.Image) -> str:
-        if not self.api_key:
-            return "[VLM: No API key configured. Set GLM_API_KEY environment variable.]"
-        try:
-            return self.analyze_image(image)
-        except Exception as e:  # noqa: BLE001 - UI не должен падать
-            return f"[VLM Error: {e}]"
+# Task 184: удалена deprecated-обёртка GLMVisionClient.analyze_skin_image —
+# внешних потребителей не было (греп: только сам файл), канон — GLMClient.

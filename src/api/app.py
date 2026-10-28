@@ -144,7 +144,9 @@ class ChatRequest(BaseModel):
     max_tokens: int = 2048
     thinking: dict | None = None
     use_rag: bool = True       # if True, prepend RAG context to last user message
-    rag_top_k: int = 5
+    # Task 184: ge=1 — раньше rag_top_k=0/−1 проходил валидацию и негативным
+    # срезом выворачивал results[:top_k] в BM25. le — как у RAGRequest.
+    rag_top_k: int = Field(default=5, ge=1, le=MAX_RAG_TOP_K)
 
 
 class RAGRequest(BaseModel):
@@ -299,6 +301,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "version": "2.1.0",
             "auth_enabled": cfg.auth_enabled,
             "zai_configured": bool(zai.get("token")),
+            # zai_base_url оставлен осознанно (Task 184): это публичный
+            # endpoint api.z.ai, не секрет; полезен клиенту/опс-диагностике,
+            # чтобы видеть, какой апстрим сконфигурирован на сервере.
             "zai_base_url": zai.get("baseUrl"),
         }
 
@@ -497,6 +502,12 @@ def _check_rate_limit(request: Request) -> None:
     now = time.time()
     window = 60.0
     with _rate_lock:
+        # Task 184: чистим ключи, чьё последнее попадание старше окна. Без
+        # этого _rate_state рос бесконечно — в открытом режиме ключ = IP,
+        # и сканирующие боты плодят уникальные записи (медленная утечка).
+        for k in [k for k, ts in _rate_state.items()
+                  if not ts or now - ts[-1] >= window]:
+            del _rate_state[k]
         hits = [t for t in _rate_state.get(key, []) if now - t < window]
         if len(hits) >= limit:
             _rate_state[key] = hits

@@ -112,6 +112,10 @@ class Settings(BaseSettings):
     rag_local_dir: str | None = None
     rag_hf_dir: str = "/tmp/vet_rag"
     rag_repo_id: str = "shrayyyy/vet-derm-rag"
+    # Пин ревизии HF-репо базы знаний (supply-chain, Task 184): commit-хэш
+    # или тег. None — плавающая ветка по умолчанию (main). Артефакты из
+    # репо включают pickle-векторизатор — см. «Безопасность» в README.
+    rag_repo_revision: str | None = None
     rag_top_k: int = 5
     # Режим ретривера: "tfidf" (только TF-IDF), "hybrid" (TF-IDF + embeddings через
     # RRF), "embedding" (только dense). TF-IDF — дефолт и фолбэк: A/B (src/rag/eval)

@@ -1022,9 +1022,14 @@ def build_index(chunks: List[Dict[str, Any]]) -> None:
 
     # faiss (swig) on Windows cannot open paths containing non-ASCII chars
     # (e.g. Cyrillic "Администратор"). Write to an ASCII temp path, then move.
+    # Task 184: раньше жёсткий D:/tmp_vet_rag_faiss.index — на Linux/CI это
+    # мусорный каталог «D:» в рабочей папке, на машинах без диска D: — падение.
     import shutil
+    import tempfile
     faiss_path = OUTPUT_DIR / "vet_derm_faiss.index"
-    tmp_faiss = Path("D:/tmp_vet_rag_faiss.index")
+    fd, tmp_name = tempfile.mkstemp(suffix=".faiss", prefix="vet_rag_build_")
+    os.close(fd)
+    tmp_faiss = Path(tmp_name)
     try:
         faiss.write_index(index, str(tmp_faiss))
         shutil.move(str(tmp_faiss), str(faiss_path))

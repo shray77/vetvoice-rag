@@ -22,6 +22,10 @@ class GlmAiService {
   String? get apiKey => _apiKey;
 
   Future<String?> _getApiKey() async {
+    // TODO(secure-storage): ключ лежит в SharedPreferences plaintext — извлекаем
+    // при root/backup (аудит 183, мелочь). Перевести на flutter_secure_storage
+    // — новая зависимость, вне волны 184; при внедрении поменять и setApiKey,
+    // и чтение в Settings-экране (ключ хранения сохранить: zai_api_key).
     if (_apiKey != null) return _apiKey;
     final prefs = await SharedPreferences.getInstance();
     _apiKey = prefs.getString(ApiConfig.apiKeyPrefsKey);
@@ -34,6 +38,8 @@ class GlmAiService {
   Future<String?> getApiKey() => _getApiKey();
 
   Future<void> setApiKey(String key) async {
+    // TODO(secure-storage): см. _getApiKey — писать ключ стоит в зашифрованное
+    // хранилище (flutter_secure_storage), не в SharedPreferences plaintext.
     _apiKey = key;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(ApiConfig.apiKeyPrefsKey, key);
