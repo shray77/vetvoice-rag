@@ -46,6 +46,10 @@ flutter/.packages
 flutter/.pub-cache/
 flutter/.pub/
 flutter/build/
+# Golden-артефакты упавших прогонов (masterImage/testImage/*Diff.png) —
+# вывод `flutter test` при расхождении с базой; Task 183: 84 PNG (11 МБ)
+# были закоммичены по недосмотру. В git — только test/golden/ (база).
+flutter/test/failures/
 flutter/android/.gradle/
 flutter/android/app/debug
 flutter/android/app/profile

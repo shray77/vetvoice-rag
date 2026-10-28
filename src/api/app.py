@@ -28,7 +28,6 @@ from typing import Any
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
 from src.rag.retriever import ru_localize
@@ -155,17 +154,42 @@ class RAGRequest(BaseModel):
 
 # ─── Auth & rate limiting ──────────────────────────────────────────────
 
-_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+def resolve_api_key(request: Request) -> str | None:
+    """Ключ API из любого поддерживаемого заголовка — единый резолвер.
+
+    Принимаются ОБА протокола:
+      - ``X-API-Key: <key>``            — каноничный (README, .env.example);
+      - ``Authorization: Bearer <key>`` — мобильный Flutter-клиент
+        (BackendRagService._headers), он остаётся как есть.
+
+    Task 183: раньше сервер понимал только X-API-Key — при включённой
+    защите (VETVOICE_API_KEYS) клиент с корректным ключом в Bearer
+    получал 401. Резолвер один на auth и rate-limit, чтобы оба слоя
+    видели один и тот же ключ (иначе Bearer-клиенты склеивались в
+    общий пустой бакет лимита).
+    """
+    api_key = request.headers.get("x-api-key")
+    if api_key:
+        return api_key
+    auth = request.headers.get("authorization", "")
+    if auth.lower().startswith("bearer "):
+        return auth[7:].strip() or None
+    return None
 
 
-async def require_api_key(api_key: str | None = Depends(_api_key_header)) -> None:
-    """Если VETVOICE_API_KEYS задан — требуем совпадение. Иначе открытый режим."""
+async def require_api_key(request: Request) -> None:
+    """Если VETVOICE_API_KEYS задан — требуем совпадение (X-API-Key ИЛИ Bearer).
+
+    Иначе открытый режим.
+    """
     cfg = get_settings()
     if not cfg.auth_enabled:
         return
+    api_key = resolve_api_key(request)
     if not api_key:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing X-API-Key header"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing API key: send X-API-Key or Authorization: Bearer header",
         )
     if not any(secrets.compare_digest(api_key, known) for known in cfg.api_keys):
         raise HTTPException(
@@ -462,7 +486,10 @@ def _check_rate_limit(request: Request) -> None:
         return
 
     if cfg.auth_enabled:
-        key = request.headers.get("X-API-Key", "")
+        # Task 183: ключ — через единый резолвер (X-API-Key ИЛИ Bearer),
+        # иначе Bearer-клиенты делили один общий бакет "" и лимитился
+        # не пользователь, а толпа.
+        key = resolve_api_key(request) or ""
     else:
         client = request.client
         key = client.host if client else "unknown"

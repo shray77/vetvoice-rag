@@ -272,7 +272,7 @@ EN_RU_DRUG_TERMS = {
     "desoxycorticosterone": "дезоксикортикостерон",
     "spironolactone": "спиронолактон",
     "benazepril": "беназеприл",
-    "enalapril": "энапалил",
+    "enalapril": "эналаприл",
     "pimobendan": "пимобендан",
     "atenolol": "атенолол",
     "diltiazem": "дилтиазем",

@@ -443,6 +443,11 @@ def dictation_parse(text: str) -> str:
 def dose_calculate(drug_name: str, weight_kg: float, species: str) -> str:
     if not drug_name or not weight_kg:
         return "Выберите препарат и укажите вес"
+    if weight_kg <= 0:
+        # Task 183: гвард знака (класс бага Task 178/179, уже закрытый в
+        # ветвойс/ветэко): «-5» кг раньше тихо давало «-10 мг» в расчёте.
+        # gr.Number(minimum=0.01) в UI не гарантирует кламп.
+        return "Вес должен быть больше нуля — указано отрицательное значение."
 
     # Ищем препарат
     drug_key = drug_name.lower().strip()
