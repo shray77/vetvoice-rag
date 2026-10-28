@@ -96,3 +96,18 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
       - name: Test container starts
         run: docker run -d --name test vetvoice-rag:latest && sleep 5 && docker logs test && docker stop test
+
+
+  db-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: DB-гейт препаратов + сверка со справочником доз (Task 182)
+        # Числовые базы (assets/data — канонический источник после синка
+        # из vetvoice) против физио-пределов и кураторского
+        # correct_dosages_reference.json (Plumb's).
+        run: python3 scripts/validate_drug_db.py --reference assets/data/correct_dosages_reference.json
