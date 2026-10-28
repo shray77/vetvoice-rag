@@ -31,6 +31,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Отключаем Impeller (дефолт Flutter 3.27 на Android, пин CI): на части
+             GPU (Mali/Adreno) — полурастрованные кириллические глифы и цветные
+             артефакты при скролле, исчезают при screen-record. Откат на стабильный
+             Skia — тот же фикс, что в vetvoice v1.16.2 (баг с дизайном у обоих).
+             ⚠️ Метадата должна быть УРОВНЯ <application>, НЕ внутри <activity>:
+             Flutter читает её из PackageManager.getApplicationInfo, флаг внутри
+             <activity> молча игнорируется (грабли ветвойса v1.16.1 -> v1.16.2). -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
