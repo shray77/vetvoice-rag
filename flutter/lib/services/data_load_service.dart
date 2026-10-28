@@ -519,8 +519,9 @@ class DataLoadService {
       }
     }
 
-    // Fixed dose (vaccines etc.)
-    if (drug.fixedDose != null && drug.fixedDose.toString().isNotEmpty) {
+    // Fixed dose (вакцины, МЕ-препараты: окситоцин, сурфагон и т.п.)
+    final fixedText = fixedDoseTextFor(drug.fixedDose, animalName);
+    if (fixedText != null) {
       return DoseResult(
         drugName: drug.name,
         drugForm: drug.form,
@@ -531,7 +532,7 @@ class DataLoadService {
         hasDosage: true,
         hasResult: true,
         isFixedDose: true,
-        fixedDoseText: drug.fixedDose.toString(),
+        fixedDoseText: fixedText,
         contraindications: drug.contraindications.isNotEmpty ? [drug.contraindications] : [],
         sideEffects: drug.sideEffects,
         note: drug.indications,
@@ -575,5 +576,44 @@ class DataLoadService {
       weight: weight,
       concentration: drug.concentration,
     );
+  }
+
+  /// Текст фиксированной дозы для карточки результата.
+  ///
+  /// fixed_dose в базе бывает трёх видов:
+  ///  - Map вида {«Собаки»: «5-10 МЕ (0,5-1 мл) на животное в/м», …} —
+  ///    вакцины и МЕ/фиксированные препараты (1 140 записей). Раньше весь
+  ///    Map печатался в карточку одним куском через toString()
+  ///    («{Собаки: 5-10 МЕ…, Кошки: 3-5 МЕ…}») — дамп всех видов сразу;
+  ///    теперь выбирается запись выбранного вида, а без выбора —
+  ///    построчный список «Вид: доза».
+  ///  - Пустой Map {} (127 записей) — фиксированной дозы НЕТ; раньше
+  ///    показывалась «Фиксированная доза: {}» и блокировала расчёт
+  ///    по мг/кг (урок Гельминтал К). Теперь — null, расчёт идёт дальше.
+  ///  - Строка — готовый текст как есть.
+  ///
+  /// Возвращает null, когда фиксированной дозы нет — тогда доза
+  /// считается по мг/кг.
+  static String? fixedDoseTextFor(dynamic fixedDose, String? animalName) {
+    if (fixedDose == null) return null;
+    if (fixedDose is Map) {
+      final entries = fixedDose.entries
+          .map((e) =>
+              MapEntry(e.key.toString().trim(), e.value.toString().trim()))
+          .where((e) => e.key.isNotEmpty && e.value.isNotEmpty)
+          .toList();
+      if (entries.isEmpty) return null;
+      final wanted = animalName?.trim().toLowerCase() ?? '';
+      if (wanted.isNotEmpty) {
+        final forAnimal = entries
+            .where((e) => e.key.toLowerCase() == wanted)
+            .map((e) => e.value)
+            .toList();
+        if (forAnimal.isNotEmpty) return forAnimal.join('\n');
+      }
+      return entries.map((e) => '${e.key}: ${e.value}').join('\n');
+    }
+    final s = fixedDose.toString().trim();
+    return s.isEmpty ? null : s;
   }
 }
