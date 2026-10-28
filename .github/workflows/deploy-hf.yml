@@ -3,7 +3,7 @@ name: Deploy to HF Spaces
 on:
   push:
     branches: [main]
-    paths: ['src/**', 'configs/**', 'requirements.txt', 'Dockerfile', 'app.py', 'scripts/**']
+    paths: ['src/**', 'configs/**', 'assets/data/**', 'requirements.txt', 'Dockerfile', 'app.py', 'scripts/**']
   workflow_dispatch:
 
 # Top-level env — exposes the secret to ALL steps consistently.
