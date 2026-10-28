@@ -3,7 +3,7 @@ name: Flutter Build APK
 on:
   push:
     branches: [main]
-    paths: ['flutter/**', '.github/workflows/flutter-build.yml']
+    paths: ['flutter/**', 'assets/data/**', '.github/workflows/flutter-build.yml']
   workflow_dispatch:
 
 jobs:
