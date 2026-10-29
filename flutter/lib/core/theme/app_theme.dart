@@ -391,7 +391,7 @@ class AppTheme {
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.medium), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.medium), borderSide: const BorderSide(color: DsDark.amber, width: 1.5)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      hintStyle: AppTypography.body.copyWith(color: const Color(0xFF6E685C)),
+      hintStyle: AppTypography.body.copyWith(color: DsDark.rule), // v2.5.0: было 0x6E685C литералом — дрейф мимо гейта
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: const Color(0xFF16130E),
@@ -402,13 +402,13 @@ class AppTheme {
         if (states.contains(WidgetState.selected)) {
           return AppTypography.caption2.copyWith(color: DsDark.amber, fontWeight: FontWeight.w600);
         }
-        return AppTypography.caption2.copyWith(color: const Color(0xFF6E685C));
+        return AppTypography.caption2.copyWith(color: DsDark.rule); // v2.5.0
       }),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
           return const IconThemeData(color: DsDark.amber, size: 24);
         }
-        return const IconThemeData(color: Color(0xFF6E685C), size: 24);
+        return const IconThemeData(color: DsDark.rule, size: 24); // v2.5.0
       }),
     ),
     filledButtonTheme: FilledButtonThemeData(
