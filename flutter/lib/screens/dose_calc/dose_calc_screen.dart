@@ -53,7 +53,9 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
   int _currentStep(VetProvider p) {
     if (p.selectedCalcDrug != null || p.selectedRegistryDrug != null) return 4;
     if (p.searchQuery.isNotEmpty) return 3;
-    if (p.selectedAnimal != null && p.weight > 0) return 3;
+    // Task 194: дальше — только с весом В ДИАПАЗОНЕ вида
+    // (раньше «2 кг бык» мгновенно прыгал к препаратам).
+    if (p.selectedAnimal != null && p.isWeightValid) return 3;
     if (p.selectedAnimal != null) return 2;
     return 1;
   }
@@ -237,11 +239,11 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
             )
           else if (provider.searchQuery.isNotEmpty)
             _buildSearchResults(provider)
-          else if (provider.selectedAnimal != null && provider.weight > 0)
+          else if (provider.selectedAnimal != null && provider.isWeightValid)
             _buildDrugList(provider)
           else if (provider.selectedAnimal != null)
             SliverToBoxAdapter(
-              child: _buildWeightHint(),
+              child: _buildWeightHint(provider),
             )
           else
             SliverToBoxAdapter(
@@ -351,7 +353,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
               isDone ? Icons.check_rounded : icon,
               size: isActive ? 18 : 14,
               color: isDone
-                  ? Colors.white
+                  ? AppColorsResolver.onPrimary(context) // Task 194: контраст в тёмной
                   : isActive
                       ? primary
                       : tertiary,
@@ -482,6 +484,10 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
               hintStyle: AppTypography.body.copyWith(
                 color: AppColorsResolver.textTertiary(context),
               ),
+              // Task 194: ошибка диапазона прямо в поле — «2 кг бык»
+              // виден сразу, без перехода к препаратам.
+              errorText: provider.weightError,
+              errorMaxLines: 2,
               suffixText: 'кг',
               suffixStyle: AppTypography.body.copyWith(color: tertiary),
               suffixIcon: IconButton(
@@ -497,16 +503,91 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
               // Task 178: RU-локаль даёт запятую — раньше «12,5»
               // молча игнорировалось и подсказка просила вес,
               // который уже введён.
+              // Task 194: очищенное поле = «вес не указан» (раньше
+              // в состоянии жил старый вес).
               final w = parseDecimal(value);
-              if (w != null) provider.setWeight(w);
+              provider.setWeight(w ?? 0);
             },
           ),
+          const SizedBox(height: AppSpacing.md),
+          // Task 194: состояние пациента — возраст и физиология самки.
+          // Дозы от этого не меняются, но релевантные противопоказания
+          // препарата поднимаются наверх в карточке результата.
+          _buildPatientStateChips(provider, textColor, tertiary),
         ],
       ),
     );
   }
 
-  Widget _buildWeightHint() {
+  /// Task 194: чипы «возраст + беременность/лактация» на шаге веса.
+  /// Опциональны: ничего не выбрано — не влияют на расчёт вообще.
+  Widget _buildPatientStateChips(
+      VetProvider provider, Color textColor, Color tertiary) {
+    final ageChips = <Widget>[
+      for (final entry in const [('young', 'Молодое'), ('adult', 'Взрослое'), ('old', 'Пожилое')])
+        ChoiceChip(
+          label: Text(
+            entry.$2,
+            style: AppTypography.caption1.copyWith(
+              color: provider.patientAge == entry.$1 ? Colors.white : textColor,
+            ),
+          ),
+          selected: provider.patientAge == entry.$1,
+          selectedColor: AppColors.primary,
+          onSelected: (_) {
+            HapticHelper.selection();
+            provider.setPatientAge(entry.$1);
+          },
+        ),
+    ];
+
+    Widget stateChip(String label, bool value, VoidCallback onTap) {
+      return FilterChip(
+        label: Text(
+          label,
+          style: AppTypography.caption1.copyWith(
+            color: value ? Colors.white : textColor,
+          ),
+        ),
+        selected: value,
+        selectedColor: AppColors.primary,
+        checkmarkColor: Colors.white,
+        onSelected: (_) {
+          HapticHelper.selection();
+          onTap();
+        },
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Возраст и состояние (опционально)',
+          style: AppTypography.caption1.copyWith(color: tertiary),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ...ageChips,
+            stateChip('Беременность', provider.patientPregnant, provider.togglePregnancy),
+            stateChip('Лактация', provider.patientLactating, provider.toggleLactation),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeightHint(VetProvider provider) {
+    // Task 194: вместо общей фразы — видовая шпаргалка из данных
+    // (drugs.json weight_hint: «Теленок: 30-50 кг, Корова: 400-700…»).
+    final animal = provider.selectedAnimal;
+    final hint = animal?.weightHint ?? '';
+    final body = hint.isNotEmpty
+        ? hint
+        : 'Укажите вес животного выше — калькулятор сам подберёт препараты';
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.screenPadding),
       child: AppCard.tinted(
@@ -518,7 +599,7 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Укажите вес животного выше — калькулятор сам подберёт препараты',
+                body,
                 style: AppTypography.footnote.copyWith(
                   color: AppColorsResolver.primary(context),
                   fontWeight: FontWeight.w500,

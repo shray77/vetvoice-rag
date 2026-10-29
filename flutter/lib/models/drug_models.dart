@@ -20,6 +20,11 @@ class CalcDrug {
   final dynamic fixedDose;
   final bool calculatorApplicable;
   final String contraindications;
+  /// Task 194: сырая (структурированная) форма contraindications из базы —
+  /// {warnings, pregnancy, lactation, young, old}: текстовая версия в
+  /// [contraindications] теряет флаги, а по ним состояние пациента
+  /// (беременность/лактация/возраст) поднимает релевантный запрет наверх.
+  final Map<String, dynamic>? contraindicationsRaw;
   final List<String> sideEffects;
   final String category;
   final String indications;
@@ -46,6 +51,7 @@ class CalcDrug {
     this.fixedDose,
     this.calculatorApplicable = true,
     this.contraindications = '',
+    this.contraindicationsRaw,
     this.sideEffects = const [],
     this.category = '',
     this.indications = '',
@@ -131,6 +137,9 @@ class CalcDrug {
       fixedDose: json['fixed_dose'],
       calculatorApplicable: _parseBool(json['calculator_applicable'], true),
       contraindications: contraindicationsText(json['contraindications']),
+      contraindicationsRaw: json['contraindications'] is Map<String, dynamic>
+          ? json['contraindications'] as Map<String, dynamic>
+          : null,
       sideEffects: (json['side_effects'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ?? [],
@@ -143,6 +152,12 @@ class CalcDrug {
   bool isForAnimal(String animalName) {
     return animals.any((a) => a.toLowerCase() == animalName.toLowerCase());
   }
+
+  /// Task 194: структурные противопоказания для состояния пациента.
+  bool get contraindicatedInPregnancy => contraindicationsRaw?['pregnancy'] == true;
+  bool get contraindicatedInLactation => contraindicationsRaw?['lactation'] == true;
+  bool get contraindicatedYoung => contraindicationsRaw?['young'] == true;
+  bool get contraindicatedOld => contraindicationsRaw?['old'] == true;
 
   String get displayName => name.replaceAll('®', '').trim();
 }
@@ -236,6 +251,10 @@ class RegistryDrug {
   }
 
   bool isForAnimal(String animalName) {
+    // Task 194: пустой animals[] в реестре = «вид не указан» (а не «ни для
+    // кого»): такие записи срывали фолбэк поиска — 4 из 6 окситоцинов
+    // реестра имели animals:[] и не находились ни для одного вида.
+    if (animals.isEmpty) return true;
     return animals.any((a) => a.toLowerCase() == animalName.toLowerCase());
   }
 
@@ -368,6 +387,37 @@ class DoseResult {
   bool get hasContraindications => contraindications.isNotEmpty;
   bool get hasSideEffects => sideEffects.isNotEmpty;
   bool get hasDoseRange => doseMin > 0 && doseMax > 0 && doseMin < doseMax;
+
+  /// Task 194: копия с усиленными предупреждениями — состояние пациента
+  /// (беременность/лактация/возраст) поднимает релевантные запреты
+  /// препарата наверх списка противопоказаний.
+  DoseResult copyWithWarnings({List<String>? contraindications}) {
+    return DoseResult(
+      volume: volume,
+      unit: unit,
+      drugName: drugName,
+      drugForm: drugForm,
+      method: method,
+      frequency: frequency,
+      courseDays: courseDays,
+      withdrawalDays: withdrawalDays,
+      error: error,
+      warning: warning,
+      contraindications: contraindications ?? this.contraindications,
+      sideEffects: sideEffects,
+      hasDosage: hasDosage,
+      hasResult: hasResult,
+      isFixedDose: isFixedDose,
+      fixedDoseText: fixedDoseText,
+      note: note,
+      dosePerKg: dosePerKg,
+      doseMin: doseMin,
+      doseMax: doseMax,
+      doseUnit: doseUnit,
+      weight: weight,
+      concentration: concentration,
+    );
+  }
 
   String get formattedVolume {
     if (volume >= 100) return '${volume.toStringAsFixed(0)} $unit';

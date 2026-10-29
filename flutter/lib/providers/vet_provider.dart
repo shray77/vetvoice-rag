@@ -22,12 +22,44 @@ class VetProvider extends ChangeNotifier {
   DoseResult _result = const DoseResult();
   String _searchQuery = '';
 
+  // Task 194: состояние пациента — возраст + беременность/лактация.
+  // Дозы в базах не дифференцированы по полу/возрасту, поэтому это НЕ
+  // корректор расчёта, а усилитель предупреждений: релевантные
+  // противопоказания препарата (структурированные contraindications)
+  // поднимаются наверх с пометкой. Раньше «ни пол, ни возраст выбрать
+  // нельзя» — теперь можно, и база на это отвечает.
+  String _patientAge = ''; // '', 'young', 'adult', 'old'
+  bool _patientPregnant = false;
+  bool _patientLactating = false;
+
   Animal? get selectedAnimal => _selectedAnimal;
   CalcDrug? get selectedCalcDrug => _selectedCalcDrug;
   RegistryDrug? get selectedRegistryDrug => _selectedRegistryDrug;
   double get weight => _weight;
-  DoseResult get result => _result;
+  DoseResult get result => _applyPatientWarnings(_result);
   String get searchQuery => _searchQuery;
+
+  String get patientAge => _patientAge;
+  bool get patientPregnant => _patientPregnant;
+  bool get patientLactating => _patientLactating;
+
+  /// Возрастная группа: '' (не указано) / young / adult / old.
+  void setPatientAge(String age) {
+    _patientAge = (_patientAge == age) ? '' : age;
+    notifyListeners();
+  }
+
+  void togglePregnancy() {
+    _patientPregnant = !_patientPregnant;
+    if (_patientPregnant) _patientLactating = false;
+    notifyListeners();
+  }
+
+  void toggleLactation() {
+    _patientLactating = !_patientLactating;
+    if (_patientLactating) _patientPregnant = false;
+    notifyListeners();
+  }
 
   // ─── History & Favorites ───────────────────────────────────────────
   final List<HistoryEntry> _history = [];
@@ -162,6 +194,10 @@ class VetProvider extends ChangeNotifier {
     _selectedRegistryDrug = null;
     _result = const DoseResult();
     _searchQuery = '';
+    // Task 194: смена вида = новый пациент — состояние сбрасывается.
+    _patientAge = '';
+    _patientPregnant = false;
+    _patientLactating = false;
     notifyListeners();
   }
 
@@ -216,6 +252,29 @@ class VetProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Task 194: вес вне диапазона выбранного вида? «2 кг бык» —
+  /// почти наверняка опечатка, но визард принимал любую цифру и
+  /// сразу прыгал на следующий шаг. Границы — из min/max вида
+  /// (Animal.minWeight/maxWeight, данные drugs.json), диапазон виден
+  /// в подсказке рядом с полем. null = всё в порядке.
+  String? get weightError {
+    final a = _selectedAnimal;
+    if (a == null || _weight <= 0) return null;
+    if (_weight < a.minWeight || _weight > a.maxWeight) {
+      final min = a.minWeight % 1 == 0
+          ? a.minWeight.toStringAsFixed(0)
+          : a.minWeight.toStringAsFixed(1);
+      final max = a.maxWeight % 1 == 0
+          ? a.maxWeight.toStringAsFixed(0)
+          : a.maxWeight.toStringAsFixed(1);
+      return 'Вне диапазона для ${a.name} ($min–$max кг) — проверьте вес или выберите другой вид';
+    }
+    return null;
+  }
+
+  /// Вес годен для расчёта: введён и в диапазоне вида.
+  bool get isWeightValid => _weight > 0 && weightError == null;
+
   /// Установить поисковый запрос
   void setSearchQuery(String query) {
     _searchQuery = query;
@@ -246,6 +305,47 @@ class VetProvider extends ChangeNotifier {
     );
   }
 
+  /// Task 194: поднять релевантные состоянию пациента противопоказания.
+  /// Геттер [result] применяет на лету — переключение чипов не требует
+  /// пересчёта дозы. У CalcDrug — структурные флаги, у RegistryDrug —
+  /// эвристика по тексту (реестр хранит противопоказания строкой).
+  DoseResult _applyPatientWarnings(DoseResult r) {
+    if (!_patientPregnant && !_patientLactating && _patientAge.isEmpty) {
+      return r;
+    }
+    final alerts = <String>[];
+    final calc = _selectedCalcDrug;
+    if (calc != null) {
+      if (_patientPregnant && calc.contraindicatedInPregnancy) {
+        alerts.add('⛔ БЕРЕМЕННОСТЬ: препарат противопоказан беременным животным');
+      }
+      if (_patientLactating && calc.contraindicatedInLactation) {
+        alerts.add('⛔ ЛАКТАЦИЯ: препарат противопоказан в период лактации');
+      }
+      if (_patientAge == 'young' && calc.contraindicatedYoung) {
+        alerts.add('⛔ МОЛОДОЕ ЖИВОТНОЕ: противопоказан незрелым животным');
+      }
+      if (_patientAge == 'old' && calc.contraindicatedOld) {
+        alerts.add('⛔ ПОЖИЛОЕ ЖИВОТНОЕ: соблюдать осторожность по инструкции');
+      }
+    } else {
+      final reg = _selectedRegistryDrug;
+      if (reg != null && reg.contraindications.isNotEmpty) {
+        final t = reg.contraindications.toLowerCase();
+        if (_patientPregnant && (t.contains('беремен') || t.contains('стельн'))) {
+          alerts.add('⛔ БЕРЕМЕННОСТЬ: по инструкции противопоказан беременным');
+        }
+        if (_patientLactating && t.contains('лакт')) {
+          alerts.add('⛔ ЛАКТАЦИЯ: по инструкции противопоказан в лактацию');
+        }
+      }
+    }
+    if (alerts.isEmpty) return r;
+    return r.copyWithWarnings(
+      contraindications: [...alerts, ...r.contraindications],
+    );
+  }
+
   /// Сохраняет текущий расчёт в историю.
   void _addCurrentToHistory(String drugName) {
     if (_result.volume <= 0 && !_result.hasResult) return;
@@ -268,6 +368,9 @@ class VetProvider extends ChangeNotifier {
     _weight = 0;
     _result = const DoseResult();
     _searchQuery = '';
+    _patientAge = '';
+    _patientPregnant = false;
+    _patientLactating = false;
     notifyListeners();
   }
 

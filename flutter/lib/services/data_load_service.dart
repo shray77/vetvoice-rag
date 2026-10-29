@@ -36,6 +36,18 @@ class DataLoadService {
   Map<String, dynamic>? _dosageDatabase;                // dosage_database.json (raw)
   List<Map<String, dynamic>>? _unofficialProtocols;
 
+
+  /// Тестовый шов (Task 194): подсадить базы без rootBundle —
+  /// проверять поиск/фильтры на синтетических записях.
+  @visibleForTesting
+  void debugSetDrugs({
+    List<CalcDrug>? calcDrugs,
+    List<RegistryDrug>? registryDrugs,
+  }) {
+    _calcDrugs = calcDrugs;
+    _registryDrugs = registryDrugs;
+  }
+
   bool _isLoaded = false;
   bool get isLoaded => _isLoaded;
 
@@ -367,6 +379,19 @@ class DataLoadService {
   static Map<String, dynamic> _asMap(dynamic v) =>
       v is Map<String, dynamic> ? v : <String, dynamic>{};
 
+  /// Task 194: пригоден ли препарат для калькулятора. Раньше
+  /// жёсткий фильтр calculator_applicable=false прятал от поиска ~1034
+  /// препарата с РЕАЛЬНЫМИ дозами (полевой репорт: «окситоцин в базе
+  /// не найден» — при живой записи с fixed_dose по 5 видам). Флаг в
+  /// данных означает «не считается по мг/кг», а не «бесполезен»:
+  /// вакцины и МЕ-препараты несут фиксированные дозы и обязаны
+  /// находиться поиском. Прячем только записи без доз вовсе.
+  static bool _usableInCalculator(CalcDrug drug) {
+    if (drug.calculatorApplicable) return true;
+    return fixedDoseTextFor(drug.fixedDose, null) != null ||
+        drug.dosePerKg > 0;
+  }
+
   /// Поиск препаратов по названию/МНН
   List<dynamic> searchDrugs(String query, {String? animalFilter}) {
     if (query.isEmpty) return [];
@@ -374,7 +399,7 @@ class DataLoadService {
     final results = <dynamic>[];
 
     for (final drug in _calcDrugs ?? []) {
-      if (!drug.calculatorApplicable) continue;
+      if (!_usableInCalculator(drug)) continue;
       if (animalFilter != null && !drug.isForAnimal(animalFilter)) continue;
       if (drug.name.toLowerCase().contains(lower) ||
           drug.inn.toLowerCase().contains(lower)) {
@@ -398,7 +423,7 @@ class DataLoadService {
     final results = <dynamic>[];
 
     for (final drug in _calcDrugs ?? []) {
-      if (drug.isForAnimal(animalName) && drug.calculatorApplicable) {
+      if (drug.isForAnimal(animalName) && _usableInCalculator(drug)) {
         results.add(drug);
       }
     }

@@ -109,7 +109,7 @@ class DoseResultCard extends StatelessWidget {
                     Icons.timer_outlined,
                     'Срок ожидания',
                     '${result.withdrawalDays} дн.',
-                    valueColor: AppColors.warning,
+                    valueColor: AppColorsResolver.warning(context),
                   ),
                 ],
               ],
@@ -122,7 +122,7 @@ class DoseResultCard extends StatelessWidget {
             _buildWarningsCard(
               context,
               icon: Icons.warning_amber_rounded,
-              color: AppColors.danger,
+              color: AppColorsResolver.danger(context),
               title: 'Противопоказания',
               items: result.contraindications,
             ),
@@ -134,7 +134,7 @@ class DoseResultCard extends StatelessWidget {
             _buildWarningsCard(
               context,
               icon: Icons.info_outline_rounded,
-              color: AppColors.warning,
+              color: AppColorsResolver.warning(context),
               title: 'Побочные эффекты',
               items: result.sideEffects,
             ),
@@ -226,11 +226,15 @@ class DoseResultCard extends StatelessWidget {
   }
 
   Widget _buildFixedDoseSection(BuildContext context) {
+    // Task 194: семантика через резолвер — в тёмной теме информационный
+    // блок раньше был кремовым островом со светлым текстом.
+    final infoColor = AppColorsResolver.info(context);
+    final isDark = AppColorsResolver.isDark(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.infoContainer,
+        color: isDark ? infoColor.withValues(alpha: 0.18) : AppColors.infoContainer,
         borderRadius: BorderRadius.circular(AppRadius.medium),
       ),
       child: Column(
@@ -239,7 +243,7 @@ class DoseResultCard extends StatelessWidget {
           Text(
             'Фиксированная доза',
             style: AppTypography.caption1.copyWith(
-              color: AppColors.info,
+              color: infoColor,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
             ),
@@ -247,7 +251,7 @@ class DoseResultCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             result.fixedDoseText,
-            style: AppTypography.title2.copyWith(color: AppColors.info),
+            style: AppTypography.title2.copyWith(color: infoColor),
           ),
         ],
       ),
@@ -255,21 +259,25 @@ class DoseResultCard extends StatelessWidget {
   }
 
   Widget _buildNoDoseSection(BuildContext context) {
+    // Task 194: тот самый блок «не найдено» из полевого репорта —
+    // раньше кремовый + тёмно-оранжевый в обеих темах.
+    final warningColor = AppColorsResolver.warning(context);
+    final isDark = AppColorsResolver.isDark(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.warningContainer,
+        color: isDark ? warningColor.withValues(alpha: 0.18) : AppColors.warningContainer,
         borderRadius: BorderRadius.circular(AppRadius.medium),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline, color: AppColors.warning, size: 20),
+          Icon(Icons.info_outline, color: warningColor, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Дозировка не найдена в базе. Проверьте инструкцию.',
-              style: AppTypography.subheadline.copyWith(color: AppColors.warning),
+              style: AppTypography.subheadline.copyWith(color: warningColor),
             ),
           ),
         ],
@@ -278,21 +286,23 @@ class DoseResultCard extends StatelessWidget {
   }
 
   Widget _buildErrorSection(BuildContext context) {
+    final dangerColor = AppColorsResolver.danger(context);
+    final isDark = AppColorsResolver.isDark(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.dangerContainer,
+        color: isDark ? dangerColor.withValues(alpha: 0.18) : AppColors.dangerContainer,
         borderRadius: BorderRadius.circular(AppRadius.medium),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: AppColors.danger, size: 20),
+          Icon(Icons.error_outline, color: dangerColor, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               result.error,
-              style: AppTypography.subheadline.copyWith(color: AppColors.danger),
+              style: AppTypography.subheadline.copyWith(color: dangerColor),
             ),
           ),
         ],

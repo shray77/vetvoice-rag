@@ -298,7 +298,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
           child: SelectableText(
             message.content,
             style: AppTypography.subheadline.copyWith(
-              color: isUser ? Colors.white : textColor,
+              // Task 194: наPrimary через резолвер — в тёмной теме пузырь
+              // самок — яркая бирюза, белый текст давал 1.8:1.
+              color: isUser ? AppColorsResolver.onPrimary(context) : textColor,
               height: 1.4,
             ),
           ),
@@ -386,7 +388,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
               child: IconButton(
                 icon: Icon(
                   provider.isLoading ? Icons.hourglass_empty_rounded : Icons.send_rounded,
-                  color: Colors.white,
+                  color: AppColorsResolver.onPrimary(context),
                   size: 20,
                 ),
                 onPressed: provider.isLoading ? null : _sendMessage,
@@ -630,13 +632,13 @@ class _AiAssistantScreenState extends State<AiAssistantScreen>
             final isSelected = provider.mode == mode;
             final (icon, label) = _modeInfo(mode);
             return ChoiceChip(
-              avatar: Icon(icon, size: 16, color: isSelected ? Colors.white : secondary),
+              avatar: Icon(icon, size: 16, color: isSelected ? AppColorsResolver.onPrimary(context) : secondary),
               label: Text(label),
               selected: isSelected,
               onSelected: (_) => provider.setMode(mode),
               selectedColor: primary,
               labelStyle: AppTypography.footnote.copyWith(
-                color: isSelected ? Colors.white : secondary,
+                color: isSelected ? AppColorsResolver.onPrimary(context) : secondary,
               ),
             );
           }).toList(),

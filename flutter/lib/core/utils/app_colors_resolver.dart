@@ -39,4 +39,22 @@ class AppColorsResolver {
 
   static Color fillPrimary(BuildContext context) =>
       isDark(context) ? AppColors.darkFillPrimary : AppColors.fillPrimary;
+
+  // ── Task 194: семантика со тёмными значениями ─────────────────────
+  static Color success(BuildContext context) =>
+      isDark(context) ? AppColors.successDark : AppColors.success;
+
+  static Color warning(BuildContext context) =>
+      isDark(context) ? AppColors.warningDark : AppColors.warning;
+
+  static Color danger(BuildContext context) =>
+      isDark(context) ? AppColors.dangerDark : AppColors.danger;
+
+  static Color info(BuildContext context) =>
+      isDark(context) ? AppColors.infoDark : AppColors.info;
+
+  /// Чернила на фоне характера (primary/primaryLight):
+  /// светлая мята на бумажной бирюзе, тёмный ink на яркой ночной.
+  static Color onPrimary(BuildContext context) =>
+      isDark(context) ? AppColors.onPrimaryDark : AppColors.onPrimary;
 }

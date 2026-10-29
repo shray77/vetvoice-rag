@@ -1,0 +1,71 @@
+name: Golden regen
+
+# Task 194: канал регенерации голденов ветэко (тираж паттерна vetvoice
+# Task 191 / M-1). Дизайн/данные меняют пиксели (сетка видов 5->9,
+# тёмная семантика карточки дозы, шрифтовой пин) — пересъём через
+# workflow_dispatch; пин движка СОВПАДАЕТ с flutter-build.yml (3.27.0),
+# иначе тихий дрейф рендера (урок Task 176). Коммит [skip ci] не будит CI.
+# ВАЖНО: стёпы сборки (sync assets) должны повторять flutter-build.yml —
+# flutter/assets/data gitignored и наполняется из assets/data репо.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: golden-regen
+  cancel-in-progress: false
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: flutter
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sync Flutter assets
+        # pubspec.yaml references assets/data/, which is gitignored inside
+        # flutter/ — same step as flutter-build.yml
+        run: |
+          mkdir -p assets/data
+          cp -r ../assets/data/. assets/data/
+          echo "Synced $(ls -1 assets/data | wc -l) top-level asset entries"
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter (тот же пин, что в flutter-build.yml)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.0'
+          channel: stable
+          cache: true
+
+      - name: Download pub deps
+        run: flutter pub get
+
+      - name: Precache SDK fonts
+        # материал-шрифты нужны golden-тестам (FontLoader читает из кеша SDK)
+        run: flutter precache --universal
+
+      - name: Regenerate goldens
+        run: flutter test --update-goldens
+
+      - name: Commit and push new goldens
+        working-directory: .
+        run: |
+          git config user.name "goldens-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add flutter/test/golden/
+          git diff --cached --quiet && echo "Нет изменений голденов" && exit 0
+          git commit -m "chore: regen goldens [skip ci]"
+          git push

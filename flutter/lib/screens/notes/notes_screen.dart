@@ -224,7 +224,9 @@ class _NotesScreenState extends State<NotesScreen> with TickerProviderStateMixin
                 ),
                 child: Icon(
                   isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
-                  color: isListening ? Colors.white : primary,
+                  // Task 194: наPrimary — в тёмной теме кнопка яркая,
+                  // белый значок давал 1.8:1.
+                  color: isListening ? AppColorsResolver.onPrimary(context) : primary,
                   size: 36,
                 ),
               ),

@@ -40,6 +40,18 @@ class AppColors {
   static const Color info = DsLight.blue;
   static const Color infoContainer = Color(0xFFE1EAF2);
 
+  // Task 194: тёмные значения семантики (DsDark). Раньше прямые
+  // обращения к success/warning/danger/info из виджетов печатали
+  // светлые значения и в тёмной теме — контраст 2.3-2.8:1 и кремовые
+  // «острова» в карточках (полевой репорт по карточке дозы).
+  static const Color successDark = DsDark.green;
+  static const Color warningDark = DsDark.orange;
+  static const Color dangerDark = DsDark.red;
+  static const Color infoDark = DsDark.blue;
+  /// Чернила на ярком характере (DsDark.accent #2DD4BF): тёмный
+  /// акцентInk, НЕ белый (1.8:1) — Task 194.
+  static const Color onPrimaryDark = DsDark.accentInk;
+
   // ─── Apple-style system colors (kept for semantic clarity) ────────
   static const Color systemBlue = Color(0xFF007AFF);
   static const Color systemGreen = Color(0xFF34C759);
@@ -331,6 +343,12 @@ class AppTheme {
   /// Night mode — amber accent + pure black bg, reduces eye strain at night.
   static ThemeData get nightTheme => ThemeData(
     useMaterial3: true,
+    // Task 194: пин семейства тела текста (DS: Roboto). Раньше
+    // fontFamily не был задан — на не-Android платформах тело
+    // молча менялось, а «шрифты пляшут» фиксировались только
+    // золотыми тестами, где Roboto грузится принудительно.
+    fontFamily: Ds.sans,
+    fontFamilyFallback: const ['Roboto', 'HelveticaNeue', 'Arial'],
     brightness: Brightness.dark,
     colorScheme: const ColorScheme.dark(
       primary: DsDark.amber,
@@ -423,6 +441,12 @@ class AppTheme {
 
   static ThemeData get lightTheme => ThemeData(
     useMaterial3: true,
+    // Task 194: пин семейства тела текста (DS: Roboto). Раньше
+    // fontFamily не был задан — на не-Android платформах тело
+    // молча менялось, а «шрифты пляшут» фиксировались только
+    // золотыми тестами, где Roboto грузится принудительно.
+    fontFamily: Ds.sans,
+    fontFamilyFallback: const ['Roboto', 'HelveticaNeue', 'Arial'],
     brightness: Brightness.light,
     colorScheme: const ColorScheme.light(
       primary: AppColors.primary,
@@ -674,16 +698,24 @@ class AppTheme {
 
   static ThemeData get darkTheme => ThemeData(
     useMaterial3: true,
+    // Task 194: пин семейства тела текста (DS: Roboto). Раньше
+    // fontFamily не был задан — на не-Android платформах тело
+    // молча менялось, а «шрифты пляшут» фиксировались только
+    // золотыми тестами, где Roboto грузится принудительно.
+    fontFamily: Ds.sans,
+    fontFamilyFallback: const ['Roboto', 'HelveticaNeue', 'Arial'],
     brightness: Brightness.dark,
     colorScheme: const ColorScheme.dark(
       primary: AppColors.primaryLight,
-      onPrimary: AppColors.onPrimary,
+      // Task 194: чернила на яркой ночной бирюзе — тёмный ink
+      // (белый давал 1.8:1 на #2DD4BF).
+      onPrimary: AppColors.onPrimaryDark,
       primaryContainer: AppColors.primaryContainerDark,
-      onPrimaryContainer: AppColors.primaryContainer,
+      onPrimaryContainer: DsDark.accent,
       secondary: AppColors.primaryLight,
-      onSecondary: AppColors.onPrimary,
+      onSecondary: AppColors.onPrimaryDark,
       secondaryContainer: AppColors.primaryContainerDark,
-      onSecondaryContainer: AppColors.primaryContainer,
+      onSecondaryContainer: DsDark.accent,
       tertiary: DsDark.blue,
       surface: AppColors.darkSurface,
       onSurface: AppColors.darkTextPrimary,
@@ -805,7 +837,7 @@ class AppTheme {
         }),
         foregroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) return AppColors.darkTextTertiary;
-          return AppColors.onPrimary;
+          return AppColors.onPrimaryDark;
         }),
         padding: WidgetStateProperty.all(
           const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
