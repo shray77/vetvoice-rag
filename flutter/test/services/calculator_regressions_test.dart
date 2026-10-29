@@ -10,6 +10,7 @@
 //    противопоказания наверх (структурные флаги contraindications).
 // 4) RegistryDrug с animals:[] = «вид не указан», не «ни для кого».
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:veteco/models/drug_models.dart';
 import 'package:veteco/providers/vet_provider.dart';
 import 'package:veteco/services/data_load_service.dart';
@@ -40,6 +41,12 @@ CalcDrug _oxytocinLike() => CalcDrug.fromJson(const {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  // VetProvider асинхронно ходит в shared_preferences (история/избранное:
+  // _loadHistoryAndFavorites в конструкторе, _saveHistory при selectDrug
+  // с весом). Без мока канал плагина рвётся MissingPluginException, причём
+  // ошибка прилетает ПОСЛЕ завершения теста («failed after completed»)
+  // и валит прогоны regen/CI. Паттерн golden_all_screens_test.
+  SharedPreferences.setMockInitialValues({});
 
   group('searchDrugs — фиксированные дозы не прячутся', () {
     test('окситоцин (calculator_applicable=false + fixed_dose) находится', () {
