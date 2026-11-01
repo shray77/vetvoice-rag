@@ -112,11 +112,20 @@ jobs:
         # correct_dosages_reference.json (Plumb's).
         run: python3 scripts/validate_drug_db.py --reference assets/data/correct_dosages_reference.json
 
+      - name: Собрать flutter-копию баз (как перед сборкой APK)
+        # flutter/assets/data не в git (dedupe, .gitignore:77) — её всегда
+        # материализует CI из assets/data (шаг «Sync Flutter assets»
+        # flutter-build.yml делает тот же cp). Гейтам ниже нужна копия.
+        run: |
+          mkdir -p flutter/assets/data
+          cp -r assets/data/. flutter/assets/data/
+          echo "Скопировано верхнеуровневых записей: $(ls -1 flutter/assets/data | wc -l)"
+
       - name: DB-гейт flutter-копии (Task 224: приложение читает flutter/assets)
-        # Приложение грузит базы через rootBundle из flutter/assets/data —
-        # раньше эта копия не валидировалась ВООБЩЕ и разъехалась с
-        # каноном на 1012/2401 записей (фиксы доз Task 223 до приложения
-        # не дошли). Теперь она под тем же гейтом, что и корневая.
+        # Приложение грузит базы через rootBundle из flutter/assets/data,
+        # которую материализует CI. Раньше эта копия не валидировалась:
+        # гейт гонялся только по assets/data, а собранное приложение
+        # могло читать иное. Теперь она под тем же гейтом.
         run: python3 scripts/validate_drug_db.py --data-dir flutter/assets/data --reference flutter/assets/data/correct_dosages_reference.json
 
       - name: Синк-гейт трёх копий базы (Task 224)
