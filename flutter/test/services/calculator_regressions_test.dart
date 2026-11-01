@@ -266,8 +266,24 @@ void main() {
       p.selectConcentration(2);
       expect(p.selectedConcentrationIndex, 2);
       p.selectDrug(flexoprofen());
-      expect(p.selectedConcentrationIndex, 0);
+      // −1 = «фасовка не выбрана»: расчёт по concentration записи (50),
+      // а не по младшей фасовке variants[0] (25) — до фикса селектор
+      // предвыбирал вариант 0 и молча считал по 2,5%.
+      expect(p.selectedConcentrationIndex, -1);
+      expect(p.selectedConcentration, isNull);
       expect(p.result.volume, closeTo(30.0, 0.001));
+      expect(p.result.concentration, 50.0);
+    });
+
+    test('повторный тап по выбранной фасовке снимает выбор', () {
+      final p = readyProvider();
+      p.selectConcentration(0); // 2,5% = 25 мг/мл -> 60 мл
+      expect(p.result.volume, closeTo(60.0, 0.001));
+      p.selectConcentration(0); // повторный тап — возврат к дефолту записи
+      expect(p.selectedConcentrationIndex, -1);
+      expect(p.selectedConcentration, isNull);
+      expect(p.result.volume, closeTo(30.0, 0.001));
+      expect(p.result.concentration, 50.0);
     });
 
     test('одноконцентрационный препарат — селектора нет, override нет', () {

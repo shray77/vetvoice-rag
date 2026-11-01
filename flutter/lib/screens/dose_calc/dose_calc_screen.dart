@@ -320,6 +320,19 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
                 ),
             ],
           ),
+          // Task 224: −1 = фасовка не выбрана — расчёт идёт по
+          // concentration записи (дефолтная фасовка). Подсказка делает
+          // состояние явным: ни один чип не подсвечен, и это осознанный
+          // дефолт, а не «селектор сломался». Повторный тап по выбранному
+          // чипу возвращает сюда же.
+          if (provider.selectedConcentrationIndex < 0) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              'Не выбрано — расчёт по фасовке из записи препарата '
+              '(повторный тап по чипу снимает выбор)',
+              style: AppTypography.caption.copyWith(color: tertiary),
+            ),
+          ],
         ],
       ),
     );

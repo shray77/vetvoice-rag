@@ -23,10 +23,11 @@ class VetProvider extends ChangeNotifier {
   String _searchQuery = '';
 
   // Task 224 (вариант А): индекс выбранной фасовки мультиконцентрационного
-  // препарата (Флексопрофен 2,5/5/10%…). 0 — младшая фасовка из
-  // concentration_variants (она же дефолт в данных). Сбрасывается
-  // вместе с препаратом.
-  int _selectedConcentrationIndex = 0;
+  // препарата (Флексопрофен 2,5/5/10%…). −1 — «фасовка не выбрана»:
+  // расчёт по concentration записи (дефолтная фасовка в данных).
+  // Сбрасывается при смене препарата/животного; повторный тап по чипу
+  // снимает выбор (возврат к −1).
+  int _selectedConcentrationIndex = -1;
 
   // Task 194: состояние пациента — возраст + беременность/лактация.
   // Дозы в базах не дифференцированы по полу/возрасту, поэтому это НЕ
@@ -53,7 +54,8 @@ class VetProvider extends ChangeNotifier {
   int get selectedConcentrationIndex => _selectedConcentrationIndex;
 
   /// Концентрация выбранной фасовки — пробрасывается в calculateDose.
-  /// null, пока препарат одноконцентрационный (дефолт из данных).
+  /// null — препарат одноконцентрационный ИЛИ фасовка ещё не выбрана:
+  /// тогда расчёт идёт по concentration записи (дефолтная фасовка).
   double? get selectedConcentration {
     final variants = concentrationVariants;
     if (variants.length < 2) return null;
@@ -213,10 +215,13 @@ class VetProvider extends ChangeNotifier {
   }
 
   /// Выбрать фасовку флакона (Task 224, вариант А) и пересчитать.
+  /// Повторный тап по уже выбранной фасовке снимает выбор — возврат
+  /// к расчёту по фасовке из записи (concentration дефолтной фасовки).
   void selectConcentration(int index) {
     if (index < 0 || index >= concentrationVariants.length) return;
-    if (index == _selectedConcentrationIndex) return;
-    _selectedConcentrationIndex = index;
+    final next = (index == _selectedConcentrationIndex) ? -1 : index;
+    if (next == _selectedConcentrationIndex) return;
+    _selectedConcentrationIndex = next;
     if (_selectedCalcDrug != null && _weight > 0) {
       _recalculate();
     }
@@ -230,7 +235,8 @@ class VetProvider extends ChangeNotifier {
     _selectedRegistryDrug = null;
     _result = const DoseResult();
     _searchQuery = '';
-    _selectedConcentrationIndex = 0;
+    // Task 224: смена вида — выбор фасовки не переносится на новый препарат.
+    _selectedConcentrationIndex = -1;
     // Task 194: смена вида = новый пациент — состояние сбрасывается.
     _patientAge = '';
     _patientPregnant = false;
@@ -240,7 +246,9 @@ class VetProvider extends ChangeNotifier {
 
   /// Выбрать препарат
   void selectDrug(dynamic drug) {
-    _selectedConcentrationIndex = 0;
+    // Task 224: новый препарат — фасовка не выбрана (−1), расчёт по
+    // concentration записи, пока пользователь не ткнул чип.
+    _selectedConcentrationIndex = -1;
     if (drug is CalcDrug) {
       _selectedCalcDrug = drug;
       _selectedRegistryDrug = null;
@@ -407,6 +415,7 @@ class VetProvider extends ChangeNotifier {
     _weight = 0;
     _result = const DoseResult();
     _searchQuery = '';
+    _selectedConcentrationIndex = -1; // Task 224: полный сброс — и фасовка
     _patientAge = '';
     _patientPregnant = false;
     _patientLactating = false;
