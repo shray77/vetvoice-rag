@@ -121,7 +121,7 @@ jobs:
           cp -r assets/data/. flutter/assets/data/
           echo "Скопировано верхнеуровневых записей: $(ls -1 flutter/assets/data | wc -l)"
 
-      - name: DB-гейт flutter-копии (Task 224: приложение читает flutter/assets)
+      - name: "DB-гейт flutter-копии (Task 224: приложение читает flutter/assets)"
         # Приложение грузит базы через rootBundle из flutter/assets/data,
         # которую материализует CI. Раньше эта копия не валидировалась:
         # гейт гонялся только по assets/data, а собранное приложение
