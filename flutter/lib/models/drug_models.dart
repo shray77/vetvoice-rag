@@ -1,4 +1,30 @@
+/// Task 224: фасовка мультиконцентрационного препарата (вариант А).
+/// label — человеческая подпись из названия («5%»), concentration —
+/// мг/мл по RU-стандарту водных растворов (1% = 10 мг/мл).
+class ConcentrationVariant {
+  final String label;
+  final double concentration;
+
+  const ConcentrationVariant({required this.label, required this.concentration});
+
+  factory ConcentrationVariant.fromJson(Map<String, dynamic> json) {
+    return ConcentrationVariant(
+      label: json['label']?.toString() ?? '',
+      concentration: CalcDrug._parseDouble(json['concentration'], 0),
+    );
+  }
+}
+
 /// Модель препарата для расчёта дозировок
+///
+/// Task 224 (решение владельца «концентрации под RU, вариант А»):
+/// мультиконцентрационные препараты (Флексопрофен 2,5/5/10%, Энросепт
+/// 5/10%, Толфемакс 4/8%…) ранее несли ОДНУ концентрацию на все фасовки —
+/// для слабого флакона объём занижался в 2–4×, а ЭНРОСОЛ с conc=5000
+/// вместо 50/100 мг/мл — в 50×. Теперь в базе есть concentration_variants
+/// (фасовки по RU-стандарту %×10 = мг/мл), и калькулятор считает по
+/// выбранной пользователем фасовке; поле concentration остаётся
+/// дефолтной фасовкой (используется без выбора).
 class CalcDrug {
   final int id;
   final String name;
@@ -29,6 +55,10 @@ class CalcDrug {
   final String category;
   final String indications;
   final Map<String, AnimalSpecificDosage>? animalSpecific;
+  /// Task 224: фасовки мультиконцентрационного препарата
+  /// ({'label': '5%', 'concentration': 50.0}, …). Пусто у
+  /// одноконцентрационных записей — UI тогда не показывает выбор.
+  final List<ConcentrationVariant> concentrationVariants;
 
   const CalcDrug({
     required this.id,
@@ -56,6 +86,7 @@ class CalcDrug {
     this.category = '',
     this.indications = '',
     this.animalSpecific,
+    this.concentrationVariants = const [],
   });
 
   /// Безопасное извлечение числа из JSON (может быть String, int, double, null)
@@ -146,7 +177,26 @@ class CalcDrug {
       category: json['category'] as String? ?? '',
       indications: json['indications'] as String? ?? '',
       animalSpecific: specific,
+      concentrationVariants: _parseVariants(json['concentration_variants']),
     );
+  }
+
+  /// Task 224: [{label: '5%', concentration: 50.0}, …] → список фасовок.
+  /// Битые элементы пропускаем молча — выбор фасовки не должен рвать
+  /// загрузку всей базы.
+  static List<ConcentrationVariant> _parseVariants(dynamic value) {
+    if (value is! List<dynamic>) return const [];
+    final out = <ConcentrationVariant>[];
+    for (final e in value) {
+      if (e is Map<String, dynamic>) {
+        final label = e['label']?.toString() ?? '';
+        final conc = _parseDouble(e['concentration'], 0);
+        if (label.isNotEmpty && conc > 0) {
+          out.add(ConcentrationVariant(label: label, concentration: conc));
+        }
+      }
+    }
+    return out;
   }
 
   bool isForAnimal(String animalName) {

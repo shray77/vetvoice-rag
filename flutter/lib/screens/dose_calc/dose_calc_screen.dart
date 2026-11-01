@@ -234,7 +234,13 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
               child: _HighlightBox(
                 key: _resultKey,
                 border: _highlightBorder(4, step),
-                child: DoseResultCard(result: provider.result),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildConcentrationSelector(provider),
+                    DoseResultCard(result: provider.result),
+                  ],
+                ),
               ),
             )
           else if (provider.searchQuery.isNotEmpty)
@@ -273,6 +279,52 @@ class _DoseCalcScreenState extends State<DoseCalcScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // Task 224 (вариант А): выбор фасовки флакона —
+  // мультиконцентрационный препарат (Флексопрофен 2,5/5/10%…):
+  // объём = доза × вес ÷ концентрация, а фасовки у одного препарата
+  // разные. Раньше считалось по единственной conc из базы — слабый
+  // флакон занижал объём в 2–4× (ЭНРОСОЛ — в 50×). Показываем чипы
+  // «какой флакон в руке»; пересчёт — мгновенный.
+  Widget _buildConcentrationSelector(VetProvider provider) {
+    final variants = provider.concentrationVariants;
+    if (variants.length < 2) return const SizedBox.shrink();
+    final tertiary = AppColorsResolver.textTertiary(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.screenPadding,
+        AppSpacing.md,
+        AppSpacing.screenPadding,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Фасовка флакона',
+            style: AppTypography.sectionLabel.copyWith(color: tertiary),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (int i = 0; i < variants.length; i++)
+                ChoiceChip(
+                  label: Text(variants[i].label),
+                  selected: i == provider.selectedConcentrationIndex,
+                  onSelected: (_) {
+                    HapticHelper.selection();
+                    provider.selectConcentration(i);
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   // Step indicator (1 → 2 → 3 → 4)
   // ═══════════════════════════════════════════════════════════════════
 

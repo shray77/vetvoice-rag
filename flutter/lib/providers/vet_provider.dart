@@ -22,6 +22,12 @@ class VetProvider extends ChangeNotifier {
   DoseResult _result = const DoseResult();
   String _searchQuery = '';
 
+  // Task 224 (вариант А): индекс выбранной фасовки мультиконцентрационного
+  // препарата (Флексопрофен 2,5/5/10%…). 0 — младшая фасовка из
+  // concentration_variants (она же дефолт в данных). Сбрасывается
+  // вместе с препаратом.
+  int _selectedConcentrationIndex = 0;
+
   // Task 194: состояние пациента — возраст + беременность/лактация.
   // Дозы в базах не дифференцированы по полу/возрасту, поэтому это НЕ
   // корректор расчёта, а усилитель предупреждений: релевантные
@@ -38,6 +44,25 @@ class VetProvider extends ChangeNotifier {
   double get weight => _weight;
   DoseResult get result => _applyPatientWarnings(_result);
   String get searchQuery => _searchQuery;
+
+  /// Task 224: фасовки выбранного препарата (пусто — препарат
+  /// одноконцентрационный, выбора не показываем).
+  List<ConcentrationVariant> get concentrationVariants =>
+      _selectedCalcDrug?.concentrationVariants ?? const [];
+
+  int get selectedConcentrationIndex => _selectedConcentrationIndex;
+
+  /// Концентрация выбранной фасовки — пробрасывается в calculateDose.
+  /// null, пока препарат одноконцентрационный (дефолт из данных).
+  double? get selectedConcentration {
+    final variants = concentrationVariants;
+    if (variants.length < 2) return null;
+    if (_selectedConcentrationIndex < 0 ||
+        _selectedConcentrationIndex >= variants.length) {
+      return null;
+    }
+    return variants[_selectedConcentrationIndex].concentration;
+  }
 
   String get patientAge => _patientAge;
   bool get patientPregnant => _patientPregnant;
@@ -187,6 +212,17 @@ class VetProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Выбрать фасовку флакона (Task 224, вариант А) и пересчитать.
+  void selectConcentration(int index) {
+    if (index < 0 || index >= concentrationVariants.length) return;
+    if (index == _selectedConcentrationIndex) return;
+    _selectedConcentrationIndex = index;
+    if (_selectedCalcDrug != null && _weight > 0) {
+      _recalculate();
+    }
+    notifyListeners();
+  }
+
   /// Выбрать животное
   void selectAnimal(Animal animal) {
     _selectedAnimal = animal;
@@ -194,6 +230,7 @@ class VetProvider extends ChangeNotifier {
     _selectedRegistryDrug = null;
     _result = const DoseResult();
     _searchQuery = '';
+    _selectedConcentrationIndex = 0;
     // Task 194: смена вида = новый пациент — состояние сбрасывается.
     _patientAge = '';
     _patientPregnant = false;
@@ -203,6 +240,7 @@ class VetProvider extends ChangeNotifier {
 
   /// Выбрать препарат
   void selectDrug(dynamic drug) {
+    _selectedConcentrationIndex = 0;
     if (drug is CalcDrug) {
       _selectedCalcDrug = drug;
       _selectedRegistryDrug = null;
@@ -302,6 +340,7 @@ class VetProvider extends ChangeNotifier {
       _selectedCalcDrug!,
       _weight,
       animalName: _selectedAnimal?.name,
+      concentrationOverride: selectedConcentration,
     );
   }
 

@@ -24,6 +24,15 @@ verified_dosages был огрызком на 7 записей против 2 37
 
 Код выхода при --check: 0 — синхронно, 1 — есть рассинхрон, 2 — ошибка сети/чтения.
 Только стандартная библиотека.
+
+Task 224: база живёт в ТРЁХ копиях — vetvoice (канон), assets/data
+(Python-часть) и flutter/assets/data (само приложение). Раньше синк
+писал только в assets/data, а flutter-копия не обновлялась ВООБЩЕ:
+фиксы доз Task 223 (Флунекс 2.2, обнуление мусорных conc) до
+приложения не дошли — оно жило на старом слепке (1012/2401 записей
+отличались от канона) с живыми передозировками. Теперь SYNC/MERGE-
+файлы зеркалятся и во flutter/assets/data (байт-в-байт с assets/data),
+--check сверяет обе копии.
 """
 from __future__ import annotations
 
@@ -36,6 +45,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 DATA = REPO / "assets" / "data"
+# Task 224: зеркало для Flutter-приложения (гружится через rootBundle).
+FLUTTER_DATA = REPO / "flutter" / "assets" / "data"
 
 RAW_BASE = "https://raw.githubusercontent.com/shray77/vetvoice/main/assets/data"
 
@@ -146,6 +157,23 @@ def main() -> int:
                 if not args.check:
                     local_path.write_bytes(merged)
                 print(f"  {'MRG' if not args.check else 'DRIFT'} {rel}: смёржено с vetvoice")
+
+        # Task 224: зеркало тех же файлов во flutter/assets/data —
+        # иначе приложение остаётся на старом слепке базы (см. докстринг).
+        for rel in SYNC_FILES + MERGE_FILES:
+            src = DATA / rel
+            dst = FLUTTER_DATA / rel
+            if not src.exists():
+                continue
+            if not dst.exists() or md5(dst.read_bytes()) != md5(src.read_bytes()):
+                drift.append((f"flutter/{rel}", "зеркало flutter/assets разошлось"))
+                if not args.check:
+                    dst.parent.mkdir(parents=True, exist_ok=True)
+                    dst.write_bytes(src.read_bytes())
+                print(f"  {'MRF' if not args.check else 'DRIFT'} flutter/{rel}: "
+                      f"{'зеркалено из assets/data' if not args.check else 'нужно зеркало'}")
+            else:
+                print(f"  OK  flutter/{rel}")
     except Exception as e:  # noqa: BLE001
         print(f"ОШИБКА чтения источника: {e}", file=sys.stderr)
         return 2

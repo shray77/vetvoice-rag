@@ -111,3 +111,26 @@ jobs:
         # из vetvoice) против физио-пределов и кураторского
         # correct_dosages_reference.json (Plumb's).
         run: python3 scripts/validate_drug_db.py --reference assets/data/correct_dosages_reference.json
+
+      - name: DB-гейт flutter-копии (Task 224: приложение читает flutter/assets)
+        # Приложение грузит базы через rootBundle из flutter/assets/data —
+        # раньше эта копия не валидировалась ВООБЩЕ и разъехалась с
+        # каноном на 1012/2401 записей (фиксы доз Task 223 до приложения
+        # не дошли). Теперь она под тем же гейтом, что и корневая.
+        run: python3 scripts/validate_drug_db.py --data-dir flutter/assets/data --reference flutter/assets/data/correct_dosages_reference.json
+
+      - name: Синк-гейт трёх копий базы (Task 224)
+        # assets/data и flutter/assets/data обязаны совпадать байт-в-байт
+        # с каноном vetvoice (RAW GitHub). Первый прогон может поймать
+        # CDN-лаг raw после свежего пуша канона — потому одна повторная
+        # попытка через минуту, и только потом красный.
+        run: |
+          if python3 scripts/sync_drugs_from_vetvoice.py --check; then
+            exit 0
+          fi
+          echo "::warning::Первый прогон синк-гейта провален — ждём 60с (CDN-лаг raw) и повторяем"
+          sleep 60
+          python3 scripts/sync_drugs_from_vetvoice.py --check || {
+            echo "::error::Копии базы разошлись с каноном vetvoice — прогоните scripts/sync_drugs_from_vetvoice.py"
+            exit 1
+          }

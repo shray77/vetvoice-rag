@@ -195,4 +195,105 @@ void main() {
       expect(p.patientPregnant, isFalse);
     });
   });
+
+  // Task 224 (вариант А): мультиконцентрационные препараты — расчёт
+  // по выбранной фасовке. Синтетический «Флексопрофен 2,5/5/10%»:
+  // conc-дефолт 50 (5%), фасовки 25/50/100 мг/мл, доза 3 мг/кг, КРС 500 кг.
+  // Объём = 3 × 500 ÷ conc: 30 мл (5%), 15 мл (10%), 60 мл (2,5%).
+  group('Task 224 — выбор фасовки флакона', () {
+    CalcDrug flexoprofen() => CalcDrug.fromJson(const {
+          'id': 1618,
+          'name': 'Флексопрофен® 2,5%, 5% и 10%',
+          'inn': 'кетопрофен',
+          'form': 'Раствор для инъекций',
+          'concentration': 50.0,
+          'concentration_unit': 'мг/мл',
+          'dose_per_kg': 3,
+          'dose_unit': 'мг/кг',
+          'animals': ['КРС'],
+          'concentration_variants': [
+            {'label': '2,5%', 'concentration': 25.0},
+            {'label': '5%', 'concentration': 50.0},
+            {'label': '10%', 'concentration': 100.0},
+          ],
+        });
+
+    VetProvider readyProvider() {
+      final p = VetProvider();
+      p.selectAnimal(Animal.fromJson(const {
+        'id': 'cattle',
+        'name': 'КРС',
+        'icon': 'cattle',
+        'min_weight': 30,
+        'max_weight': 1500,
+      }));
+      p.setWeight(500);
+      p.selectDrug(flexoprofen());
+      return p;
+    }
+
+    test('варианты парсятся из concentration_variants', () {
+      final d = flexoprofen();
+      expect(d.concentrationVariants, hasLength(3));
+      expect(d.concentrationVariants[0].label, '2,5%');
+      expect(d.concentrationVariants[2].concentration, 100.0);
+    });
+
+    test('без выбора — дефолтная фасовка (30 мл на 5%)', () {
+      final p = readyProvider();
+      expect(p.selectedConcentration, isNull); // дефолт: 5% = conc записи
+      expect(p.result.volume, closeTo(30.0, 0.001));
+      expect(p.result.concentration, 50.0);
+    });
+
+    test('выбор фасовки 10% пересчитывает объём вдвое меньше', () {
+      final p = readyProvider();
+      p.selectConcentration(2); // 10% = 100 мг/мл
+      expect(p.selectedConcentration, 100.0);
+      expect(p.result.volume, closeTo(15.0, 0.001));
+      expect(p.result.concentration, 100.0);
+      expect(p.result.note, contains('100'));
+    });
+
+    test('выбор фасовки 2,5% — объём вчетверо больше дефолта', () {
+      final p = readyProvider();
+      p.selectConcentration(0); // 2,5% = 25 мг/мл
+      expect(p.result.volume, closeTo(60.0, 0.001));
+    });
+
+    test('смена препарата сбрасывает выбор фасовки', () {
+      final p = readyProvider();
+      p.selectConcentration(2);
+      expect(p.selectedConcentrationIndex, 2);
+      p.selectDrug(flexoprofen());
+      expect(p.selectedConcentrationIndex, 0);
+      expect(p.result.volume, closeTo(30.0, 0.001));
+    });
+
+    test('одноконцентрационный препарат — селектора нет, override нет', () {
+      final p = VetProvider();
+      p.selectAnimal(Animal.fromJson(const {
+        'id': 'cattle',
+        'name': 'КРС',
+        'icon': 'cattle',
+        'min_weight': 30,
+        'max_weight': 1500,
+      }));
+      p.setWeight(500);
+      p.selectDrug(CalcDrug.fromJson(const {
+        'id': 1978,
+        'name': 'Фуросемид 5%',
+        'inn': 'фуросемид',
+        'concentration': 50.0,
+        'concentration_unit': 'мг/мл',
+        'dose_per_kg': 2,
+        'dose_unit': 'мг/кг',
+        'animals': ['Собаки'],
+      }));
+      expect(p.concentrationVariants, isEmpty);
+      expect(p.selectedConcentration, isNull);
+      // 2 мг/кг × 500 кг — животное не из списка, но расчёт по общим полям
+      expect(p.result.volume, closeTo(20.0, 0.001));
+    });
+  });
 }

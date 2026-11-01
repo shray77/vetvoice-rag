@@ -514,8 +514,14 @@ class DataLoadService {
     }
   }
 
-  /// Рассчитать дозу для CalcDrug
-  DoseResult calculateDose(CalcDrug drug, double weight, {String? animalName}) {
+  /// Рассчитать дозу для CalcDrug.
+  ///
+  /// [concentrationOverride] — Task 224 (вариант А): концентрация выбранной
+  /// фасовки мультиконцентрационного препарата (Флексопрофен 2,5/5/10%…).
+  /// null/0 → дефолтная [CalcDrug.concentration]. Подставляется во все
+  /// ветки (мл/кг её игнорирует — там концентрация не участвует).
+  DoseResult calculateDose(CalcDrug drug, double weight,
+      {String? animalName, double? concentrationOverride}) {
     if (weight <= 0) {
       return DoseResult(
         drugName: drug.name,
@@ -573,6 +579,13 @@ class DataLoadService {
     // в/в (корова 400 кг) давал 3 мл вместо 300 мл (в 100× меньше),
     // Гельминтал С 0.1 мл/кг — 0.016 мл вместо пипетки 0.4 мл, а
     // «МЕ/кг ÷ мг/мл» — бессмысленные объёмы вроде 20 000 мл.
+    // Task 224: концентрация выбранной фасовки (вариант А) или дефолтная.
+    final double conc =
+        (concentrationOverride != null && concentrationOverride > 0)
+            ? concentrationOverride
+            : drug.concentration;
+    final String concUnit = drug.concentrationUnit;
+
     double volumeMl = 0;
     String note = '';
 
@@ -587,10 +600,10 @@ class DataLoadService {
         // единицах (мг/мл и т.п.) — объём не считаем: возвращаем дозу
         // без выдуманных пересчётов МЕ↔мг (нет единого коэффициента).
         final doseMe = dosePerKg * weight;
-        if (drug.concentration > 0 && drug.concentrationUnit == 'МЕ/мл') {
-          volumeMl = doseMe / drug.concentration;
+        if (conc > 0 && concUnit == 'МЕ/мл') {
+          volumeMl = doseMe / conc;
           note =
-              '$dosePerKg МЕ/кг × ${weight.toStringAsFixed(1)} кг ÷ ${drug.concentration} МЕ/мл';
+              '$dosePerKg МЕ/кг × ${weight.toStringAsFixed(1)} кг ÷ $conc МЕ/мл';
         } else {
           note = '$dosePerKg МЕ/кг × ${weight.toStringAsFixed(1)} кг = '
               '${doseMe.toStringAsFixed(0)} МЕ '
@@ -600,22 +613,22 @@ class DataLoadService {
         // мкг/кг делим на мг/мл только через точный пересчёт
         // 1 мг = 1000 мкг — иначе объём завышен в 1000× (Регостенол:
         // 0.96 мкг/кг при 0.25 мг/мл давал бы 1920 мл вместо 1.92 мл).
-        if (drug.concentration > 0 && drug.concentrationUnit == 'мг/мл') {
+        if (conc > 0 && concUnit == 'мг/мл') {
           final doseMg = dosePerKg * weight / 1000;
-          volumeMl = doseMg / drug.concentration;
+          volumeMl = doseMg / conc;
           note = '$dosePerKg мкг/кг × ${weight.toStringAsFixed(1)} кг ÷ '
-              '${drug.concentration} ${drug.concentrationUnit} (мкг→мг)';
+              '$conc $concUnit (мкг→мг)';
         } else {
           final doseMcg = dosePerKg * weight;
           note = '$dosePerKg мкг/кг × ${weight.toStringAsFixed(1)} кг = '
               '${doseMcg.toStringAsFixed(0)} мкг';
         }
-      } else if (drug.concentration > 0) {
+      } else if (conc > 0) {
         // мг/кг (и прочие «весовые» единицы) — как раньше.
         final doseMg = dosePerKg * weight;
-        volumeMl = doseMg / drug.concentration;
+        volumeMl = doseMg / conc;
         note =
-            '$dosePerKg $doseUnit × ${weight.toStringAsFixed(1)} кг ÷ ${drug.concentration} ${drug.concentrationUnit}';
+            '$dosePerKg $doseUnit × ${weight.toStringAsFixed(1)} кг ÷ $conc $concUnit';
       } else {
         final doseMg = dosePerKg * weight;
         note =
@@ -642,7 +655,7 @@ class DataLoadService {
       doseMax: doseMax,
       doseUnit: doseUnit,
       weight: weight,
-      concentration: drug.concentration,
+      concentration: conc,
     );
   }
 
