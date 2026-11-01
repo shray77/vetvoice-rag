@@ -564,20 +564,63 @@ class DataLoadService {
       );
     }
 
-    // Calculate volume
+    // Calculate volume.
+    //
+    // Task 223 (аудит SW-19 §4.1): ветки теперь выбираются по
+    // СОВМЕСТИМОСТИ единиц dose_unit и concentration_unit, а не по
+    // факту conc > 0. До фикса ветка «мг/кг × вес ÷ мг/мл» срабатывала
+    // первой даже для «мл/кг» и «МЕ/кг»: кальция борглюконат 0.75 мл/кг
+    // в/в (корова 400 кг) давал 3 мл вместо 300 мл (в 100× меньше),
+    // Гельминтал С 0.1 мл/кг — 0.016 мл вместо пипетки 0.4 мл, а
+    // «МЕ/кг ÷ мг/мл» — бессмысленные объёмы вроде 20 000 мл.
     double volumeMl = 0;
     String note = '';
 
-    if (drug.concentration > 0 && dosePerKg > 0) {
-      final doseMg = dosePerKg * weight;
-      volumeMl = doseMg / drug.concentration;
-      note = '$dosePerKg $doseUnit × ${weight.toStringAsFixed(1)} кг ÷ ${drug.concentration} ${drug.concentrationUnit}';
-    } else if (dosePerKg > 0 && drug.unit == 'мл/кг') {
-      volumeMl = dosePerKg * weight;
-      note = '$dosePerKg мл/кг × ${weight.toStringAsFixed(1)} кг';
-    } else if (dosePerKg > 0) {
-      final doseMg = dosePerKg * weight;
-      note = '$dosePerKg $doseUnit × ${weight.toStringAsFixed(1)} кг = ${doseMg.toStringAsFixed(1)} мг';
+    if (dosePerKg > 0) {
+      if (doseUnit == 'мл/кг') {
+        // Доза уже выражена в объёме на кг веса: концентрация не нужна
+        // и не участвует (независимо от conc > 0).
+        volumeMl = dosePerKg * weight;
+        note = '$dosePerKg мл/кг × ${weight.toStringAsFixed(1)} кг';
+      } else if (doseUnit == 'МЕ/кг') {
+        // МЕ можно делить только на МЕ/мл. Если концентрация в других
+        // единицах (мг/мл и т.п.) — объём не считаем: возвращаем дозу
+        // без выдуманных пересчётов МЕ↔мг (нет единого коэффициента).
+        final doseMe = dosePerKg * weight;
+        if (drug.concentration > 0 && drug.concentrationUnit == 'МЕ/мл') {
+          volumeMl = doseMe / drug.concentration;
+          note =
+              '$dosePerKg МЕ/кг × ${weight.toStringAsFixed(1)} кг ÷ ${drug.concentration} МЕ/мл';
+        } else {
+          note = '$dosePerKg МЕ/кг × ${weight.toStringAsFixed(1)} кг = '
+              '${doseMe.toStringAsFixed(0)} МЕ '
+              '(объём не рассчитан: концентрация не в МЕ/мл)';
+        }
+      } else if (doseUnit == 'мкг/кг') {
+        // мкг/кг делим на мг/мл только через точный пересчёт
+        // 1 мг = 1000 мкг — иначе объём завышен в 1000× (Регостенол:
+        // 0.96 мкг/кг при 0.25 мг/мл давал бы 1920 мл вместо 1.92 мл).
+        if (drug.concentration > 0 && drug.concentrationUnit == 'мг/мл') {
+          final doseMg = dosePerKg * weight / 1000;
+          volumeMl = doseMg / drug.concentration;
+          note = '$dosePerKg мкг/кг × ${weight.toStringAsFixed(1)} кг ÷ '
+              '${drug.concentration} ${drug.concentrationUnit} (мкг→мг)';
+        } else {
+          final doseMcg = dosePerKg * weight;
+          note = '$dosePerKg мкг/кг × ${weight.toStringAsFixed(1)} кг = '
+              '${doseMcg.toStringAsFixed(0)} мкг';
+        }
+      } else if (drug.concentration > 0) {
+        // мг/кг (и прочие «весовые» единицы) — как раньше.
+        final doseMg = dosePerKg * weight;
+        volumeMl = doseMg / drug.concentration;
+        note =
+            '$dosePerKg $doseUnit × ${weight.toStringAsFixed(1)} кг ÷ ${drug.concentration} ${drug.concentrationUnit}';
+      } else {
+        final doseMg = dosePerKg * weight;
+        note =
+            '$dosePerKg $doseUnit × ${weight.toStringAsFixed(1)} кг = ${doseMg.toStringAsFixed(1)} мг';
+      }
     }
 
     return DoseResult(

@@ -17,6 +17,16 @@ class DoseResultCard extends StatelessWidget {
     final textColor = AppColorsResolver.textPrimary(context);
     final secondaryTextColor = AppColorsResolver.textSecondary(context);
 
+    // Task 223: доза есть, но объём не считаем (МЕ/кг без conc в МЕ/мл,
+    // мг/кг без концентрации) — показываем честный текст дозы, а не
+    // «Дозировка не найдена в базе» (бейдж «Дозировка доступна» уже
+    // висит рядом — тексты противоречили друг другу).
+    final bool doseOnly = !result.hasError &&
+        !result.isFixedDose &&
+        result.hasDosage &&
+        result.volume <= 0 &&
+        result.note.isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
       child: Column(
@@ -71,6 +81,8 @@ class DoseResultCard extends StatelessWidget {
                   _buildFixedDoseSection(context)
                 else if (result.hasDosage && result.volume > 0)
                   _buildCalculatedDoseSection(context, secondaryTextColor)
+                else if (doseOnly)
+                  _buildDoseOnlySection(context)
                 else
                   _buildNoDoseSection(context),
 
@@ -141,7 +153,8 @@ class DoseResultCard extends StatelessWidget {
           ],
 
           // Note
-          if (result.note.isNotEmpty) ...[
+          // (doseOnly: примечание уже выведено основным блоком — без дубля)
+          if (result.note.isNotEmpty && !doseOnly) ...[
             const SizedBox(height: AppSpacing.sm),
             AppCard.tinted(
               tintColor: AppColorsResolver.tertiarySurface(context),
@@ -218,6 +231,51 @@ class DoseResultCard extends StatelessWidget {
             Text(
               'Диапазон: ${result.doseMin}-${result.doseMax} ${result.doseUnit}',
               style: AppTypography.caption1.copyWith(color: primary.withValues(alpha: 0.7)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Task 223: доза без объёма — например, «50 000 МЕ/кг × 20 кг =
+  /// 1 000 000 МЕ (объём не рассчитан: концентрация не в МЕ/мл)».
+  /// Тот же визуальный язык, что и у расчётной секции, но числом
+  /// служит текст дозы — объём не выдумываем.
+  Widget _buildDoseOnlySection(BuildContext context) {
+    final primary = AppColorsResolver.primary(context);
+    final primaryContainer = AppColorsResolver.primaryContainer(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: primaryContainer,
+        borderRadius: BorderRadius.circular(AppRadius.medium),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Доза (объём не рассчитан)',
+            style: AppTypography.caption1.copyWith(
+              color: primary,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            result.note,
+            style: AppTypography.title3.copyWith(color: primary),
+          ),
+          if (result.hasDoseRange) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Диапазон: ${result.doseMin}-${result.doseMax} ${result.doseUnit}',
+              style: AppTypography.caption1.copyWith(
+                color: primary.withValues(alpha: 0.7),
+              ),
             ),
           ],
         ],
